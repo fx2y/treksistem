@@ -73,3 +73,7 @@ export type NewNotificationLog = InferInsertModel<
 // Driver location types
 export type DriverLocation = InferSelectModel<typeof schema.driverLocations>;
 export type NewDriverLocation = InferInsertModel<typeof schema.driverLocations>;
+
+// Audit log types
+export type AuditLog = InferSelectModel<typeof schema.auditLogs>;
+export type NewAuditLog = InferInsertModel<typeof schema.auditLogs>;
