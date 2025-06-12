@@ -75,64 +75,62 @@ export class MitraService {
     mitraId: string,
     data: CreateServiceRequest
   ): Promise<ServiceResponse> {
-    return await this.db.transaction(async tx => {
-      const serviceId = nanoid();
+    const serviceId = nanoid();
 
-      // Insert service
-      await tx.insert(services).values({
-        id: serviceId,
-        mitraId,
-        name: data.name,
-        isPublic: data.isPublic,
-        maxRangeKm: data.maxRangeKm,
-      });
-
-      // Insert service rates
-      const rateId = nanoid();
-      await tx.insert(serviceRates).values({
-        id: rateId,
-        serviceId,
-        baseFee: data.rate.baseFee,
-        feePerKm: data.rate.feePerKm,
-      });
-
-      // Insert vehicle type relationships
-      if (data.supportedVehicleTypeIds.length > 0) {
-        await tx.insert(servicesToVehicleTypes).values(
-          data.supportedVehicleTypeIds.map(vehicleTypeId => ({
-            serviceId,
-            vehicleTypeId,
-          }))
-        );
-      }
-
-      // Insert payload type relationships
-      if (data.supportedPayloadTypeIds.length > 0) {
-        await tx.insert(servicesToPayloadTypes).values(
-          data.supportedPayloadTypeIds.map(payloadTypeId => ({
-            serviceId,
-            payloadTypeId,
-          }))
-        );
-      }
-
-      // Insert facility relationships
-      if (data.availableFacilityIds && data.availableFacilityIds.length > 0) {
-        await tx.insert(servicesToFacilities).values(
-          data.availableFacilityIds.map(facilityId => ({
-            serviceId,
-            facilityId,
-          }))
-        );
-      }
-
-      // Return the created service with related data
-      const createdService = await this.getServiceById(mitraId, serviceId);
-      if (!createdService) {
-        throw new Error("Failed to retrieve created service");
-      }
-      return createdService;
+    // Insert service
+    await this.db.insert(services).values({
+      id: serviceId,
+      mitraId,
+      name: data.name,
+      isPublic: data.isPublic,
+      maxRangeKm: data.maxRangeKm,
     });
+
+    // Insert service rates
+    const rateId = nanoid();
+    await this.db.insert(serviceRates).values({
+      id: rateId,
+      serviceId,
+      baseFee: data.rate.baseFee,
+      feePerKm: data.rate.feePerKm,
+    });
+
+    // Insert vehicle type relationships
+    if (data.supportedVehicleTypeIds.length > 0) {
+      await this.db.insert(servicesToVehicleTypes).values(
+        data.supportedVehicleTypeIds.map(vehicleTypeId => ({
+          serviceId,
+          vehicleTypeId,
+        }))
+      );
+    }
+
+    // Insert payload type relationships
+    if (data.supportedPayloadTypeIds.length > 0) {
+      await this.db.insert(servicesToPayloadTypes).values(
+        data.supportedPayloadTypeIds.map(payloadTypeId => ({
+          serviceId,
+          payloadTypeId,
+        }))
+      );
+    }
+
+    // Insert facility relationships
+    if (data.availableFacilityIds && data.availableFacilityIds.length > 0) {
+      await this.db.insert(servicesToFacilities).values(
+        data.availableFacilityIds.map(facilityId => ({
+          serviceId,
+          facilityId,
+        }))
+      );
+    }
+
+    // Return the created service with related data
+    const createdService = await this.getServiceById(mitraId, serviceId);
+    if (!createdService) {
+      throw new Error("Failed to retrieve created service");
+    }
+    return createdService;
   }
 
   async getServices(mitraId: string): Promise<ServiceResponse[]> {
@@ -342,96 +340,91 @@ export class MitraService {
     serviceId: string,
     data: UpdateServiceRequest
   ): Promise<ServiceResponse> {
-    return await this.db.transaction(async tx => {
-      // Update service if any service fields are provided
-      const serviceUpdateData: any = {};
-      if (data.name !== undefined) serviceUpdateData.name = data.name;
-      if (data.isPublic !== undefined)
-        serviceUpdateData.isPublic = data.isPublic;
-      if (data.maxRangeKm !== undefined)
-        serviceUpdateData.maxRangeKm = data.maxRangeKm;
+    // Update service if any service fields are provided
+    const serviceUpdateData: any = {};
+    if (data.name !== undefined) serviceUpdateData.name = data.name;
+    if (data.isPublic !== undefined) serviceUpdateData.isPublic = data.isPublic;
+    if (data.maxRangeKm !== undefined)
+      serviceUpdateData.maxRangeKm = data.maxRangeKm;
 
-      if (Object.keys(serviceUpdateData).length > 0) {
-        await tx
-          .update(services)
-          .set(serviceUpdateData)
-          .where(
-            and(eq(services.id, serviceId), eq(services.mitraId, mitraId))
-          );
+    if (Object.keys(serviceUpdateData).length > 0) {
+      await this.db
+        .update(services)
+        .set(serviceUpdateData)
+        .where(and(eq(services.id, serviceId), eq(services.mitraId, mitraId)));
+    }
+
+    // Update rates if provided
+    if (data.rate) {
+      await this.db
+        .update(serviceRates)
+        .set({
+          baseFee: data.rate.baseFee,
+          feePerKm: data.rate.feePerKm,
+        })
+        .where(eq(serviceRates.serviceId, serviceId));
+    }
+
+    // Update vehicle type relationships if provided
+    if (data.supportedVehicleTypeIds !== undefined) {
+      // Delete existing relationships
+      await this.db
+        .delete(servicesToVehicleTypes)
+        .where(eq(servicesToVehicleTypes.serviceId, serviceId));
+
+      // Insert new relationships
+      if (data.supportedVehicleTypeIds.length > 0) {
+        await this.db.insert(servicesToVehicleTypes).values(
+          data.supportedVehicleTypeIds.map(vehicleTypeId => ({
+            serviceId,
+            vehicleTypeId,
+          }))
+        );
       }
+    }
 
-      // Update rates if provided
-      if (data.rate) {
-        await tx
-          .update(serviceRates)
-          .set({
-            baseFee: data.rate.baseFee,
-            feePerKm: data.rate.feePerKm,
-          })
-          .where(eq(serviceRates.serviceId, serviceId));
+    // Update payload type relationships if provided
+    if (data.supportedPayloadTypeIds !== undefined) {
+      // Delete existing relationships
+      await this.db
+        .delete(servicesToPayloadTypes)
+        .where(eq(servicesToPayloadTypes.serviceId, serviceId));
+
+      // Insert new relationships
+      if (data.supportedPayloadTypeIds.length > 0) {
+        await this.db.insert(servicesToPayloadTypes).values(
+          data.supportedPayloadTypeIds.map(payloadTypeId => ({
+            serviceId,
+            payloadTypeId,
+          }))
+        );
       }
+    }
 
-      // Update vehicle type relationships if provided
-      if (data.supportedVehicleTypeIds !== undefined) {
-        // Delete existing relationships
-        await tx
-          .delete(servicesToVehicleTypes)
-          .where(eq(servicesToVehicleTypes.serviceId, serviceId));
+    // Update facility relationships if provided
+    if (data.availableFacilityIds !== undefined) {
+      // Delete existing relationships
+      await this.db
+        .delete(servicesToFacilities)
+        .where(eq(servicesToFacilities.serviceId, serviceId));
 
-        // Insert new relationships
-        if (data.supportedVehicleTypeIds.length > 0) {
-          await tx.insert(servicesToVehicleTypes).values(
-            data.supportedVehicleTypeIds.map(vehicleTypeId => ({
-              serviceId,
-              vehicleTypeId,
-            }))
-          );
-        }
+      // Insert new relationships
+      if (data.availableFacilityIds && data.availableFacilityIds.length > 0) {
+        await this.db.insert(servicesToFacilities).values(
+          data.availableFacilityIds.map(facilityId => ({
+            serviceId,
+            facilityId,
+          }))
+        );
       }
+    }
 
-      // Update payload type relationships if provided
-      if (data.supportedPayloadTypeIds !== undefined) {
-        // Delete existing relationships
-        await tx
-          .delete(servicesToPayloadTypes)
-          .where(eq(servicesToPayloadTypes.serviceId, serviceId));
-
-        // Insert new relationships
-        if (data.supportedPayloadTypeIds.length > 0) {
-          await tx.insert(servicesToPayloadTypes).values(
-            data.supportedPayloadTypeIds.map(payloadTypeId => ({
-              serviceId,
-              payloadTypeId,
-            }))
-          );
-        }
-      }
-
-      // Update facility relationships if provided
-      if (data.availableFacilityIds !== undefined) {
-        // Delete existing relationships
-        await tx
-          .delete(servicesToFacilities)
-          .where(eq(servicesToFacilities.serviceId, serviceId));
-
-        // Insert new relationships
-        if (data.availableFacilityIds && data.availableFacilityIds.length > 0) {
-          await tx.insert(servicesToFacilities).values(
-            data.availableFacilityIds.map(facilityId => ({
-              serviceId,
-              facilityId,
-            }))
-          );
-        }
-      }
-
-      // Return updated service
-      const updatedService = await this.getServiceById(mitraId, serviceId);
-      if (!updatedService) {
-        throw new Error("Service not found after update");
-      }
-      return updatedService;
-    });
+    // Return updated service
+    const updatedService = await this.getServiceById(mitraId, serviceId);
+    if (!updatedService) {
+      throw new Error("Service not found after update");
+    }
+    return updatedService;
   }
 
   async getMasterData(): Promise<MasterDataResponse> {

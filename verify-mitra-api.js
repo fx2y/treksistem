@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 const crypto = require('crypto');
 
-const API_BASE = 'http://localhost:8787';
-const JWT_SECRET = 'test-jwt-secret-32-characters-long-string'; // Match the test secret from wrangler
+const API_BASE = 'http://localhost:56146';
+const JWT_SECRET = 'test-jwt-secret-32-characters-long-string-for-verification'; // Match the test secret from wrangler
 
 // Generate proper JWT tokens for testing
 function createJWT(payload) {

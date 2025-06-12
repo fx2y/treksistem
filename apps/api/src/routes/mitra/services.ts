@@ -10,7 +10,7 @@ const createServiceSchema = z.object({
   maxRangeKm: z.number().positive().nullable(),
   supportedVehicleTypeIds: z.array(z.string()),
   supportedPayloadTypeIds: z.array(z.string()),
-  availableFacilityIds: z.array(z.string()).nullable(),
+  availableFacilityIds: z.array(z.string()).nullable().optional(),
   rate: z.object({
     baseFee: z.number().int().min(0),
     feePerKm: z.number().int().min(0),
