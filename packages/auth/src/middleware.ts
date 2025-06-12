@@ -1,6 +1,4 @@
 import type { User } from "@treksistem/db";
-import * as schema from "@treksistem/db";
-import { drizzle } from "drizzle-orm/d1";
 import type { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
 
@@ -17,10 +15,7 @@ declare module "hono" {
   }
 }
 
-export function createAuthMiddleware(
-  jwtService: JwtService,
-  db: ReturnType<typeof drizzle<typeof schema>>
-) {
+export function createAuthMiddleware(jwtService: JwtService, db: any) {
   async function requireAuth(c: Context, next: Next) {
     const token =
       getCookie(c, "access_token") ||
@@ -46,7 +41,7 @@ export function createAuthMiddleware(
     }
 
     const mitra = await db.query.mitras.findFirst({
-      where: (mitras, { eq }) => eq(mitras.userId, payload.userId),
+      where: (mitras: any, { eq }: any) => eq(mitras.userId, payload.userId),
     });
 
     if (!mitra) {
@@ -64,7 +59,7 @@ export function createAuthMiddleware(
     }
 
     const driver = await db.query.drivers.findFirst({
-      where: (drivers, { eq }) => eq(drivers.userId, payload.userId),
+      where: (drivers: any, { eq }: any) => eq(drivers.userId, payload.userId),
     });
 
     if (!driver) {
@@ -82,7 +77,7 @@ export function createAuthMiddleware(
     }
 
     const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, payload.userId),
+      where: (users: any, { eq }: any) => eq(users.id, payload.userId),
     });
 
     if (user?.role !== "admin") {
@@ -101,7 +96,7 @@ export function createAuthMiddleware(
     }
 
     const user = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, payload.userId),
+      where: (users: any, { eq }: any) => eq(users.id, payload.userId),
     });
 
     if (!user) {
@@ -110,12 +105,12 @@ export function createAuthMiddleware(
 
     // Check Mitra role
     const mitra = await db.query.mitras.findFirst({
-      where: (mitras, { eq }) => eq(mitras.userId, user.id),
+      where: (mitras: any, { eq }: any) => eq(mitras.userId, user.id),
     });
 
     // Check Driver role and associated Mitras
     const drivers = await db.query.drivers.findMany({
-      where: (drivers, { eq }) => eq(drivers.userId, user.id),
+      where: (drivers: any, { eq }: any) => eq(drivers.userId, user.id),
       with: {
         mitra: true,
       },
@@ -132,7 +127,7 @@ export function createAuthMiddleware(
         isMitra: !!mitra,
         mitraId: mitra?.id.toString() || null,
         isDriver: drivers.length > 0,
-        driverForMitras: drivers.map(d => ({
+        driverForMitras: drivers.map((d: any) => ({
           mitraId: d.mitra.id.toString(),
           businessName: d.mitra.businessName,
         })),

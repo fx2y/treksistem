@@ -6,7 +6,16 @@ import { Google } from "arctic";
 import { drizzle } from "drizzle-orm/d1";
 import { sign, verify } from "hono/jwt";
 import { nanoid } from "nanoid";
-import { Argon2id } from "oslo/password";
+// Using Web Crypto API instead of oslo/password for Cloudflare Workers compatibility
+
+// Simple hash function using Web Crypto API for token hashing
+async function generateHash(input: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
 import { createAuthMiddleware } from "./middleware";
 import type { JwtPayload } from "./types";
@@ -79,7 +88,7 @@ export function createAuthServices(env: AuthEnvironment): AuthServices {
   const refreshTokenService: RefreshTokenService = {
     createRefreshToken: async (_userId: string) => {
       const token = nanoid(32);
-      const hashedToken = await new Argon2id().hash(token);
+      const hashedToken = await generateHash(token);
       return { token, hashedToken };
     },
 
@@ -88,14 +97,15 @@ export function createAuthServices(env: AuthEnvironment): AuthServices {
       hashedToken: string
     ): Promise<boolean> => {
       try {
-        return await new Argon2id().verify(hashedToken, token);
+        const newHash = await generateHash(token);
+        return newHash === hashedToken;
       } catch {
         return false;
       }
     },
 
     generateTokenHash: async (token: string): Promise<string> => {
-      return new Argon2id().hash(token);
+      return generateHash(token);
     },
   };
 

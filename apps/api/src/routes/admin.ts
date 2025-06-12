@@ -6,10 +6,8 @@ import {
   masterFacilities,
   mitras,
   users,
-  auditLogs,
   driverInvites,
   services,
-  type NewAuditLog,
   type NewDriverInvite,
   type NewService,
 } from "@treksistem/db";
@@ -41,24 +39,22 @@ admin.use("*", async (c, next) => {
   return authMiddleware.requireAdminRole(c, next);
 });
 
-// Helper function to create audit log
-async function createAuditLog(
-  db: ReturnType<typeof createDbClient>,
+// Use centralized audit service
+async function logAdminAction(
+  auditService: any,
   adminUserId: string,
   targetEntity: string,
   targetId: string,
-  action: string,
+  action: "CREATE" | "UPDATE" | "DELETE" | "ASSIGN" | "INVITE",
   payload: Record<string, unknown>
 ) {
-  const auditData: NewAuditLog = {
-    actorId: adminUserId,
-    impersonatorId: adminUserId,
+  await auditService.logAdminAction({
+    adminUserId,
     targetEntity,
     targetId,
-    action: action as NewAuditLog["action"],
+    action,
     payload,
-  };
-  await db.insert(auditLogs).values(auditData);
+  });
 }
 
 // Get all mitras
@@ -141,10 +137,18 @@ admin.post("/master-data/:category", async c => {
   }
 
   const created = result[0];
-  await createAuditLog(db, payload.userId, category, created.id, "CREATE", {
-    name,
-    icon,
-  });
+  const { auditService } = c.get("authServices");
+  await logAdminAction(
+    auditService,
+    payload.userId,
+    category,
+    created.id,
+    "CREATE",
+    {
+      name,
+      icon,
+    }
+  );
 
   return c.json(created, 201);
 });
@@ -193,10 +197,18 @@ admin.put("/master-data/:category/:itemId", async c => {
     return c.json({ error: "Item not found" }, 404);
   }
 
-  await createAuditLog(db, payload.userId, category, itemId, "UPDATE", {
-    name,
-    icon,
-  });
+  const { auditService } = c.get("authServices");
+  await logAdminAction(
+    auditService,
+    payload.userId,
+    category,
+    itemId,
+    "UPDATE",
+    {
+      name,
+      icon,
+    }
+  );
 
   return c.json(result[0]);
 });
@@ -237,9 +249,17 @@ admin.delete("/master-data/:category/:itemId", async c => {
     return c.json({ error: "Item not found" }, 404);
   }
 
-  await createAuditLog(db, payload.userId, category, itemId, "DELETE", {
-    deletedItem: result[0],
-  });
+  const { auditService } = c.get("authServices");
+  await logAdminAction(
+    auditService,
+    payload.userId,
+    category,
+    itemId,
+    "DELETE",
+    {
+      deletedItem: result[0],
+    }
+  );
 
   return c.body(null, 204);
 });
@@ -274,10 +294,18 @@ admin.post("/mitras/:mitraId/services", async c => {
   const result = await db.insert(services).values(newService).returning();
   const created = result[0];
 
-  await createAuditLog(db, payload.userId, "service", created.id, "CREATE", {
-    mitraId,
-    ...serviceData,
-  });
+  const { auditService } = c.get("authServices");
+  await logAdminAction(
+    auditService,
+    payload.userId,
+    "service",
+    created.id,
+    "CREATE",
+    {
+      mitraId,
+      ...serviceData,
+    }
+  );
 
   return c.json(created, 201);
 });
@@ -318,8 +346,9 @@ admin.post("/mitras/:mitraId/drivers/invite", async c => {
   const result = await db.insert(driverInvites).values(newInvite).returning();
   const created = result[0];
 
-  await createAuditLog(
-    db,
+  const { auditService } = c.get("authServices");
+  await logAdminAction(
+    auditService,
     payload.userId,
     "driver_invite",
     created.id,
