@@ -1,0 +1,9 @@
+{
+  "name": "@treksistem/public-site",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Starting Public Site dev server...'",
+    "build": "echo 'Building Public Site...'"
+  }
+}

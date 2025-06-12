@@ -1,0 +1,10 @@
+{
+  "name": "@treksistem/auth",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "build": "echo 'No build step for auth package'"
+  }
+}

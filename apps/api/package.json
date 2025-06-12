@@ -1,0 +1,17 @@
+{
+  "name": "@treksistem/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev src/index.ts",
+    "deploy": "wrangler deploy",
+    "build": "echo 'Build step handled by wrangler deploy'"
+  },
+  "dependencies": {
+    "hono": "^4.4.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240512.0",
+    "wrangler": "^3.57.2"
+  }
+}

@@ -1,0 +1,21 @@
+# Dependencies
+node_modules
+
+# Build artifacts
+dist
+.next
+.svelte-kit
+
+# Logs
+*.log
+
+# Local Environment
+.env
+.wrangler/
+
+# Turbo
+.turbo
+
+# OS-specific
+.DS_Store
+Thumbs.db

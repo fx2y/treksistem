@@ -1,0 +1,18 @@
+name = "treksistem-api"
+main = "apps/api/dist/index.js"
+compatibility_date = "2024-05-30"
+
+[vars]
+# Placeholder for future environment variables
+
+# D1 Database binding for local development and remote deployment
+[[d1_databases]]
+binding = "DB"
+database_name = "treksistem-db-prod"
+database_id = "REPLACE_WITH_PROD_DB_ID"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "treksistem-db-preview"
+database_id = "REPLACE_WITH_PREVIEW_DB_ID"
+preview_database_id = "REPLACE_WITH_PREVIEW_DB_ID"

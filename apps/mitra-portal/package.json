@@ -1,0 +1,9 @@
+{
+  "name": "@treksistem/mitra-portal",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Starting Mitra Portal dev server...'",
+    "build": "echo 'Building Mitra Portal...'"
+  }
+}
