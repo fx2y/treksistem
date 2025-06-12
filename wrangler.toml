@@ -15,6 +15,7 @@ GOOGLE_CLIENT_ID = "test-client-id.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET = "test-client-secret"
 JWT_SECRET = "test-jwt-secret-32-characters-long-string-for-verification"
 R2_PUBLIC_URL = "https://pub-your-r2-public-url.r2.dev"
+UPLOAD_URL_EXPIRES_IN_SECONDS = "300"
 
 [secrets]
 R2_ACCOUNT_ID = ""

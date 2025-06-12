@@ -21,6 +21,7 @@ const app = new Hono<{
     R2_ACCESS_KEY_ID: string;
     R2_SECRET_ACCESS_KEY: string;
     R2_PUBLIC_URL: string;
+    UPLOAD_URL_EXPIRES_IN_SECONDS: string;
   };
   Variables: {
     authServices: ReturnType<typeof createAuthServices>;

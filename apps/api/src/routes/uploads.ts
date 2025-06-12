@@ -14,6 +14,7 @@ interface UploadsContext {
     R2_ACCESS_KEY_ID: string;
     R2_SECRET_ACCESS_KEY: string;
     R2_PUBLIC_URL: string;
+    UPLOAD_URL_EXPIRES_IN_SECONDS: string;
   };
   Variables: {
     userProfile?: {
@@ -65,10 +66,14 @@ uploads.post(
 
     const key = `reports/${mitraId}/${orderId}/${nanoid()}-${fileName}`;
 
+    const expiresInSeconds =
+      parseInt(c.env.UPLOAD_URL_EXPIRES_IN_SECONDS, 10) || 300;
+
     try {
       const { signedUrl, publicUrl } = await r2Service.generateUploadUrl({
         key,
         contentType,
+        expiresInSeconds,
       });
 
       return c.json({ signedUrl, publicUrl });
