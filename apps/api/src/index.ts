@@ -7,6 +7,7 @@ import driver from "./routes/driver";
 import mitra from "./routes/mitra";
 import notifications from "./routes/notifications";
 import pub from "./routes/public";
+import uploads from "./routes/uploads";
 
 const app = new Hono<{
   Bindings: {
@@ -15,6 +16,11 @@ const app = new Hono<{
     GOOGLE_CLIENT_SECRET: string;
     JWT_SECRET: string;
     FRONTEND_URL: string;
+    R2_BUCKET: R2Bucket;
+    R2_ACCOUNT_ID: string;
+    R2_ACCESS_KEY_ID: string;
+    R2_SECRET_ACCESS_KEY: string;
+    R2_PUBLIC_URL: string;
   };
   Variables: {
     authServices: ReturnType<typeof createAuthServices>;
@@ -46,5 +52,6 @@ app.route("/api/driver", driver);
 app.route("/api/admin", admin);
 app.route("/api/notifications", notifications);
 app.route("/api/public", pub);
+app.route("/api/uploads", uploads);
 
 export default app;

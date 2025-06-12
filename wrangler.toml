@@ -14,6 +14,12 @@ GOOGLE_REDIRECT_URI = "http://localhost:8787/api/auth/callback/google"
 GOOGLE_CLIENT_ID = "test-client-id.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET = "test-client-secret"
 JWT_SECRET = "test-jwt-secret-32-characters-long-string-for-verification"
+R2_PUBLIC_URL = "https://pub-your-r2-public-url.r2.dev"
+
+[secrets]
+R2_ACCOUNT_ID = ""
+R2_ACCESS_KEY_ID = ""
+R2_SECRET_ACCESS_KEY = ""
 
 # D1 Database binding for local development and remote deployment
 [[d1_databases]]
@@ -21,3 +27,8 @@ binding = "DB"
 database_name = "treksistem-db-local"
 database_id = "132903a7-4ca2-40a6-8900-a43fd0a89da4"
 migrations_dir = "packages/db/migrations"
+
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "treksistem-prod-report-photos"
+preview_bucket_name = "treksistem-dev-report-photos"
