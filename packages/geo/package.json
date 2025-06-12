@@ -9,14 +9,17 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{js,ts,tsx,json,md,css,html}\" --cache"
+    "format": "prettier --write \"src/**/*.{js,ts,tsx,json,md,css,html}\" --cache",
+    "test": "vitest run"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "vitest": "^3.2.3"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.0.0",
-    "hono": "^4.0.0"
+    "hono": "^4.0.0",
+    "zod": "^3.23.8"
   }
 }
