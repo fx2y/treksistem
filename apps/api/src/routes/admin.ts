@@ -294,9 +294,6 @@ admin.post("/mitras/:mitraId/services", async c => {
     name: serviceData.name,
     isPublic: serviceData.isPublic || false,
     maxRangeKm: serviceData.maxRangeKm,
-    supportedVehicleTypeIds: serviceData.supportedVehicleTypeIds,
-    supportedPayloadTypeIds: serviceData.supportedPayloadTypeIds,
-    availableFacilityIds: serviceData.availableFacilityIds,
   };
 
   const result = await db.insert(services).values(newService).returning();
