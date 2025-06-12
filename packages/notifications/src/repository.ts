@@ -26,7 +26,7 @@ export interface NotificationLog {
 }
 
 export class TemplateRepository {
-  constructor(private db: DrizzleD1Database<any>) {}
+  constructor(private db: DrizzleD1Database<Record<string, unknown>>) {}
 
   async findByTypeAndLanguage(
     type: NotificationType,
@@ -101,7 +101,7 @@ export class TemplateRepository {
 }
 
 export class LogRepository {
-  constructor(private db: DrizzleD1Database<any>) {}
+  constructor(private db: DrizzleD1Database<Record<string, unknown>>) {}
 
   async create(log: {
     orderId: string;
@@ -131,7 +131,7 @@ export class LogRepository {
     id: string,
     status: "generated" | "triggered" | "failed"
   ): Promise<void> {
-    const updates: any = { status };
+    const updates: Record<string, unknown> = { status };
 
     if (status === "triggered") {
       updates.triggeredAt = new Date();

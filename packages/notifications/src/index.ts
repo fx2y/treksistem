@@ -14,7 +14,7 @@ export class NotificationService {
   private templateRepo: TemplateRepository;
   private logRepo: LogRepository;
 
-  constructor(private db: DrizzleD1Database<any>) {
+  constructor(private db: DrizzleD1Database<Record<string, unknown>>) {
     this.templateRepo = new TemplateRepository(db);
     this.logRepo = new LogRepository(db);
   }
@@ -79,7 +79,7 @@ export class NotificationService {
 
 // Legacy compatibility function
 export async function generateNotification(
-  db: DrizzleD1Database<any>,
+  db: DrizzleD1Database<Record<string, unknown>>,
   type: NotificationType,
   payload: NotificationPayload
 ): Promise<{
