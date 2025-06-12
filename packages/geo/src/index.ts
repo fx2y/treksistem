@@ -1,34 +1,27 @@
 import {
+  CoordinateSchema,
   OsrmRouteResponseSchema,
   type Coordinate,
   type DistanceResult,
-} from "./types";
+} from "./types.js";
 
-const OSRM_BASE_URL = "http://router.project-osrm.org";
+const OSRM_API_BASE_URL = "http://router.project-osrm.org";
 
 export async function getDistance(
   origin: Coordinate,
   destination: Coordinate
 ): Promise<DistanceResult> {
-  // Validate coordinates
-  if (
-    origin.lat < -90 ||
-    origin.lat > 90 ||
-    destination.lat < -90 ||
-    destination.lat > 90
-  ) {
+  const originValidation = CoordinateSchema.safeParse(origin);
+  if (!originValidation.success) {
     throw new Error(
-      "Invalid coordinates provided: latitude must be between -90 and 90"
+      "Invalid origin coordinates: latitude must be between -90 and 90, longitude must be between -180 and 180"
     );
   }
-  if (
-    origin.lng < -180 ||
-    origin.lng > 180 ||
-    destination.lng < -180 ||
-    destination.lng > 180
-  ) {
+
+  const destinationValidation = CoordinateSchema.safeParse(destination);
+  if (!destinationValidation.success) {
     throw new Error(
-      "Invalid coordinates provided: longitude must be between -180 and 180"
+      "Invalid destination coordinates: latitude must be between -90 and 90, longitude must be between -180 and 180"
     );
   }
 
@@ -36,7 +29,7 @@ export async function getDistance(
   const timeoutId = setTimeout(() => controller.abort(), 5000);
 
   try {
-    const url = `${OSRM_BASE_URL}/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false`;
+    const url = `${OSRM_API_BASE_URL}/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false`;
 
     const response = await fetch(url, {
       signal: controller.signal,
