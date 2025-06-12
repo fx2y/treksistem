@@ -1,12 +1,15 @@
-import type { Database } from "@treksistem/db";
+import type { DbClient as Database } from "@treksistem/db";
 import {
   services,
   serviceRates,
+  servicesToVehicleTypes,
+  servicesToPayloadTypes,
+  servicesToFacilities,
   masterVehicleTypes,
   masterPayloadTypes,
   masterFacilities,
 } from "@treksistem/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 export interface CreateServiceRequest {
@@ -41,14 +44,22 @@ export interface ServiceResponse {
   name: string;
   isPublic: boolean;
   maxRangeKm: number | null;
-  supportedVehicleTypeIds: string[];
-  supportedPayloadTypeIds: string[];
-  availableFacilityIds: string[] | null;
   rate: {
     id: string;
     baseFee: number;
     feePerKm: number;
   };
+  supportedVehicleTypes: Array<{
+    id: string;
+    name: string;
+    icon: string | null;
+  }>;
+  supportedPayloadTypes: Array<{
+    id: string;
+    name: string;
+    icon: string | null;
+  }>;
+  availableFacilities: Array<{ id: string; name: string; icon: string | null }>;
 }
 
 export interface MasterDataResponse {
@@ -74,9 +85,6 @@ export class MitraService {
         name: data.name,
         isPublic: data.isPublic,
         maxRangeKm: data.maxRangeKm,
-        supportedVehicleTypeIds: data.supportedVehicleTypeIds,
-        supportedPayloadTypeIds: data.supportedPayloadTypeIds,
-        availableFacilityIds: data.availableFacilityIds,
       });
 
       // Insert service rates
@@ -88,26 +96,47 @@ export class MitraService {
         feePerKm: data.rate.feePerKm,
       });
 
-      return {
-        id: serviceId,
-        mitraId,
-        name: data.name,
-        isPublic: data.isPublic,
-        maxRangeKm: data.maxRangeKm,
-        supportedVehicleTypeIds: data.supportedVehicleTypeIds,
-        supportedPayloadTypeIds: data.supportedPayloadTypeIds,
-        availableFacilityIds: data.availableFacilityIds,
-        rate: {
-          id: rateId,
-          baseFee: data.rate.baseFee,
-          feePerKm: data.rate.feePerKm,
-        },
-      };
+      // Insert vehicle type relationships
+      if (data.supportedVehicleTypeIds.length > 0) {
+        await tx.insert(servicesToVehicleTypes).values(
+          data.supportedVehicleTypeIds.map(vehicleTypeId => ({
+            serviceId,
+            vehicleTypeId,
+          }))
+        );
+      }
+
+      // Insert payload type relationships
+      if (data.supportedPayloadTypeIds.length > 0) {
+        await tx.insert(servicesToPayloadTypes).values(
+          data.supportedPayloadTypeIds.map(payloadTypeId => ({
+            serviceId,
+            payloadTypeId,
+          }))
+        );
+      }
+
+      // Insert facility relationships
+      if (data.availableFacilityIds && data.availableFacilityIds.length > 0) {
+        await tx.insert(servicesToFacilities).values(
+          data.availableFacilityIds.map(facilityId => ({
+            serviceId,
+            facilityId,
+          }))
+        );
+      }
+
+      // Return the created service with related data
+      const createdService = await this.getServiceById(mitraId, serviceId);
+      if (!createdService) {
+        throw new Error("Failed to retrieve created service");
+      }
+      return createdService;
     });
   }
 
   async getServices(mitraId: string): Promise<ServiceResponse[]> {
-    const result = await this.db
+    const servicesWithRates = await this.db
       .select({
         service: services,
         rate: serviceRates,
@@ -116,20 +145,111 @@ export class MitraService {
       .leftJoin(serviceRates, eq(services.id, serviceRates.serviceId))
       .where(eq(services.mitraId, mitraId));
 
-    return result.map(row => ({
+    if (servicesWithRates.length === 0) {
+      return [];
+    }
+
+    // Get related data for all services
+    const serviceIds = servicesWithRates.map(row => row.service.id);
+
+    const [vehicleTypeLinks, payloadTypeLinks, facilityLinks] =
+      await Promise.all([
+        this.db
+          .select({
+            serviceId: servicesToVehicleTypes.serviceId,
+            vehicleType: masterVehicleTypes,
+          })
+          .from(servicesToVehicleTypes)
+          .innerJoin(
+            masterVehicleTypes,
+            eq(servicesToVehicleTypes.vehicleTypeId, masterVehicleTypes.id)
+          )
+          .where(inArray(servicesToVehicleTypes.serviceId, serviceIds)),
+        this.db
+          .select({
+            serviceId: servicesToPayloadTypes.serviceId,
+            payloadType: masterPayloadTypes,
+          })
+          .from(servicesToPayloadTypes)
+          .innerJoin(
+            masterPayloadTypes,
+            eq(servicesToPayloadTypes.payloadTypeId, masterPayloadTypes.id)
+          )
+          .where(inArray(servicesToPayloadTypes.serviceId, serviceIds)),
+        this.db
+          .select({
+            serviceId: servicesToFacilities.serviceId,
+            facility: masterFacilities,
+          })
+          .from(servicesToFacilities)
+          .innerJoin(
+            masterFacilities,
+            eq(servicesToFacilities.facilityId, masterFacilities.id)
+          )
+          .where(inArray(servicesToFacilities.serviceId, serviceIds)),
+      ]);
+
+    // Group by service ID
+    const vehicleTypesByService = new Map<
+      string,
+      Array<{ id: string; name: string; icon: string | null }>
+    >();
+    const payloadTypesByService = new Map<
+      string,
+      Array<{ id: string; name: string; icon: string | null }>
+    >();
+    const facilitiesByService = new Map<
+      string,
+      Array<{ id: string; name: string; icon: string | null }>
+    >();
+
+    vehicleTypeLinks.forEach(link => {
+      if (!vehicleTypesByService.has(link.serviceId)) {
+        vehicleTypesByService.set(link.serviceId, []);
+      }
+      vehicleTypesByService.get(link.serviceId)!.push({
+        id: link.vehicleType.id,
+        name: link.vehicleType.name,
+        icon: link.vehicleType.icon,
+      });
+    });
+
+    payloadTypeLinks.forEach(link => {
+      if (!payloadTypesByService.has(link.serviceId)) {
+        payloadTypesByService.set(link.serviceId, []);
+      }
+      payloadTypesByService.get(link.serviceId)!.push({
+        id: link.payloadType.id,
+        name: link.payloadType.name,
+        icon: link.payloadType.icon,
+      });
+    });
+
+    facilityLinks.forEach(link => {
+      if (!facilitiesByService.has(link.serviceId)) {
+        facilitiesByService.set(link.serviceId, []);
+      }
+      facilitiesByService.get(link.serviceId)!.push({
+        id: link.facility.id,
+        name: link.facility.name,
+        icon: link.facility.icon,
+      });
+    });
+
+    return servicesWithRates.map(row => ({
       id: row.service.id,
       mitraId: row.service.mitraId,
       name: row.service.name,
       isPublic: row.service.isPublic,
       maxRangeKm: row.service.maxRangeKm,
-      supportedVehicleTypeIds: row.service.supportedVehicleTypeIds || [],
-      supportedPayloadTypeIds: row.service.supportedPayloadTypeIds || [],
-      availableFacilityIds: row.service.availableFacilityIds || [],
       rate: {
         id: row.rate?.id || "",
         baseFee: row.rate?.baseFee || 0,
         feePerKm: row.rate?.feePerKm || 0,
       },
+      supportedVehicleTypes: vehicleTypesByService.get(row.service.id) || [],
+      supportedPayloadTypes: payloadTypesByService.get(row.service.id) || [],
+      availableFacilities: facilitiesByService.get(row.service.id) || [],
     }));
   }
 
@@ -152,20 +272,68 @@ export class MitraService {
     }
 
     const row = result[0];
+
+    // Get related data for this service
+    const [vehicleTypeLinks, payloadTypeLinks, facilityLinks] =
+      await Promise.all([
+        this.db
+          .select({
+            vehicleType: masterVehicleTypes,
+          })
+          .from(servicesToVehicleTypes)
+          .innerJoin(
+            masterVehicleTypes,
+            eq(servicesToVehicleTypes.vehicleTypeId, masterVehicleTypes.id)
+          )
+          .where(eq(servicesToVehicleTypes.serviceId, serviceId)),
+        this.db
+          .select({
+            payloadType: masterPayloadTypes,
+          })
+          .from(servicesToPayloadTypes)
+          .innerJoin(
+            masterPayloadTypes,
+            eq(servicesToPayloadTypes.payloadTypeId, masterPayloadTypes.id)
+          )
+          .where(eq(servicesToPayloadTypes.serviceId, serviceId)),
+        this.db
+          .select({
+            facility: masterFacilities,
+          })
+          .from(servicesToFacilities)
+          .innerJoin(
+            masterFacilities,
+            eq(servicesToFacilities.facilityId, masterFacilities.id)
+          )
+          .where(eq(servicesToFacilities.serviceId, serviceId)),
+      ]);
+
     return {
       id: row.service.id,
       mitraId: row.service.mitraId,
       name: row.service.name,
       isPublic: row.service.isPublic,
       maxRangeKm: row.service.maxRangeKm,
-      supportedVehicleTypeIds: row.service.supportedVehicleTypeIds || [],
-      supportedPayloadTypeIds: row.service.supportedPayloadTypeIds || [],
-      availableFacilityIds: row.service.availableFacilityIds || [],
       rate: {
         id: row.rate?.id || "",
         baseFee: row.rate?.baseFee || 0,
         feePerKm: row.rate?.feePerKm || 0,
       },
+      supportedVehicleTypes: vehicleTypeLinks.map(link => ({
+        id: link.vehicleType.id,
+        name: link.vehicleType.name,
+        icon: link.vehicleType.icon,
+      })),
+      supportedPayloadTypes: payloadTypeLinks.map(link => ({
+        id: link.payloadType.id,
+        name: link.payloadType.name,
+        icon: link.payloadType.icon,
+      })),
+      availableFacilities: facilityLinks.map(link => ({
+        id: link.facility.id,
+        name: link.facility.name,
+        icon: link.facility.icon,
+      })),
     };
   }
 
@@ -182,14 +350,6 @@ export class MitraService {
         serviceUpdateData.isPublic = data.isPublic;
       if (data.maxRangeKm !== undefined)
         serviceUpdateData.maxRangeKm = data.maxRangeKm;
-      if (data.supportedVehicleTypeIds !== undefined)
-        serviceUpdateData.supportedVehicleTypeIds =
-          data.supportedVehicleTypeIds;
-      if (data.supportedPayloadTypeIds !== undefined)
-        serviceUpdateData.supportedPayloadTypeIds =
-          data.supportedPayloadTypeIds;
-      if (data.availableFacilityIds !== undefined)
-        serviceUpdateData.availableFacilityIds = data.availableFacilityIds;
 
       if (Object.keys(serviceUpdateData).length > 0) {
         await tx
@@ -209,6 +369,60 @@ export class MitraService {
             feePerKm: data.rate.feePerKm,
           })
           .where(eq(serviceRates.serviceId, serviceId));
+      }
+
+      // Update vehicle type relationships if provided
+      if (data.supportedVehicleTypeIds !== undefined) {
+        // Delete existing relationships
+        await tx
+          .delete(servicesToVehicleTypes)
+          .where(eq(servicesToVehicleTypes.serviceId, serviceId));
+
+        // Insert new relationships
+        if (data.supportedVehicleTypeIds.length > 0) {
+          await tx.insert(servicesToVehicleTypes).values(
+            data.supportedVehicleTypeIds.map(vehicleTypeId => ({
+              serviceId,
+              vehicleTypeId,
+            }))
+          );
+        }
+      }
+
+      // Update payload type relationships if provided
+      if (data.supportedPayloadTypeIds !== undefined) {
+        // Delete existing relationships
+        await tx
+          .delete(servicesToPayloadTypes)
+          .where(eq(servicesToPayloadTypes.serviceId, serviceId));
+
+        // Insert new relationships
+        if (data.supportedPayloadTypeIds.length > 0) {
+          await tx.insert(servicesToPayloadTypes).values(
+            data.supportedPayloadTypeIds.map(payloadTypeId => ({
+              serviceId,
+              payloadTypeId,
+            }))
+          );
+        }
+      }
+
+      // Update facility relationships if provided
+      if (data.availableFacilityIds !== undefined) {
+        // Delete existing relationships
+        await tx
+          .delete(servicesToFacilities)
+          .where(eq(servicesToFacilities.serviceId, serviceId));
+
+        // Insert new relationships
+        if (data.availableFacilityIds && data.availableFacilityIds.length > 0) {
+          await tx.insert(servicesToFacilities).values(
+            data.availableFacilityIds.map(facilityId => ({
+              serviceId,
+              facilityId,
+            }))
+          );
+        }
       }
 
       // Return updated service

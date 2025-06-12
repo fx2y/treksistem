@@ -154,16 +154,62 @@ export const services = sqliteTable("services", {
   name: text("name").notNull(),
   isPublic: integer("is_public", { mode: "boolean" }).notNull().default(false),
   maxRangeKm: real("max_range_km"),
-  supportedVehicleTypeIds: text("supported_vehicle_type_ids", {
-    mode: "json",
-  }).$type<string[]>(),
-  supportedPayloadTypeIds: text("supported_payload_type_ids", {
-    mode: "json",
-  }).$type<string[]>(),
-  availableFacilityIds: text("available_facility_ids", { mode: "json" }).$type<
-    string[]
-  >(),
 });
+
+// Many-to-many link tables for services
+export const servicesToVehicleTypes = sqliteTable(
+  "services_to_vehicle_types",
+  {
+    serviceId: text("service_id")
+      .notNull()
+      .references(() => services.id, { onDelete: "cascade" }),
+    vehicleTypeId: text("vehicle_type_id")
+      .notNull()
+      .references(() => masterVehicleTypes.id, { onDelete: "cascade" }),
+  },
+  table => ({
+    pk: index("services_to_vehicle_types_pk").on(
+      table.serviceId,
+      table.vehicleTypeId
+    ),
+  })
+);
+
+export const servicesToPayloadTypes = sqliteTable(
+  "services_to_payload_types",
+  {
+    serviceId: text("service_id")
+      .notNull()
+      .references(() => services.id, { onDelete: "cascade" }),
+    payloadTypeId: text("payload_type_id")
+      .notNull()
+      .references(() => masterPayloadTypes.id, { onDelete: "cascade" }),
+  },
+  table => ({
+    pk: index("services_to_payload_types_pk").on(
+      table.serviceId,
+      table.payloadTypeId
+    ),
+  })
+);
+
+export const servicesToFacilities = sqliteTable(
+  "services_to_facilities",
+  {
+    serviceId: text("service_id")
+      .notNull()
+      .references(() => services.id, { onDelete: "cascade" }),
+    facilityId: text("facility_id")
+      .notNull()
+      .references(() => masterFacilities.id, { onDelete: "cascade" }),
+  },
+  table => ({
+    pk: index("services_to_facilities_pk").on(
+      table.serviceId,
+      table.facilityId
+    ),
+  })
+);
 
 // Service rates table - pricing model
 export const serviceRates = sqliteTable("service_rates", {
@@ -419,7 +465,73 @@ export const servicesRelations = relations(services, ({ one, many }) => ({
   }),
   serviceRates: many(serviceRates),
   orders: many(orders),
+  vehicleTypes: many(servicesToVehicleTypes),
+  payloadTypes: many(servicesToPayloadTypes),
+  facilities: many(servicesToFacilities),
 }));
+
+export const servicesToVehicleTypesRelations = relations(
+  servicesToVehicleTypes,
+  ({ one }) => ({
+    service: one(services, {
+      fields: [servicesToVehicleTypes.serviceId],
+      references: [services.id],
+    }),
+    vehicleType: one(masterVehicleTypes, {
+      fields: [servicesToVehicleTypes.vehicleTypeId],
+      references: [masterVehicleTypes.id],
+    }),
+  })
+);
+
+export const servicesToPayloadTypesRelations = relations(
+  servicesToPayloadTypes,
+  ({ one }) => ({
+    service: one(services, {
+      fields: [servicesToPayloadTypes.serviceId],
+      references: [services.id],
+    }),
+    payloadType: one(masterPayloadTypes, {
+      fields: [servicesToPayloadTypes.payloadTypeId],
+      references: [masterPayloadTypes.id],
+    }),
+  })
+);
+
+export const servicesToFacilitiesRelations = relations(
+  servicesToFacilities,
+  ({ one }) => ({
+    service: one(services, {
+      fields: [servicesToFacilities.serviceId],
+      references: [services.id],
+    }),
+    facility: one(masterFacilities, {
+      fields: [servicesToFacilities.facilityId],
+      references: [masterFacilities.id],
+    }),
+  })
+);
+
+export const masterVehicleTypesRelations = relations(
+  masterVehicleTypes,
+  ({ many }) => ({
+    services: many(servicesToVehicleTypes),
+  })
+);
+
+export const masterPayloadTypesRelations = relations(
+  masterPayloadTypes,
+  ({ many }) => ({
+    services: many(servicesToPayloadTypes),
+  })
+);
+
+export const masterFacilitiesRelations = relations(
+  masterFacilities,
+  ({ many }) => ({
+    services: many(servicesToFacilities),
+  })
+);
 
 export const serviceRatesRelations = relations(serviceRates, ({ one }) => ({
   service: one(services, {

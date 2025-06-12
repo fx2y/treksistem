@@ -2,6 +2,9 @@
 export * from "./schema/index";
 export * from "./client";
 
+// Export database type as Database for backward compatibility
+export type { DbClient as Database } from "./client";
+
 // Inferred types for all tables
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
