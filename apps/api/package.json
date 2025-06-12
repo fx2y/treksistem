@@ -12,6 +12,7 @@
   "dependencies": {
     "@treksistem/auth": "workspace:*",
     "@treksistem/db": "workspace:*",
+    "@treksistem/notifications": "workspace:*",
     "arctic": "^1.0.0",
     "drizzle-orm": "^0.44.2",
     "hono": "^4.4.7",

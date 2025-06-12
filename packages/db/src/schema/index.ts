@@ -285,6 +285,20 @@ export const orderReports = sqliteTable("order_reports", {
   ),
 });
 
+// Notification templates table - configurable message templates
+export const notificationTemplates = sqliteTable("notification_templates", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  type: text("type").notNull(), // Corresponds to NotificationType enum
+  language: text("language").notNull().default("id"), // ISO 639-1 code
+  content: text("content").notNull(), // e.g., "Order {{orderId}} is on its way!"
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
+});
+
 // Notification logs table - wa.me notification tracking
 export const notificationLogs = sqliteTable("notification_logs", {
   id: text("id")
@@ -293,14 +307,16 @@ export const notificationLogs = sqliteTable("notification_logs", {
   orderId: text("order_id")
     .notNull()
     .references(() => orders.id),
+  templateId: text("template_id").references(() => notificationTemplates.id),
   recipientPhone: text("recipient_phone").notNull(),
   type: text("type").notNull(),
   status: text("status", { enum: ["generated", "triggered", "failed"] })
     .notNull()
     .default("generated"),
-  timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(
+  generatedAt: integer("generated_at", { mode: "timestamp" }).$defaultFn(
     () => new Date()
   ),
+  triggeredAt: integer("triggered_at", { mode: "timestamp" }),
 });
 
 // Driver locations table - location tracking
@@ -448,12 +464,23 @@ export const orderReportsRelations = relations(orderReports, ({ one }) => ({
   }),
 }));
 
+export const notificationTemplatesRelations = relations(
+  notificationTemplates,
+  ({ many }) => ({
+    logs: many(notificationLogs),
+  })
+);
+
 export const notificationLogsRelations = relations(
   notificationLogs,
   ({ one }) => ({
     order: one(orders, {
       fields: [notificationLogs.orderId],
       references: [orders.id],
+    }),
+    template: one(notificationTemplates, {
+      fields: [notificationLogs.templateId],
+      references: [notificationTemplates.id],
     }),
   })
 );

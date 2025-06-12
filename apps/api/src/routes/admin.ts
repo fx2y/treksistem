@@ -11,7 +11,10 @@ import {
   type NewDriverInvite,
   type NewService,
 } from "@treksistem/db";
+import * as schema from "@treksistem/db";
+import { TemplateRepository, seedTemplates } from "@treksistem/notifications";
 import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
 
@@ -365,6 +368,96 @@ admin.post("/mitras/:mitraId/drivers/invite", async c => {
   const inviteLink = `${c.env.FRONTEND_URL}/join?token=${inviteToken}`;
 
   return c.json({ inviteLink });
+});
+
+// Notification Template Management API
+admin.get("/notifications/templates", async c => {
+  const db = drizzle(c.env.DB, { schema });
+  const templateRepo = new TemplateRepository(db);
+
+  const templates = await templateRepo.findAll();
+  return c.json(templates);
+});
+
+admin.post("/notifications/templates", async c => {
+  const db = drizzle(c.env.DB, { schema });
+  const templateRepo = new TemplateRepository(db);
+
+  const body = await c.req.json();
+  const { type, language, content } = body;
+
+  if (!type || !content) {
+    return c.json({ error: "Missing required fields: type, content" }, 400);
+  }
+
+  const templateId = await templateRepo.create({
+    type,
+    language: language || "id",
+    content,
+  });
+
+  return c.json(
+    { id: templateId, message: "Template created successfully" },
+    201
+  );
+});
+
+admin.get("/notifications/templates/:id", async c => {
+  const db = drizzle(c.env.DB, { schema });
+  const templateRepo = new TemplateRepository(db);
+
+  const id = c.req.param("id");
+  const template = await templateRepo.findById(id);
+
+  if (!template) {
+    return c.json({ error: "Template not found" }, 404);
+  }
+
+  return c.json(template);
+});
+
+admin.put("/notifications/templates/:id", async c => {
+  const db = drizzle(c.env.DB, { schema });
+  const templateRepo = new TemplateRepository(db);
+
+  const id = c.req.param("id");
+  const body = await c.req.json();
+
+  const template = await templateRepo.findById(id);
+  if (!template) {
+    return c.json({ error: "Template not found" }, 404);
+  }
+
+  await templateRepo.update(id, body);
+  return c.json({ message: "Template updated successfully" });
+});
+
+admin.delete("/notifications/templates/:id", async c => {
+  const db = drizzle(c.env.DB, { schema });
+  const templateRepo = new TemplateRepository(db);
+
+  const id = c.req.param("id");
+  const template = await templateRepo.findById(id);
+
+  if (!template) {
+    return c.json({ error: "Template not found" }, 404);
+  }
+
+  await templateRepo.delete(id);
+  return c.json({ message: "Template deleted successfully" });
+});
+
+// Seed default templates endpoint
+admin.post("/notifications/templates/seed", async c => {
+  const db = drizzle(c.env.DB, { schema });
+
+  try {
+    await seedTemplates(db);
+    return c.json({ message: "Templates seeded successfully" });
+  } catch (error) {
+    console.error("Error seeding templates:", error);
+    return c.json({ error: "Failed to seed templates" }, 500);
+  }
 });
 
 export default admin;

@@ -40,6 +40,9 @@ importers:
       "@treksistem/db":
         specifier: workspace:*
         version: link:../../packages/db
+      "@treksistem/notifications":
+        specifier: workspace:*
+        version: link:../../packages/notifications
       arctic:
         specifier: ^1.0.0
         version: 1.9.2
@@ -305,13 +308,25 @@ importers:
 
   packages/notifications:
     dependencies:
+      "@treksistem/db":
+        specifier: workspace:*
+        version: link:../db
+      drizzle-orm:
+        specifier: ^0.44.2
+        version: 0.44.2(@cloudflare/workers-types@4.20250610.0)
+      mustache:
+        specifier: ^4.2.0
+        version: 4.2.0
+      nanoid:
+        specifier: ^5.0.0
+        version: 5.1.5
+    devDependencies:
       "@cloudflare/workers-types":
         specifier: ^4.0.0
         version: 4.20250610.0
-      hono:
-        specifier: ^4.0.0
-        version: 4.7.11
-    devDependencies:
+      "@types/mustache":
+        specifier: ^4.2.5
+        version: 4.2.6
       "@types/node":
         specifier: ^20.0.0
         version: 20.19.0
@@ -2470,6 +2485,12 @@ packages:
     resolution:
       {
         integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==,
+      }
+
+  "@types/mustache@4.2.6":
+    resolution:
+      {
+        integrity: sha512-t+8/QWTAhOFlrF1IVZqKnMRJi84EgkIK5Kh0p2JV4OLywUvCwJPFxbJAl7XAow7DVIHsF+xW9f1MVzg0L6Szjw==,
       }
 
   "@types/node@20.19.0":
@@ -7755,6 +7776,8 @@ snapshots:
   "@types/json-schema@7.0.15": {}
 
   "@types/json5@0.0.29": {}
+
+  "@types/mustache@4.2.6": {}
 
   "@types/node@20.19.0":
     dependencies:

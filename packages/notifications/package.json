@@ -13,10 +13,14 @@
   },
   "devDependencies": {
     "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "@types/mustache": "^4.2.5",
+    "@cloudflare/workers-types": "^4.0.0"
   },
   "dependencies": {
-    "@cloudflare/workers-types": "^4.0.0",
-    "hono": "^4.0.0"
+    "@treksistem/db": "workspace:*",
+    "drizzle-orm": "^0.44.2",
+    "mustache": "^4.2.0",
+    "nanoid": "^5.0.0"
   }
 }
