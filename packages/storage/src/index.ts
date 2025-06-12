@@ -43,7 +43,7 @@ export function createR2UploadService(env: R2Env): R2UploadService {
   return {
     async generateUploadUrl({ key, contentType, expiresInSeconds = 300 }) {
       const command = new PutObjectCommand({
-        Bucket: env.R2_BUCKET.bucketName,
+        Bucket: (env.R2_BUCKET as any).bucketName || "default-bucket",
         Key: key,
         ContentType: contentType,
       });
