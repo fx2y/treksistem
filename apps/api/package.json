@@ -13,6 +13,7 @@
     "@hono/zod-validator": "^0.7.0",
     "@treksistem/auth": "workspace:*",
     "@treksistem/db": "workspace:*",
+    "@treksistem/geo": "workspace:*",
     "@treksistem/notifications": "workspace:*",
     "@treksistem/storage": "workspace:*",
     "@hono/zod-validator": "^0.4.0",

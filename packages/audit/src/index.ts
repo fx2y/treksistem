@@ -1,4 +1,4 @@
-import { drizzle } from "drizzle-orm/d1";
+import type { DrizzleD1Database } from "drizzle-orm/d1";
 import { nanoid } from "nanoid";
 
 export interface AuditLogEvent {
@@ -29,7 +29,7 @@ export interface AuditLogsTable {
 }
 
 export class AuditLoggingService {
-  constructor(private db: ReturnType<typeof drizzle>) {}
+  constructor(private db: DrizzleD1Database<any>) {}
 
   async logEvent(event: AuditLogEvent): Promise<void> {
     await this.db.insert("audit_logs" as any).values({
@@ -76,7 +76,7 @@ export class AuditLoggingService {
 }
 
 export function createAuditService(
-  db: ReturnType<typeof drizzle>
+  db: DrizzleD1Database<any>
 ): AuditLoggingService {
   return new AuditLoggingService(db);
 }

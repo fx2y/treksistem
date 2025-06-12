@@ -4,6 +4,10 @@ import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 
 import invites from "./public/invites";
+import orders from "./public/orders";
+import quote from "./public/quote";
+import services from "./public/services";
+import track from "./public/track";
 
 const pub = new Hono<{
   Bindings: {
@@ -36,10 +40,10 @@ pub.use("/invites/*", async (c, next) => {
 // Mount invites routes
 pub.route("/invites", invites);
 
-// Public endpoint - no authentication required
-pub.get("/services", async c => {
-  // Return empty array for now - endpoint exists but empty
-  return c.json([]);
-});
+// Mount public order routes - no authentication required
+pub.route("/services", services);
+pub.route("/quote", quote);
+pub.route("/orders", orders);
+pub.route("/track", track);
 
 export default pub;
