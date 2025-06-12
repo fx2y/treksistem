@@ -15,6 +15,13 @@
       "when": 1749703219324,
       "tag": "0001_charming_tyger_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1749705383413,
+      "tag": "0002_lying_ink",
+      "breakpoints": true
     }
   ]
 }
