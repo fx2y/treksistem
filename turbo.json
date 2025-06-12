@@ -31,6 +31,16 @@
     "test": {
       "dependsOn": ["^build"],
       "inputs": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+    },
+    "typecheck": {
+      "inputs": ["src/**/*.{ts,tsx}", "*.{ts,tsx}", "tsconfig.json"]
+    },
+    "format": {
+      "inputs": [
+        "src/**/*.{js,ts,tsx,json,md,css,html}",
+        "*.{js,ts,tsx,json,md,css,html}"
+      ],
+      "cache": false
     }
   }
 }

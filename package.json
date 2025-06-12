@@ -10,7 +10,8 @@
     "dev:public": "turbo run dev --filter=@treksistem/public-site",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "format": "prettier --write \"**/*.{js,ts,tsx,json,md,css,html}\"",
+    "format": "turbo run format",
+    "format:all": "prettier --write \"**/*.{js,ts,tsx,json,md,css,html}\" --cache",
     "prepare": "husky"
   },
   "devDependencies": {
