@@ -1,0 +1,372 @@
+import { relations } from "drizzle-orm";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { nanoid } from "nanoid";
+
+// Users table - central identity for all actors
+export const users = sqliteTable("users", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  googleId: text("google_id").notNull().unique(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  avatarUrl: text("avatar_url"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+// Mitras table - business entities (UMKM)
+export const mitras = sqliteTable("mitras", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  businessName: text("business_name").notNull(),
+  address: text("address"),
+  phone: text("phone"),
+  lat: real("lat"),
+  lng: real("lng"),
+  subscriptionStatus: text("subscription_status", {
+    enum: ["free_tier", "active", "past_due", "cancelled"],
+  })
+    .notNull()
+    .default("free_tier"),
+  midtransSubscriptionId: text("midtrans_subscription_id"),
+  activeDriverLimit: integer("active_driver_limit").notNull().default(2),
+});
+
+// Drivers table - many-to-many relationship between users and mitras
+export const drivers = sqliteTable("drivers", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  mitraId: text("mitra_id")
+    .notNull()
+    .references(() => mitras.id),
+  status: text("status", { enum: ["active", "inactive", "on_duty"] })
+    .notNull()
+    .default("active"),
+});
+
+// Driver invites table - invitation management
+export const driverInvites = sqliteTable("driver_invites", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  mitraId: text("mitra_id")
+    .notNull()
+    .references(() => mitras.id),
+  email: text("email").notNull(),
+  token: text("token")
+    .notNull()
+    .unique()
+    .$defaultFn(() => nanoid(32)),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  status: text("status", { enum: ["pending", "accepted"] })
+    .notNull()
+    .default("pending"),
+});
+
+// Vehicles table - mitra's fleet
+export const vehicles = sqliteTable("vehicles", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  mitraId: text("mitra_id")
+    .notNull()
+    .references(() => mitras.id),
+  licensePlate: text("license_plate").notNull(),
+  description: text("description"),
+});
+
+// Master tables for service configuration
+export const masterVehicleTypes = sqliteTable("master_vehicle_types", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  name: text("name").notNull(),
+  icon: text("icon"),
+});
+
+export const masterPayloadTypes = sqliteTable("master_payload_types", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  name: text("name").notNull(),
+  icon: text("icon"),
+});
+
+export const masterFacilities = sqliteTable("master_facilities", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  name: text("name").notNull(),
+  icon: text("icon"),
+});
+
+// Services table - configurable delivery services
+export const services = sqliteTable("services", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  mitraId: text("mitra_id")
+    .notNull()
+    .references(() => mitras.id),
+  name: text("name").notNull(),
+  isPublic: integer("is_public", { mode: "boolean" }).notNull().default(false),
+  maxRangeKm: real("max_range_km"),
+  supportedVehicleTypeIds: text("supported_vehicle_type_ids", {
+    mode: "json",
+  }).$type<string[]>(),
+  supportedPayloadTypeIds: text("supported_payload_type_ids", {
+    mode: "json",
+  }).$type<string[]>(),
+  availableFacilityIds: text("available_facility_ids", { mode: "json" }).$type<
+    string[]
+  >(),
+});
+
+// Service rates table - pricing model
+export const serviceRates = sqliteTable("service_rates", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  serviceId: text("service_id")
+    .notNull()
+    .references(() => services.id),
+  baseFee: integer("base_fee").notNull(),
+  feePerKm: integer("fee_per_km").notNull(),
+  feePerKg: integer("fee_per_kg"),
+  feePerItem: integer("fee_per_item"),
+});
+
+// Orders table - delivery jobs
+export const orders = sqliteTable("orders", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  publicId: text("public_id")
+    .notNull()
+    .unique()
+    .$defaultFn(() => nanoid(12)),
+  serviceId: text("service_id")
+    .notNull()
+    .references(() => services.id),
+  assignedDriverId: text("assigned_driver_id").references(() => drivers.id),
+  assignedVehicleId: text("assigned_vehicle_id").references(() => vehicles.id),
+  status: text("status", {
+    enum: [
+      "pending_dispatch",
+      "accepted",
+      "pickup",
+      "in_transit",
+      "delivered",
+      "cancelled",
+      "claimed",
+    ],
+  })
+    .notNull()
+    .default("pending_dispatch"),
+  ordererName: text("orderer_name").notNull(),
+  ordererPhone: text("orderer_phone").notNull(),
+  recipientName: text("recipient_name").notNull(),
+  recipientPhone: text("recipient_phone").notNull(),
+  estimatedCost: integer("estimated_cost").notNull(),
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+// Order stops table - multi-stop architecture
+export const orderStops = sqliteTable("order_stops", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  orderId: text("order_id")
+    .notNull()
+    .references(() => orders.id),
+  sequence: integer("sequence").notNull(),
+  type: text("type", { enum: ["pickup", "dropoff"] }).notNull(),
+  address: text("address").notNull(),
+  lat: real("lat").notNull(),
+  lng: real("lng").notNull(),
+  status: text("status", { enum: ["pending", "completed"] })
+    .notNull()
+    .default("pending"),
+});
+
+// Order reports table - driver reports with photo evidence
+export const orderReports = sqliteTable("order_reports", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  orderId: text("order_id")
+    .notNull()
+    .references(() => orders.id),
+  driverId: text("driver_id")
+    .notNull()
+    .references(() => drivers.id),
+  stage: text("stage", {
+    enum: ["pickup", "transit_update", "dropoff"],
+  }).notNull(),
+  notes: text("notes"),
+  photoUrl: text("photo_url"),
+  timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+// Notification logs table - wa.me notification tracking
+export const notificationLogs = sqliteTable("notification_logs", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  orderId: text("order_id")
+    .notNull()
+    .references(() => orders.id),
+  recipientPhone: text("recipient_phone").notNull(),
+  type: text("type").notNull(),
+  status: text("status", { enum: ["generated", "triggered", "failed"] })
+    .notNull()
+    .default("generated"),
+  timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+// Driver locations table - location tracking
+export const driverLocations = sqliteTable("driver_locations", {
+  driverId: text("driver_id")
+    .primaryKey()
+    .references(() => drivers.id),
+  lat: real("lat").notNull(),
+  lng: real("lng").notNull(),
+  lastSeenAt: integer("last_seen_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  mitras: many(mitras),
+  drivers: many(drivers),
+}));
+
+export const mitrasRelations = relations(mitras, ({ one, many }) => ({
+  user: one(users, {
+    fields: [mitras.userId],
+    references: [users.id],
+  }),
+  drivers: many(drivers),
+  driverInvites: many(driverInvites),
+  vehicles: many(vehicles),
+  services: many(services),
+}));
+
+export const driversRelations = relations(drivers, ({ one, many }) => ({
+  user: one(users, {
+    fields: [drivers.userId],
+    references: [users.id],
+  }),
+  mitra: one(mitras, {
+    fields: [drivers.mitraId],
+    references: [mitras.id],
+  }),
+  orders: many(orders),
+  orderReports: many(orderReports),
+  location: one(driverLocations),
+}));
+
+export const driverInvitesRelations = relations(driverInvites, ({ one }) => ({
+  mitra: one(mitras, {
+    fields: [driverInvites.mitraId],
+    references: [mitras.id],
+  }),
+}));
+
+export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
+  mitra: one(mitras, {
+    fields: [vehicles.mitraId],
+    references: [mitras.id],
+  }),
+  orders: many(orders),
+}));
+
+export const servicesRelations = relations(services, ({ one, many }) => ({
+  mitra: one(mitras, {
+    fields: [services.mitraId],
+    references: [mitras.id],
+  }),
+  serviceRates: many(serviceRates),
+  orders: many(orders),
+}));
+
+export const serviceRatesRelations = relations(serviceRates, ({ one }) => ({
+  service: one(services, {
+    fields: [serviceRates.serviceId],
+    references: [services.id],
+  }),
+}));
+
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  service: one(services, {
+    fields: [orders.serviceId],
+    references: [services.id],
+  }),
+  assignedDriver: one(drivers, {
+    fields: [orders.assignedDriverId],
+    references: [drivers.id],
+  }),
+  assignedVehicle: one(vehicles, {
+    fields: [orders.assignedVehicleId],
+    references: [vehicles.id],
+  }),
+  stops: many(orderStops),
+  reports: many(orderReports),
+  notificationLogs: many(notificationLogs),
+}));
+
+export const orderStopsRelations = relations(orderStops, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderStops.orderId],
+    references: [orders.id],
+  }),
+}));
+
+export const orderReportsRelations = relations(orderReports, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderReports.orderId],
+    references: [orders.id],
+  }),
+  driver: one(drivers, {
+    fields: [orderReports.driverId],
+    references: [drivers.id],
+  }),
+}));
+
+export const notificationLogsRelations = relations(
+  notificationLogs,
+  ({ one }) => ({
+    order: one(orders, {
+      fields: [notificationLogs.orderId],
+      references: [orders.id],
+    }),
+  })
+);
+
+export const driverLocationsRelations = relations(
+  driverLocations,
+  ({ one }) => ({
+    driver: one(drivers, {
+      fields: [driverLocations.driverId],
+      references: [drivers.id],
+    }),
+  })
+);

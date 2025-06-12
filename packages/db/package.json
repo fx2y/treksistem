@@ -9,14 +9,18 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{js,ts,tsx,json,md,css,html}\" --cache"
+    "format": "prettier --write \"src/**/*.{js,ts,tsx,json,md,css,html}\" --cache",
+    "db:generate": "drizzle-kit generate:sqlite",
+    "db:migrate": "drizzle-kit migrate"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "drizzle-kit": "^0.31.1",
+    "typescript": "^5.0.0"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.0.0",
-    "drizzle-orm": "^0.33.0"
+    "drizzle-orm": "^0.33.0",
+    "nanoid": "^5.1.5"
   }
 }
