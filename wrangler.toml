@@ -1,6 +1,11 @@
 name = "treksistem-api"
 main = "apps/api/dist/index.js"
-compatibility_date = "2024-05-30"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# External dependencies for bundling
+[build]
+command = ""
 
 [vars]
 # Auth configuration
