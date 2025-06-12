@@ -9,7 +9,7 @@
     "rootDir": "./src",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types", "node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

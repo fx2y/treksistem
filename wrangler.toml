@@ -3,7 +3,12 @@ main = "apps/api/dist/index.js"
 compatibility_date = "2024-05-30"
 
 [vars]
-# Placeholder for future environment variables
+# Auth configuration
+GOOGLE_REDIRECT_URI = "http://localhost:8787/api/auth/callback/google"
+# Test values for verification (replace with real values in production)
+GOOGLE_CLIENT_ID = "test-client-id.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET = "test-client-secret"
+JWT_SECRET = "test-jwt-secret-32-characters-long-string-for-verification"
 
 # D1 Database binding for local development and remote deployment
 [[d1_databases]]

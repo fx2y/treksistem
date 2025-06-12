@@ -1,11 +1,25 @@
-export interface User {
-  id: string;
-  email: string;
-  name: string;
+export interface JwtPayload {
+  userId: string;
+  exp: number;
+  iat: number;
+  [key: string]: unknown;
 }
 
-export interface JWTPayload {
-  userId: string;
-  email: string;
-  exp: number;
+export interface AuthenticatedUserProfile {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    avatarUrl: string | null;
+  };
+  roles: {
+    isMitra: boolean;
+    mitraId: string | null;
+    isDriver: boolean;
+    driverForMitras: Array<{
+      mitraId: string;
+      businessName: string;
+    }>;
+    isAdmin: boolean;
+  };
 }

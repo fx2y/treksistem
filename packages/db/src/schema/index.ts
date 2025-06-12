@@ -17,6 +17,22 @@ export const users = sqliteTable("users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   avatarUrl: text("avatar_url"),
+  isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+// Refresh tokens table - secure long-lived tokens for session management
+export const refreshTokens = sqliteTable("refresh_tokens", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  hashedToken: text("hashed_token").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
     () => new Date()
   ),
@@ -332,6 +348,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   mitras: many(mitras),
   drivers: many(drivers),
   auditLogs: many(auditLogs),
+  refreshTokens: many(refreshTokens),
 }));
 
 export const mitrasRelations = relations(mitras, ({ one, many }) => ({
@@ -454,6 +471,13 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   }),
   impersonator: one(users, {
     fields: [auditLogs.impersonatorId],
+    references: [users.id],
+  }),
+}));
+
+export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [refreshTokens.userId],
     references: [users.id],
   }),
 }));

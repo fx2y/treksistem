@@ -17,6 +17,11 @@
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.0.0",
-    "hono": "^4.0.0"
+    "hono": "^4.0.0",
+    "arctic": "^1.0.0",
+    "nanoid": "^5.0.0",
+    "@treksistem/db": "workspace:*",
+    "@treksistem/audit": "workspace:*",
+    "oslo": "^1.0.0"
   }
 }
