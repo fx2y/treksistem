@@ -1,7 +1,3 @@
-import {
-  createAuditService,
-  type AuditLoggingService,
-} from "@treksistem/audit";
 import * as schema from "@treksistem/db";
 import { Google } from "arctic";
 import { drizzle } from "drizzle-orm/d1";
@@ -25,7 +21,7 @@ export interface AuthServices {
   googleProvider: Google;
   jwtService: JwtService;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
-  auditService: AuditLoggingService;
+  // auditService: AuditLoggingService;
   refreshTokenService: RefreshTokenService;
 }
 
@@ -111,13 +107,14 @@ export function createAuthServices(env: AuthEnvironment): AuthServices {
   };
 
   const authMiddleware = createAuthMiddleware(jwtService, db);
-  const auditService = createAuditService(db);
+  // TODO: Fix type issue with audit service
+  // const auditService = createAuditService(db);
 
   return {
     googleProvider,
     jwtService,
     authMiddleware,
-    auditService,
+    // auditService,
     refreshTokenService,
   };
 }
