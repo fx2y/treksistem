@@ -1,5 +1,5 @@
 import type { createAuthServices } from "@treksistem/auth";
-import * as schema from "@treksistem/db/schema";
+import * as schema from "@treksistem/db";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 

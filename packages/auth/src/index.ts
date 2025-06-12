@@ -2,6 +2,7 @@ import {
   createAuditService,
   type AuditLoggingService,
 } from "@treksistem/audit";
+import * as schema from "@treksistem/db";
 import { Google } from "arctic";
 import { drizzle } from "drizzle-orm/d1";
 import { sign, verify } from "hono/jwt";
@@ -52,7 +53,7 @@ export interface AuthEnvironment {
 
 // Factory function to create all auth services
 export function createAuthServices(env: AuthEnvironment): AuthServices {
-  const db = drizzle(env.DB, { schema: require("@treksistem/db") });
+  const db = drizzle(env.DB, { schema });
 
   const googleProvider = new Google(
     env.GOOGLE_CLIENT_ID,

@@ -5,7 +5,7 @@ import {
   masterVehicleTypes,
   masterPayloadTypes,
   masterFacilities,
-} from "@treksistem/db/schema";
+} from "@treksistem/db";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
