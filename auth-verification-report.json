@@ -1,0 +1,88 @@
+{
+  "timestamp": "2025-06-12T05:42:14.135Z",
+  "summary": {
+    "total": 12,
+    "passed": 1,
+    "failed": 11,
+    "successRate": "8.3%"
+  },
+  "tests": [
+    {
+      "name": "Unauthenticated /api/auth/me",
+      "passed": false,
+      "details": "Request failed: ",
+      "timestamp": "2025-06-12T05:42:14.128Z"
+    },
+    {
+      "name": "Unauthenticated /api/mitra/services",
+      "passed": false,
+      "details": "Request failed: ",
+      "timestamp": "2025-06-12T05:42:14.129Z"
+    },
+    {
+      "name": "Unauthenticated /api/driver/orders",
+      "passed": false,
+      "details": "Request failed: ",
+      "timestamp": "2025-06-12T05:42:14.130Z"
+    },
+    {
+      "name": "Unauthenticated /api/admin/mitras",
+      "passed": false,
+      "details": "Request failed: ",
+      "timestamp": "2025-06-12T05:42:14.130Z"
+    },
+    {
+      "name": "Public endpoint /api/public/services",
+      "passed": false,
+      "details": "Request failed: ",
+      "timestamp": "2025-06-12T05:42:14.131Z"
+    },
+    {
+      "name": "OAuth login initiation",
+      "passed": false,
+      "details": "Request failed: ",
+      "timestamp": "2025-06-12T05:42:14.131Z"
+    },
+    {
+      "name": "Token refresh without token",
+      "passed": false,
+      "details": "Request failed: ",
+      "timestamp": "2025-06-12T05:42:14.132Z"
+    },
+    {
+      "name": "Logout without token",
+      "passed": false,
+      "details": "Request failed: ",
+      "timestamp": "2025-06-12T05:42:14.133Z"
+    },
+    {
+      "name": "Database schema validation",
+      "passed": true,
+      "details": "Schema validation requires manual verification or DB access",
+      "timestamp": "2025-06-12T05:42:14.133Z"
+    },
+    {
+      "name": "Security headers check",
+      "passed": false,
+      "details": "Request failed: ",
+      "timestamp": "2025-06-12T05:42:14.133Z"
+    },
+    {
+      "name": "Rate limiting test",
+      "passed": false,
+      "details": "Request failed: ",
+      "timestamp": "2025-06-12T05:42:14.134Z"
+    },
+    {
+      "name": "CORS configuration test",
+      "passed": false,
+      "details": "Request failed: ",
+      "timestamp": "2025-06-12T05:42:14.135Z"
+    }
+  ],
+  "environment": {
+    "baseUrl": "http://localhost:8787",
+    "nodeVersion": "v24.1.0",
+    "platform": "darwin"
+  }
+}
