@@ -22,6 +22,7 @@
     "nanoid": "^5.0.0",
     "@treksistem/db": "workspace:*",
     "@treksistem/audit": "workspace:*",
-    "oslo": "^1.0.0"
+    "oslo": "^1.0.0",
+    "drizzle-orm": "^0.29.3"
   }
 }

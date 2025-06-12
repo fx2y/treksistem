@@ -77,3 +77,7 @@ export type NewDriverLocation = InferInsertModel<typeof schema.driverLocations>;
 // Audit log types
 export type AuditLog = InferSelectModel<typeof schema.auditLogs>;
 export type NewAuditLog = InferInsertModel<typeof schema.auditLogs>;
+
+// Refresh token types
+export type RefreshToken = InferSelectModel<typeof schema.refreshTokens>;
+export type NewRefreshToken = InferInsertModel<typeof schema.refreshTokens>;

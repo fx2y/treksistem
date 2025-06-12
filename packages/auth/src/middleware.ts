@@ -1,4 +1,5 @@
 import type { User } from "@treksistem/db";
+import * as schema from "@treksistem/db";
 import { drizzle } from "drizzle-orm/d1";
 import type { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
@@ -18,7 +19,7 @@ declare module "hono" {
 
 export function createAuthMiddleware(
   jwtService: JwtService,
-  db: ReturnType<typeof drizzle>
+  db: ReturnType<typeof drizzle<typeof schema>>
 ) {
   async function requireAuth(c: Context, next: Next) {
     const token =

@@ -6,7 +6,7 @@ import { Google } from "arctic";
 import { drizzle } from "drizzle-orm/d1";
 import { sign, verify } from "hono/jwt";
 import { nanoid } from "nanoid";
-import { hash, verify as verifyHash } from "oslo/password";
+import { Argon2id } from "oslo/password";
 
 import { createAuthMiddleware } from "./middleware";
 import type { JwtPayload } from "./types";
@@ -43,7 +43,7 @@ export interface AuthEnvironment {
 
 // Factory function to create all auth services
 export function createAuthServices(env: AuthEnvironment): AuthServices {
-  const db = drizzle(env.DB);
+  const db = drizzle(env.DB, { schema: require("@treksistem/db") });
 
   const googleProvider = new Google(
     env.GOOGLE_CLIENT_ID,
@@ -79,7 +79,7 @@ export function createAuthServices(env: AuthEnvironment): AuthServices {
   const refreshTokenService: RefreshTokenService = {
     createRefreshToken: async (_userId: string) => {
       const token = nanoid(32);
-      const hashedToken = await hash(token);
+      const hashedToken = await new Argon2id().hash(token);
       return { token, hashedToken };
     },
 
@@ -88,14 +88,14 @@ export function createAuthServices(env: AuthEnvironment): AuthServices {
       hashedToken: string
     ): Promise<boolean> => {
       try {
-        return await verifyHash(hashedToken, token);
+        return await new Argon2id().verify(hashedToken, token);
       } catch {
         return false;
       }
     },
 
     generateTokenHash: async (token: string): Promise<string> => {
-      return hash(token);
+      return new Argon2id().hash(token);
     },
   };
 
