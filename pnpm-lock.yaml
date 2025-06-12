@@ -305,13 +305,19 @@ importers:
 
   packages/notifications:
     dependencies:
+      "@treksistem/db":
+        specifier: workspace:*
+        version: link:../db
+      drizzle-orm:
+        specifier: ^0.44.2
+        version: 0.44.2(@cloudflare/workers-types@4.20250610.0)
+      nanoid:
+        specifier: ^5.0.0
+        version: 5.1.5
+    devDependencies:
       "@cloudflare/workers-types":
         specifier: ^4.0.0
         version: 4.20250610.0
-      hono:
-        specifier: ^4.0.0
-        version: 4.7.11
-    devDependencies:
       "@types/node":
         specifier: ^20.0.0
         version: 20.19.0
