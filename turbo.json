@@ -9,6 +9,22 @@
       "cache": false,
       "persistent": true
     },
+    "dev:api": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev:mitra": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev:driver": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev:public": {
+      "cache": false,
+      "persistent": true
+    },
     "lint": {},
     "test": {
       "dependsOn": ["^build"],

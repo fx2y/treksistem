@@ -4,6 +4,10 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:api": "turbo run dev --filter=@treksistem/api",
+    "dev:mitra": "turbo run dev --filter=@treksistem/mitra-portal",
+    "dev:driver": "turbo run dev --filter=@treksistem/driver-pwa",
+    "dev:public": "turbo run dev --filter=@treksistem/public-site",
     "lint": "turbo run lint",
     "test": "turbo run test"
   },

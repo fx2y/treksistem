@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev src/index.ts",
-    "deploy": "wrangler deploy",
+    "dev": "/opt/homebrew/bin/wrangler dev src/index.ts",
+    "deploy": "/opt/homebrew/bin/wrangler deploy",
     "build": "echo 'Build step handled by wrangler deploy'"
   },
   "dependencies": {
