@@ -2,9 +2,6 @@ import type { DbClient as Database } from "@treksistem/db";
 import {
   services,
   serviceRates,
-  servicesToVehicleTypes,
-  servicesToPayloadTypes,
-  servicesToFacilities,
   masterVehicleTypes,
   masterPayloadTypes,
   masterFacilities,
