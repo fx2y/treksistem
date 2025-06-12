@@ -48,13 +48,18 @@ async function logAdminAction(
   action: "CREATE" | "UPDATE" | "DELETE" | "ASSIGN" | "INVITE",
   payload: Record<string, unknown>
 ) {
-  await auditService.logAdminAction({
-    adminUserId,
-    targetEntity,
-    targetId,
-    action,
-    payload,
-  });
+  try {
+    await auditService.logAdminAction({
+      adminUserId,
+      targetEntity,
+      targetId,
+      action,
+      payload,
+    });
+  } catch (error) {
+    console.error("Audit logging failed:", error);
+    // Continue with the request even if audit logging fails
+  }
 }
 
 // Get all mitras
