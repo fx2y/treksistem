@@ -4,10 +4,10 @@ export interface PushNotification {
   body: string;
   icon?: string;
   badge?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 export async function sendPushNotification(notification: PushNotification) {
   // TODO: Implement push notification sending
-  console.log('Sending notification:', notification);
+  console.log("Sending notification:", notification);
 }

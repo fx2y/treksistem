@@ -25,7 +25,9 @@
       "cache": false,
       "persistent": true
     },
-    "lint": {},
+    "lint": {
+      "inputs": ["src/**/*.{ts,tsx,js,jsx}", "*.{ts,tsx,js,jsx}"]
+    },
     "test": {
       "dependsOn": ["^build"],
       "inputs": ["src/**/*.test.ts", "src/**/*.test.tsx"]

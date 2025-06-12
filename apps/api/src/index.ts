@@ -1,9 +1,9 @@
-import { Hono } from 'hono';
+import { Hono } from "hono";
 
 const app = new Hono();
 
-app.get('/', (c) => {
-  return c.text('Hello from Treksistem API!');
+app.get("/", c => {
+  return c.text("Hello from Treksistem API!");
 });
 
 export default app;
