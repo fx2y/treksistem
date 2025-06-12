@@ -1,5 +1,10 @@
 import type { createAuthServices } from "@treksistem/auth";
+import * as schema from "@treksistem/db/schema";
+import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
+
+import masterData from "./mitra/master-data";
+import services from "./mitra/services";
 
 const mitra = new Hono<{
   Bindings: {
@@ -11,6 +16,8 @@ const mitra = new Hono<{
   };
   Variables: {
     authServices: ReturnType<typeof createAuthServices>;
+    db: ReturnType<typeof drizzle>;
+    mitraId: string;
   };
 }>();
 
@@ -24,9 +31,15 @@ mitra.use("*", async (c, next) => {
   return authMiddleware.requireMitraRole(c, next);
 });
 
-mitra.get("/services", async c => {
-  // Return empty array for now - endpoint exists but empty
-  return c.json([]);
+// Database middleware
+mitra.use("*", async (c, next) => {
+  const db = drizzle(c.env.DB, { schema });
+  c.set("db", db);
+  await next();
 });
+
+// Mount service routes
+mitra.route("/services", services);
+mitra.route("/master-data", masterData);
 
 export default mitra;
