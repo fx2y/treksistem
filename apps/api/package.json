@@ -10,15 +10,17 @@
     "format": "prettier --write \"src/**/*.{js,ts,tsx,json,md,css,html}\" --cache"
   },
   "dependencies": {
-    "hono": "^4.4.7",
     "@treksistem/auth": "workspace:*",
     "@treksistem/db": "workspace:*",
     "arctic": "^1.0.0",
+    "drizzle-orm": "^0.44.2",
+    "hono": "^4.4.7",
+    "jsonwebtoken": "^9.0.2",
     "nanoid": "^5.0.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240512.0",
-    "wrangler": "^3.57.2",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "wrangler": "^3.57.2"
   }
 }

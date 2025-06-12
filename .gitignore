@@ -20,6 +20,10 @@ dist
 .DS_Store
 Thumbs.db
 
+# Verification scripts (temporary)
+verify_*.js
+db_verification_test.js
+
 .ai
 .claude
 .cursor

@@ -85,7 +85,7 @@ export function createAuthMiddleware(
       where: (users, { eq }) => eq(users.id, payload.userId),
     });
 
-    if (!user?.isAdmin) {
+    if (user?.role !== "admin") {
       return c.json({ error: "Forbidden - Admin role required" }, 403);
     }
 
@@ -136,7 +136,7 @@ export function createAuthMiddleware(
           mitraId: d.mitra.id.toString(),
           businessName: d.mitra.businessName,
         })),
-        isAdmin: user.isAdmin,
+        isAdmin: user.role === "admin",
       },
     };
   }
