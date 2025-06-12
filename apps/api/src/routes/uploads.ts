@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import type { AuthEnvironment } from "@treksistem/auth";
+import type { createAuthServices } from "@treksistem/auth";
 import {
   RequestUploadUrlBodySchema,
   createR2UploadService,
@@ -7,8 +7,13 @@ import {
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
 
-interface UploadsContext {
-  Bindings: AuthEnvironment & {
+const uploads = new Hono<{
+  Bindings: {
+    DB: D1Database;
+    GOOGLE_CLIENT_ID: string;
+    GOOGLE_CLIENT_SECRET: string;
+    JWT_SECRET: string;
+    FRONTEND_URL: string;
     R2_BUCKET: R2Bucket;
     R2_ACCOUNT_ID: string;
     R2_ACCESS_KEY_ID: string;
@@ -17,34 +22,27 @@ interface UploadsContext {
     UPLOAD_URL_EXPIRES_IN_SECONDS: string;
   };
   Variables: {
-    userProfile?: {
-      user: { id: string; email: string; name?: string; avatarUrl?: string };
-      roles: {
-        isMitra: boolean;
-        mitraId?: string;
-        isDriver: boolean;
-        driverForMitras?: string[];
-        isAdmin: boolean;
-      };
-    };
-    authMiddleware: {
-      requireAuth: (c: any, next: any) => Promise<void>;
-      requireMitraRole: (c: any, next: any) => Promise<void>;
-      requireDriverRole: (c: any, next: any) => Promise<void>;
-      requireAdminRole: (c: any, next: any) => Promise<void>;
-    };
+    authServices: ReturnType<typeof createAuthServices>;
   };
-}
+}>();
 
-const uploads = new Hono<UploadsContext>();
+// Middleware to require auth and Driver role
+uploads.use("*", async (c, next) => {
+  const { authMiddleware } = c.get("authServices");
+  return authMiddleware.requireAuth(c, next);
+});
+uploads.use("*", async (c, next) => {
+  const { authMiddleware } = c.get("authServices");
+  return authMiddleware.requireDriverRole(c, next);
+});
 
 uploads.post(
   "/request-url",
-  (c, next) => c.get("authMiddleware").requireDriverRole(c, next),
   zValidator("json", RequestUploadUrlBodySchema),
   async c => {
     const { fileName, contentType, orderId } = c.req.valid("json");
-    const userProfile = c.get("userProfile");
+    const { authMiddleware } = c.get("authServices");
+    const userProfile = await authMiddleware.getUserProfile(c);
 
     if (
       !userProfile?.roles.isDriver ||
@@ -54,7 +52,7 @@ uploads.post(
     }
 
     // Use the first mitra the driver is associated with
-    const mitraId = userProfile.roles.driverForMitras[0];
+    const mitraId = userProfile.roles.driverForMitras[0].mitraId;
 
     const r2Service = createR2UploadService({
       R2_BUCKET: c.env.R2_BUCKET,
