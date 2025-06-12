@@ -15,11 +15,11 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "drizzle-kit": "^0.31.1",
     "typescript": "^5.0.0"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.0.0",
+    "drizzle-kit": "^0.31.1",
     "drizzle-orm": "^0.44.2",
     "nanoid": "^5.1.5"
   }

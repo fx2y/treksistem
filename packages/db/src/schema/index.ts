@@ -17,7 +17,9 @@ export const users = sqliteTable("users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   avatarUrl: text("avatar_url"),
-  isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
+  role: text("role", { enum: ["user", "admin"] })
+    .notNull()
+    .default("user"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
     () => new Date()
   ),
@@ -320,26 +322,28 @@ export const auditLogs = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => nanoid()),
-    actorId: text("actor_id")
+    adminUserId: text("admin_user_id")
       .notNull()
       .references(() => users.id),
-    impersonatorId: text("impersonator_id").references(() => users.id),
+    impersonatedMitraId: text("impersonated_mitra_id").references(
+      () => mitras.id
+    ),
     targetEntity: text("target_entity").notNull(),
     targetId: text("target_id").notNull(),
     action: text("action", {
       enum: ["CREATE", "UPDATE", "DELETE", "ASSIGN", "INVITE"],
     }).notNull(),
     payload: text("payload", { mode: "json" }).$type<Record<string, unknown>>(),
-    createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(
       () => new Date()
     ),
   },
   table => ({
-    actorActionIdx: index("audit_logs_actor_action_idx").on(
-      table.actorId,
+    adminActionIdx: index("audit_logs_admin_action_idx").on(
+      table.adminUserId,
       table.action
     ),
-    createdAtIdx: index("audit_logs_created_at_idx").on(table.createdAt),
+    timestampIdx: index("audit_logs_timestamp_idx").on(table.timestamp),
   })
 );
 
@@ -465,13 +469,13 @@ export const driverLocationsRelations = relations(
 );
 
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
-  actor: one(users, {
-    fields: [auditLogs.actorId],
+  adminUser: one(users, {
+    fields: [auditLogs.adminUserId],
     references: [users.id],
   }),
-  impersonator: one(users, {
-    fields: [auditLogs.impersonatorId],
-    references: [users.id],
+  impersonatedMitra: one(mitras, {
+    fields: [auditLogs.impersonatedMitraId],
+    references: [mitras.id],
   }),
 }));
 

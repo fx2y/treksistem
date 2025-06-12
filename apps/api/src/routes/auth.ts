@@ -63,8 +63,8 @@ auth.get("/callback/google", async c => {
 
   const code = c.req.query("code");
   const state = c.req.query("state");
-  const storedState = c.req.cookie("google_oauth_state");
-  const codeVerifier = c.req.cookie("google_oauth_code_verifier");
+  const storedState = getCookie(c, "google_oauth_state");
+  const codeVerifier = getCookie(c, "google_oauth_code_verifier");
 
   if (
     !code ||
@@ -118,7 +118,7 @@ auth.get("/callback/google", async c => {
           name: googleUser.name,
           avatarUrl: googleUser.picture || null,
           googleId: googleUser.id,
-          isAdmin: false,
+          role: "user",
         };
 
         await tx.insert(users).values(newUser);
@@ -178,17 +178,13 @@ auth.get("/callback/google", async c => {
   }
 });
 
+auth.use("/me", async (c, next) => {
+  const { authMiddleware } = createAuthServices(c.env);
+  return authMiddleware.requireAuth(c, next);
+});
+
 auth.get("/me", async c => {
   const { authMiddleware } = createAuthServices(c.env);
-
-  // Apply auth middleware
-  const authResult = await new Promise<void>((resolve, reject) => {
-    authMiddleware.requireAuth(c, () => resolve()).catch(reject);
-  }).catch(() => null);
-
-  if (!authResult) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
 
   const profile = await authMiddleware.getUserProfile(c);
   if (!profile) {

@@ -8,6 +8,15 @@ export interface AuditLogEvent {
   details?: Record<string, unknown>;
 }
 
+export interface AdminAuditLogOptions {
+  adminUserId: string;
+  impersonatedMitraId?: string;
+  targetEntity: string;
+  targetId: string;
+  action: "CREATE" | "UPDATE" | "DELETE" | "ASSIGN" | "INVITE";
+  payload: Record<string, unknown>;
+}
+
 export interface AuditLogsTable {
   id: string;
   actorId: string;
@@ -31,6 +40,19 @@ export class AuditLoggingService {
       targetId: event.targetId || event.actorId,
       action: this.mapEventTypeToAction(event.eventType),
       payload: event.details || null,
+      createdAt: new Date(),
+    });
+  }
+
+  async logAdminAction(options: AdminAuditLogOptions): Promise<void> {
+    await this.db.insert("audit_logs" as any).values({
+      id: nanoid(),
+      actorId: options.adminUserId,
+      impersonatorId: options.adminUserId,
+      targetEntity: options.targetEntity,
+      targetId: options.targetId,
+      action: options.action,
+      payload: options.payload,
       createdAt: new Date(),
     });
   }
