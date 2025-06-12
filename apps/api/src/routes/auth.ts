@@ -186,6 +186,13 @@ auth.use("/me", async (c, next) => {
 auth.get("/me", async c => {
   const { authMiddleware } = createAuthServices(c.env);
 
+  // Apply auth middleware
+  try {
+    await authMiddleware.requireAuth(c, () => Promise.resolve());
+  } catch {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
   const profile = await authMiddleware.getUserProfile(c);
   if (!profile) {
     return c.json({ error: "User not found" }, 404);
