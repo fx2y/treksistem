@@ -10,7 +10,7 @@ const AcceptInviteRequest = z.object({
 
 const app = new Hono<{
   Variables: {
-    userId: string;
+    jwtPayload: { userId: string };
     db: DbClient;
   };
 }>();
@@ -18,7 +18,8 @@ const app = new Hono<{
 app.post("/accept", zValidator("json", AcceptInviteRequest), async c => {
   try {
     const { token } = c.req.valid("json");
-    const userId = c.get("userId");
+    const jwtPayload = c.get("jwtPayload");
+    const userId = jwtPayload.userId;
     const db = c.get("db");
     const driverService = new DriverManagementService(db);
 
@@ -33,12 +34,14 @@ app.post("/accept", zValidator("json", AcceptInviteRequest), async c => {
       if (
         error.message.includes("Invalid") ||
         error.message.includes("expired") ||
-        error.message.includes("does not match") ||
-        error.message.includes("already been used")
+        error.message.includes("does not match")
       ) {
         return c.json({ error: error.message }, 400);
       }
-      if (error.message.includes("already a driver")) {
+      if (
+        error.message.includes("already been used") ||
+        error.message.includes("already a driver")
+      ) {
         return c.json({ error: error.message }, 409);
       }
     }
