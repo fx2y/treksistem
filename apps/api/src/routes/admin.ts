@@ -13,7 +13,7 @@ import {
 } from "@treksistem/db";
 import { eq } from "drizzle-orm";
 import * as schema from "@treksistem/db";
-import { TemplateRepository } from "@treksistem/notifications";
+import { TemplateRepository, seedTemplates } from "@treksistem/notifications";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
@@ -445,6 +445,19 @@ admin.delete("/notifications/templates/:id", async c => {
 
   await templateRepo.delete(id);
   return c.json({ message: "Template deleted successfully" });
+});
+
+// Seed default templates endpoint
+admin.post("/notifications/templates/seed", async c => {
+  const db = drizzle(c.env.DB, { schema });
+
+  try {
+    await seedTemplates(db);
+    return c.json({ message: "Templates seeded successfully" });
+  } catch (error) {
+    console.error("Error seeding templates:", error);
+    return c.json({ error: "Failed to seed templates" }, 500);
+  }
 });
 
 export default admin;

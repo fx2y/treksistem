@@ -99,3 +99,4 @@ export async function generateNotification(
 
 export * from "./types";
 export * from "./repository";
+export { seedTemplates } from "./seed-templates";
