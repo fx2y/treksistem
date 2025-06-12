@@ -1,5 +1,14 @@
 import type { createAuthServices } from "@treksistem/auth";
 import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
+import { createDbClient, driverLocations } from "@treksistem/db";
+
+// Validation schema for driver location payload
+const DriverLocationPayload = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+});
 
 const driver = new Hono<{
   Bindings: {
@@ -27,6 +36,32 @@ driver.use("*", async (c, next) => {
 driver.get("/orders", async c => {
   // Return empty array for now - endpoint exists but empty
   return c.json([]);
+});
+
+driver.post("/location", zValidator("json", DriverLocationPayload), async c => {
+  const { lat, lng } = c.req.valid("json");
+  const driverId = c.get("driverId");
+  
+  const db = createDbClient(c.env.DB);
+  
+  await db
+    .insert(driverLocations)
+    .values({
+      driverId,
+      lat,
+      lng,
+      lastSeenAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: driverLocations.driverId,
+      set: {
+        lat,
+        lng,
+        lastSeenAt: new Date(),
+      },
+    });
+  
+  return c.body(null, 204);
 });
 
 export default driver;
