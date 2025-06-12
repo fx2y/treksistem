@@ -11,9 +11,9 @@ import {
   type NewDriverInvite,
   type NewService,
 } from "@treksistem/db";
-import { eq } from "drizzle-orm";
 import * as schema from "@treksistem/db";
 import { TemplateRepository, seedTemplates } from "@treksistem/notifications";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { nanoid } from "nanoid";

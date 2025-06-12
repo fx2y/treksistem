@@ -28,11 +28,7 @@ notifications.post("/:logId/triggered", async c => {
       );
     }
 
-    return c.json({
-      success: true,
-      logId: result[0].id,
-      status: "triggered",
-    });
+    return c.json({ success: true, logId: result[0].id, status: "triggered" });
   } catch (error) {
     console.error("Error updating notification log:", error);
     return c.json({ success: false, error: "Internal server error" }, 500);

@@ -77,7 +77,7 @@ export class NotificationService {
   }
 }
 
-// Legacy compatibility function
+// Legacy generateNotification compatibility function
 export async function generateNotification(
   db: DrizzleD1Database<Record<string, unknown>>,
   type: NotificationType,
