@@ -150,7 +150,9 @@ export class MitraOrderService {
       serviceId: input.serviceId,
       assignedDriverId: input.assignToDriverId || null,
       assignedVehicleId: input.assignToVehicleId || null,
-      status: input.assignToDriverId ? "accepted" : "pending_dispatch",
+      status: (input.assignToDriverId
+        ? "accepted"
+        : "pending_dispatch") as const,
       ordererName: input.ordererName,
       ordererPhone: input.ordererPhone,
       recipientName: input.recipientName,
@@ -178,7 +180,7 @@ export class MitraOrderService {
       impersonatedMitraId: null,
       targetEntity: "orders",
       targetId: orderId,
-      eventType: "ORDER_CREATED", // Will be mapped to MITRA_MANUAL_ORDER_CREATED
+      eventType: "MITRA_MANUAL_ORDER_CREATED" as const,
       payload: {
         serviceId: input.serviceId,
         stopCount: input.stops.length,
@@ -199,13 +201,17 @@ export class MitraOrderService {
     if (input.sendNotifications) {
       try {
         const notificationResult = await this.notificationService.generate(
-          "order_created",
+          "TRACKING_LINK_FOR_CUSTOMER",
           {
-            orderId: publicId,
-            recipientName: input.recipientName,
+            type: "TRACKING_LINK_FOR_CUSTOMER",
+            data: {
+              recipientPhone: input.recipientPhone,
+              trackingUrl: `${process.env.PUBLIC_URL}/track/${publicId}`,
+              mitraName: "Treksistem",
+            },
           },
           {
-            recipientPhone: input.recipientPhone,
+            orderId: publicId,
           }
         );
 
@@ -288,7 +294,7 @@ export class MitraOrderService {
       impersonatedMitraId: null,
       targetEntity: "orders",
       targetId: orderId,
-      eventType: "DRIVER_ASSIGNED", // Will be mapped to MITRA_ORDER_ASSIGNED
+      eventType: "MITRA_ORDER_ASSIGNED" as const,
       payload: {
         driverId: input.driverId,
         vehicleId: input.vehicleId,
