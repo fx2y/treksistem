@@ -1,7 +1,6 @@
 import {
   orders,
   orderStops,
-  auditLogs,
   services,
   serviceRates,
   drivers,
@@ -12,6 +11,8 @@ import { NotificationService } from "@treksistem/notifications";
 import { eq, and } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import { nanoid } from "nanoid";
+
+import { AuditService } from "./audit.service";
 
 export interface StopInput {
   address: string;
@@ -56,10 +57,14 @@ export interface AssignOrderResponse {
 }
 
 export class MitraOrderService {
+  private auditService: AuditService;
+
   constructor(
     private db: DrizzleD1Database<any>,
     private notificationService: NotificationService
-  ) {}
+  ) {
+    this.auditService = new AuditService(db);
+  }
 
   async createManualOrder(
     mitraId: string,
@@ -174,28 +179,26 @@ export class MitraOrderService {
       })
     );
 
-    const auditLogData = {
-      id: nanoid(),
+    // Execute atomic transaction
+    await this.db.batch([
+      this.db.insert(orders).values(orderData),
+      ...stopOperations,
+    ]);
+
+    // Log audit event
+    await this.auditService.log({
       actorId,
-      impersonatedMitraId: null,
-      targetEntity: "orders",
-      targetId: orderId,
-      eventType: "MITRA_MANUAL_ORDER_CREATED" as const,
-      payload: {
+      mitraId,
+      entityType: "ORDER",
+      entityId: orderId,
+      eventType: "MITRA_MANUAL_ORDER_CREATED",
+      details: {
         serviceId: input.serviceId,
         stopCount: input.stops.length,
         estimatedCost,
         assignedDriverId: input.assignToDriverId,
       },
-      timestamp: new Date(),
-    };
-
-    // Execute atomic transaction
-    await this.db.batch([
-      this.db.insert(orders).values(orderData),
-      ...stopOperations,
-      this.db.insert(auditLogs).values(auditLogData),
-    ]);
+    });
 
     let notification;
     if (input.sendNotifications) {
@@ -288,22 +291,6 @@ export class MitraOrderService {
       }
     }
 
-    const auditLogData = {
-      id: nanoid(),
-      actorId,
-      impersonatedMitraId: null,
-      targetEntity: "orders",
-      targetId: orderId,
-      eventType: "MITRA_ORDER_ASSIGNED" as const,
-      payload: {
-        driverId: input.driverId,
-        vehicleId: input.vehicleId,
-        previousStatus: "pending_dispatch",
-        newStatus: "accepted",
-      },
-      timestamp: new Date(),
-    };
-
     // Execute atomic transaction
     await this.db.batch([
       this.db
@@ -314,8 +301,22 @@ export class MitraOrderService {
           status: "accepted",
         })
         .where(eq(orders.id, orderId)),
-      this.db.insert(auditLogs).values(auditLogData),
     ]);
+
+    // Log audit event
+    await this.auditService.log({
+      actorId,
+      mitraId,
+      entityType: "ORDER",
+      entityId: orderId,
+      eventType: "MITRA_ORDER_ASSIGNED",
+      details: {
+        driverId: input.driverId,
+        vehicleId: input.vehicleId,
+        previousStatus: "pending_dispatch",
+        newStatus: "accepted",
+      },
+    });
 
     return {
       orderId,

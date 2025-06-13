@@ -1,0 +1,29 @@
+{
+  "serviceId": "service_1",
+  "stops": [
+    {
+      "address": "Dapur Katering Sehat Budi, Jl. Merapi 5",
+      "lat": -7.797068,
+      "lng": 110.370529,
+      "type": "pickup"
+    },
+    {
+      "address": "Kantor ABC, Jl. Sudirman 10",
+      "lat": -7.801591,
+      "lng": 110.364917,
+      "type": "dropoff"
+    },
+    {
+      "address": "Kantor XYZ, Jl. Thamrin 20",
+      "lat": -7.803876,
+      "lng": 110.361318,
+      "type": "dropoff"
+    }
+  ],
+  "ordererName": "Ibu Wati",
+  "ordererPhone": "081211112222",
+  "recipientName": "Kantor ABC",
+  "recipientPhone": "081233334444",
+  "notes": "Tolong antar ke resepsionis di kedua kantor.",
+  "sendNotifications": false
+}

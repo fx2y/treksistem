@@ -109,7 +109,6 @@ describe("MitraOrderService", () => {
           expect.anything(), // order insert
           expect.anything(), // stop inserts
           expect.anything(), // stop inserts
-          expect.anything(), // audit log insert
         ])
       );
     });
@@ -254,7 +253,6 @@ describe("MitraOrderService", () => {
       expect(mockDb.batch).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.anything(), // order update
-          expect.anything(), // audit log insert
         ])
       );
     });
