@@ -9,6 +9,7 @@ import invites from "./mitra/invites";
 import masterData from "./mitra/master-data";
 import orders from "./mitra/orders";
 import services from "./mitra/services";
+import vehicles from "./mitra/vehicles";
 
 const mitra = new Hono<{
   Bindings: {
@@ -48,6 +49,7 @@ mitra.route("/drivers", drivers);
 mitra.route("/invites", invites);
 mitra.route("/orders", orders);
 mitra.route("/services", services);
+mitra.route("/vehicles", vehicles);
 mitra.route("/master-data", masterData);
 
 export default mitra;
