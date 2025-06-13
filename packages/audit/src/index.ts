@@ -13,7 +13,16 @@ export interface AdminAuditLogOptions {
   impersonatedMitraId?: string;
   targetEntity: string;
   targetId: string;
-  action: "CREATE" | "UPDATE" | "DELETE" | "ASSIGN" | "INVITE";
+  action:
+    | "CREATE"
+    | "UPDATE"
+    | "DELETE"
+    | "ASSIGN"
+    | "INVITE"
+    | "DRIVER_AVAILABILITY_CHANGED"
+    | "ORDER_STATUS_UPDATED"
+    | "ORDER_STOP_COMPLETED"
+    | "REPORT_SUBMITTED";
   payload: Record<string, unknown>;
 }
 
@@ -23,7 +32,16 @@ export interface AuditLogsTable {
   impersonatorId: string | null;
   targetEntity: string;
   targetId: string;
-  action: "CREATE" | "UPDATE" | "DELETE" | "ASSIGN" | "INVITE";
+  action:
+    | "CREATE"
+    | "UPDATE"
+    | "DELETE"
+    | "ASSIGN"
+    | "INVITE"
+    | "DRIVER_AVAILABILITY_CHANGED"
+    | "ORDER_STATUS_UPDATED"
+    | "ORDER_STOP_COMPLETED"
+    | "REPORT_SUBMITTED";
   payload: Record<string, unknown> | null;
   createdAt: Date;
 }
@@ -59,7 +77,16 @@ export class AuditLoggingService {
 
   private mapEventTypeToAction(
     eventType: string
-  ): "CREATE" | "UPDATE" | "DELETE" | "ASSIGN" | "INVITE" {
+  ):
+    | "CREATE"
+    | "UPDATE"
+    | "DELETE"
+    | "ASSIGN"
+    | "INVITE"
+    | "DRIVER_AVAILABILITY_CHANGED"
+    | "ORDER_STATUS_UPDATED"
+    | "ORDER_STOP_COMPLETED"
+    | "REPORT_SUBMITTED" {
     switch (eventType.toUpperCase()) {
       case "USER_LOGIN":
       case "SESSION_CREATED":
@@ -69,6 +96,14 @@ export class AuditLoggingService {
         return "DELETE";
       case "TOKEN_REFRESH":
         return "UPDATE";
+      case "DRIVER_AVAILABILITY_CHANGED":
+        return "DRIVER_AVAILABILITY_CHANGED";
+      case "ORDER_STATUS_UPDATED":
+        return "ORDER_STATUS_UPDATED";
+      case "ORDER_STOP_COMPLETED":
+        return "ORDER_STOP_COMPLETED";
+      case "REPORT_SUBMITTED":
+        return "REPORT_SUBMITTED";
       default:
         return "UPDATE";
     }
