@@ -3,7 +3,7 @@
 const jwt = require('jsonwebtoken');
 
 // Configuration
-const API_BASE = 'http://localhost:59946';
+const API_BASE = 'http://localhost:51045';
 const JWT_SECRET = 'test-jwt-secret-32-characters-long-string-for-verification';
 
 // Create admin token for setup
