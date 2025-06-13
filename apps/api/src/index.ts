@@ -1,5 +1,7 @@
 import { createAuthServices, type AuthEnvironment } from "@treksistem/auth";
+import { createDbClient } from "@treksistem/db";
 import { Hono } from "hono";
+import { BillingService } from "./services/billing.service";
 
 import admin from "./routes/admin";
 import auth from "./routes/auth";
@@ -8,6 +10,7 @@ import mitra from "./routes/mitra";
 import notifications from "./routes/notifications";
 import pub from "./routes/public";
 import uploads from "./routes/uploads";
+import { payment } from "./routes/public/payment";
 
 const app = new Hono<{
   Bindings: {
@@ -54,5 +57,24 @@ app.route("/api/admin", admin);
 app.route("/api/notifications", notifications);
 app.route("/api/public", pub);
 app.route("/api/uploads", uploads);
+app.route("/pay", payment);
 
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(event, env, _ctx) {
+    const db = createDbClient(env.DB);
+    const billingService = new BillingService(db);
+    
+    switch (event.cron) {
+      case "0 0 1 * *": // Monthly on the 1st at midnight
+        console.log("Running monthly invoice generation...");
+        try {
+          const invoices = await billingService.generateMonthlyInvoices();
+          console.log(`Generated ${invoices.length} invoices`);
+        } catch (error) {
+          console.error("Monthly invoice generation failed:", error);
+        }
+        break;
+    }
+  },
+};
