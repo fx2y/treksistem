@@ -15,6 +15,35 @@ const app = new Hono<{
   };
 }>();
 
+app.get("/verify", async c => {
+  try {
+    const token = c.req.query("token");
+    if (!token) {
+      return c.json({ error: "Token is required" }, 400);
+    }
+
+    const db = c.get("db");
+    const driverService = new DriverManagementService(db);
+
+    const result = await driverService.verifyInvite(token);
+
+    return c.json({
+      token: result.token,
+      mitraName: result.mitraName,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (
+        error.message.includes("not found") ||
+        error.message.includes("expired")
+      ) {
+        return c.json({ error: "Invitation not found or has expired." }, 404);
+      }
+    }
+    return c.json({ error: "Failed to verify invitation" }, 500);
+  }
+});
+
 app.post("/accept", zValidator("json", AcceptInviteRequest), async c => {
   try {
     const { token } = c.req.valid("json");

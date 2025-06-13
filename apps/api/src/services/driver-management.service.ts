@@ -60,6 +60,32 @@ export class DriverManagementService {
     };
   }
 
+  async verifyInvite(token: string): Promise<{ token: string; mitraName: string }> {
+    const invite = await this.db
+      .select()
+      .from(driverInvites)
+      .innerJoin(mitras, eq(driverInvites.mitraId, mitras.id))
+      .where(eq(driverInvites.token, token))
+      .get();
+
+    if (!invite) {
+      throw new Error("Invitation not found");
+    }
+
+    if (invite.driver_invites.status !== "pending") {
+      throw new Error("Invitation has already been used");
+    }
+
+    if (new Date() > invite.driver_invites.expiresAt) {
+      throw new Error("Invitation has expired");
+    }
+
+    return {
+      token: invite.driver_invites.token,
+      mitraName: invite.mitras.businessName,
+    };
+  }
+
   async acceptInvite(userId: string, token: string): Promise<{ mitraName: string }> {
     const user = await this.db
       .select()
@@ -151,5 +177,32 @@ export class DriverManagementService {
     }
 
     await this.db.delete(drivers).where(eq(drivers.id, driverId));
+  }
+
+  async resendInvite(mitraId: string, inviteId: string): Promise<void> {
+    const invite = await this.db
+      .select()
+      .from(driverInvites)
+      .where(and(eq(driverInvites.id, inviteId), eq(driverInvites.mitraId, mitraId)))
+      .get();
+
+    if (!invite) {
+      throw new Error("Invitation not found");
+    }
+
+    if (invite.status === "accepted") {
+      throw new Error("Cannot resend an invitation that has already been accepted");
+    }
+
+    // Update the expiry date to extend the invitation
+    const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+    
+    await this.db
+      .update(driverInvites)
+      .set({ expiresAt: newExpiresAt })
+      .where(eq(driverInvites.id, inviteId));
+
+    // In a real implementation, you would also send the email here
+    // For now, we just update the database to extend the invitation
   }
 }
