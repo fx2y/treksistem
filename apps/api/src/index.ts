@@ -9,6 +9,7 @@ import mitra from "./routes/mitra";
 import notifications from "./routes/notifications";
 import pub from "./routes/public";
 import { payment } from "./routes/public/payment";
+import test from "./routes/test";
 import uploads from "./routes/uploads";
 import { BillingService } from "./services/billing.service";
 
@@ -56,6 +57,7 @@ app.route("/api/driver", driver);
 app.route("/api/admin", admin);
 app.route("/api/notifications", notifications);
 app.route("/api/public", pub);
+app.route("/api/test", test);
 app.route("/api/uploads", uploads);
 app.route("/pay", payment);
 

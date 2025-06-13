@@ -3,12 +3,17 @@ import type { createAuthServices } from "@treksistem/auth";
 import type { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 
-import { VehicleService } from "../../../services/vehicle.service";
+import { AuditService } from "../../../services/audit.service";
+import {
+  VehicleService,
+  ConflictError,
+} from "../../../services/vehicle.service";
 
 import {
   createVehicleSchema,
   updateVehicleSchema,
   vehicleParamsSchema,
+  paginationQuerySchema,
 } from "./validation";
 
 const vehicles = new Hono<{
@@ -27,14 +32,16 @@ const vehicles = new Hono<{
   };
 }>();
 
-vehicles.get("/", async c => {
+vehicles.get("/", zValidator("query", paginationQuerySchema), async c => {
   const db = c.get("db");
   const mitraId = c.get("mitraId");
+  const { limit, cursor } = c.req.valid("query");
 
-  const vehicleService = new VehicleService(db);
-  const vehicles = await vehicleService.getVehicles(mitraId);
+  const auditService = new AuditService(db);
+  const vehicleService = new VehicleService(db, auditService);
+  const result = await vehicleService.getVehicles(mitraId, { limit, cursor });
 
-  return c.json(vehicles);
+  return c.json(result);
 });
 
 vehicles.get(
@@ -45,7 +52,8 @@ vehicles.get(
     const mitraId = c.get("mitraId");
     const { vehicleId } = c.req.valid("param");
 
-    const vehicleService = new VehicleService(db);
+    const auditService = new AuditService(db);
+    const vehicleService = new VehicleService(db, auditService);
     const vehicle = await vehicleService.getVehicleById(mitraId, vehicleId);
 
     if (!vehicle) {
@@ -61,7 +69,8 @@ vehicles.post("/", zValidator("json", createVehicleSchema), async c => {
   const mitraId = c.get("mitraId");
   const data = c.req.valid("json");
 
-  const vehicleService = new VehicleService(db);
+  const auditService = new AuditService(db);
+  const vehicleService = new VehicleService(db, auditService);
   const vehicle = await vehicleService.createVehicle(mitraId, data);
 
   return c.json(vehicle, 201);
@@ -77,7 +86,8 @@ vehicles.put(
     const { vehicleId } = c.req.valid("param");
     const data = c.req.valid("json");
 
-    const vehicleService = new VehicleService(db);
+    const auditService = new AuditService(db);
+    const vehicleService = new VehicleService(db, auditService);
 
     try {
       const vehicle = await vehicleService.updateVehicle(
@@ -103,14 +113,23 @@ vehicles.delete(
     const mitraId = c.get("mitraId");
     const { vehicleId } = c.req.valid("param");
 
-    const vehicleService = new VehicleService(db);
-    const result = await vehicleService.deleteVehicle(mitraId, vehicleId);
+    const auditService = new AuditService(db);
+    const vehicleService = new VehicleService(db, auditService);
 
-    if (!result.success) {
-      return c.json({ error: "Vehicle not found" }, 404);
+    try {
+      const result = await vehicleService.deleteVehicle(mitraId, vehicleId);
+
+      if (!result.success) {
+        return c.json({ error: "Vehicle not found" }, 404);
+      }
+
+      return c.body(null, 204);
+    } catch (error) {
+      if (error instanceof ConflictError) {
+        return c.json({ error: error.message }, 409);
+      }
+      throw error;
     }
-
-    return c.body(null, 204);
   }
 );
 

@@ -8,12 +8,15 @@ export type AuditEventType =
   | "SERVICE_CREATED"
   | "DRIVER_ASSIGNED"
   | "MITRA_MANUAL_ORDER_CREATED"
-  | "MITRA_ORDER_ASSIGNED";
+  | "MITRA_ORDER_ASSIGNED"
+  | "VEHICLE_CREATED"
+  | "VEHICLE_UPDATED"
+  | "VEHICLE_DELETED";
 
 export interface AuditLogOptions {
   actorId: string;
   mitraId?: string;
-  entityType: "ORDER" | "SERVICE" | "DRIVER";
+  entityType: "ORDER" | "SERVICE" | "DRIVER" | "VEHICLE";
   entityId: string;
   eventType: AuditEventType;
   details?: Record<string, unknown>;
@@ -23,16 +26,21 @@ export class AuditService {
   constructor(private db: DrizzleD1Database<any>) {}
 
   async log(options: AuditLogOptions): Promise<void> {
-    await this.db.insert(auditLogs).values({
-      id: nanoid(),
-      actorId: options.actorId,
-      impersonatedMitraId: options.mitraId || null,
-      targetEntity: options.entityType.toLowerCase(),
-      targetId: options.entityId,
-      eventType: options.eventType,
-      payload: options.details || null,
-      timestamp: new Date(),
-    });
+    try {
+      await this.db.insert(auditLogs).values({
+        id: nanoid(),
+        actorId: options.actorId,
+        impersonatedMitraId: options.mitraId || null,
+        targetEntity: options.entityType.toLowerCase(),
+        targetId: options.entityId,
+        eventType: options.eventType,
+        payload: options.details || null,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      // Audit logging MUST NOT fail the primary business operation
+      console.error("Audit logging failed:", error);
+    }
   }
 }
 
@@ -57,7 +65,8 @@ export async function logAdminAction(
     entityType: options.targetEntity.toUpperCase() as
       | "ORDER"
       | "SERVICE"
-      | "DRIVER",
+      | "DRIVER"
+      | "VEHICLE",
     entityId: options.targetId,
     eventType:
       `${options.targetEntity.toUpperCase()}_${options.action}D` as AuditEventType,
