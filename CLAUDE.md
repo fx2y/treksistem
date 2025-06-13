@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 **Project: Treksistem**
 
 **Core:** Low-cost, multi-tenant logistics CMS for Indonesian UMKM on Cloudflare. Initial focus: A-to-B food delivery.
@@ -49,8 +53,22 @@
 - **Order Claiming:** `POST /api/driver/orders/:orderId/claim` **MUST** use an atomic `UPDATE ... WHERE assignedDriverId IS NULL` to prevent race conditions.
 - **Billing:** `mitras.subscriptionStatus` is updated **ONLY** by the Midtrans webhook handler. Enforcement middleware checks `activeDriverLimit` on `POST /api/mitra/drivers/invite`.
 
-**Dev & Deploy:**
+**Common Commands:**
 
-- `Dev`: `turbo run dev`.
-- `DB Migrations`: `drizzle-kit generate` -> `wrangler d1 migrations apply`.
-- `Deploy`: Automated via GitHub Actions on push to `main`
+- **Development:** `pnpm dev` (all apps) or `pnpm dev:api`, `pnpm dev:mitra`, `pnpm dev:driver`, `pnpm dev:public`
+- **Build:** `pnpm build`
+- **Testing:** `pnpm test` (uses Vitest)
+- **Linting:** `pnpm lint`
+- **Formatting:** `pnpm format` or `pnpm format:all`
+- **Type Check:** `turbo run typecheck`
+
+**Database:**
+
+- **Generate Migration:** `cd packages/db && drizzle-kit generate`
+- **Apply Migration:** `wrangler d1 migrations apply --remote` (production) or without `--remote` (local)
+- **Studio:** `cd packages/db && drizzle-kit studio`
+
+**Deployment:**
+
+- **Local Dev:** Wrangler dev server automatically starts with `pnpm dev:api`
+- **Production:** Automated via GitHub Actions on push to `main`
