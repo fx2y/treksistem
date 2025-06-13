@@ -102,11 +102,11 @@ describe("DriverWorkflowService", () => {
 
       expect(mockDb.insert).toHaveBeenCalledWith(auditLogs);
       expect(insertMock.values).toHaveBeenCalledWith({
-        actorId: "driver-1",
+        adminUserId: "driver-1",
         targetEntity: "driver",
         targetId: "driver-1",
-        action: "DRIVER_AVAILABILITY_CHANGED",
-        payload: JSON.stringify({ status: "active" }),
+        action: "UPDATE",
+        payload: { action: "DRIVER_AVAILABILITY_CHANGED", status: "active" },
       });
 
       expect(mockDb.update).toHaveBeenCalledWith(drivers);

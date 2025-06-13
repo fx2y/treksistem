@@ -108,11 +108,11 @@ export class DriverWorkflowService {
     status: "active" | "inactive"
   ): Promise<void> {
     const auditLogInsert = this.db.insert(auditLogs).values({
-      actorId: driverId,
+      adminUserId: driverId,
       targetEntity: "driver",
       targetId: driverId,
-      action: "DRIVER_AVAILABILITY_CHANGED",
-      payload: JSON.stringify({ status }),
+      action: "UPDATE",
+      payload: { action: "DRIVER_AVAILABILITY_CHANGED", status },
     });
 
     const driverUpdate = this.db
@@ -146,14 +146,15 @@ export class DriverWorkflowService {
     }
 
     const auditLogInsert = this.db.insert(auditLogs).values({
-      actorId: driverId,
+      adminUserId: driverId,
       targetEntity: "order",
       targetId: orderId,
-      action: "ORDER_STATUS_UPDATED",
-      payload: JSON.stringify({
+      action: "UPDATE",
+      payload: {
+        action: "ORDER_STATUS_UPDATED",
         previousStatus: order.status,
         newStatus,
-      }),
+      },
     });
 
     const orderUpdate = this.db
@@ -190,15 +191,16 @@ export class DriverWorkflowService {
     }
 
     const auditLogInsert = this.db.insert(auditLogs).values({
-      actorId: driverId,
+      adminUserId: driverId,
       targetEntity: "order_stop",
       targetId: stopId,
-      action: "ORDER_STOP_COMPLETED",
-      payload: JSON.stringify({
+      action: "UPDATE",
+      payload: {
+        action: "ORDER_STOP_COMPLETED",
         orderId,
         stopSequence: stop.sequence,
         stopType: stop.type,
-      }),
+      },
     });
 
     const stopUpdate = this.db
@@ -226,6 +228,7 @@ export class DriverWorkflowService {
 
     const reportInsert = this.db.insert(orderReports).values({
       orderId,
+      driverId,
       stage: reportData.stage,
       notes: reportData.notes,
       photoUrl: reportData.photoUrl,
@@ -233,16 +236,17 @@ export class DriverWorkflowService {
     });
 
     const auditLogInsert = this.db.insert(auditLogs).values({
-      actorId: driverId,
+      adminUserId: driverId,
       targetEntity: "order_report",
       targetId: nanoid(),
-      action: "REPORT_SUBMITTED",
-      payload: JSON.stringify({
+      action: "CREATE",
+      payload: {
+        action: "REPORT_SUBMITTED",
         orderId,
         stage: reportData.stage,
         notes: reportData.notes,
         photoUrl: reportData.photoUrl,
-      }),
+      },
     });
 
     const operations = [reportInsert, auditLogInsert];
