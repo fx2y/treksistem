@@ -42,10 +42,10 @@ pub.use("/invites/*", async (c, next) => {
 // Mount invites routes
 pub.route("/invites", invites);
 
-// Rate limiting for public endpoints - 5 requests per 10 seconds
+// Rate limiting for public endpoints - 20 requests per 60 seconds
 const publicRateLimit = rateLimit({
-  windowMs: 10 * 1000, // 10 seconds
-  max: 5, // 5 requests per window
+  windowMs: 60 * 1000, // 60 seconds
+  max: 20, // 20 requests per window
 });
 
 pub.use("/services", publicRateLimit);
