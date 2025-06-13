@@ -1,5 +1,6 @@
 export type NotificationType =
   | "NEW_ORDER_FOR_DRIVER"
+  | "NEW_ORDER_AVAILABLE"
   | "TRACKING_LINK_FOR_CUSTOMER"
   | "ORDER_UPDATE_FOR_CUSTOMER";
 
@@ -10,6 +11,16 @@ export type NotificationPayload =
         recipientPhone: string;
         orderId: string;
         pickupAddress: string;
+      };
+    }
+  | {
+      type: "NEW_ORDER_AVAILABLE";
+      data: {
+        recipientPhone: string;
+        orderPublicId: string;
+        mitraName: string;
+        pickupAddress: string;
+        destinationAddress: string;
       };
     }
   | {

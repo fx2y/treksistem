@@ -4,8 +4,10 @@ import {
   orderReports,
   drivers,
   auditLogs,
+  services,
+  mitras,
 } from "@treksistem/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 export interface OrderStopDetails {
@@ -42,7 +44,8 @@ export interface SubmitReportRequest {
 }
 
 const ORDER_STATUS_TRANSITIONS: Record<string, string[]> = {
-  pending_dispatch: ["accepted", "cancelled"],
+  pending_dispatch: ["accepted", "cancelled", "claimed"],
+  claimed: ["accepted", "cancelled"],
   accepted: ["pickup", "cancelled"],
   pickup: ["in_transit", "cancelled"],
   in_transit: ["delivered", "cancelled"],
@@ -209,6 +212,123 @@ export class DriverWorkflowService {
       .where(eq(orderStops.id, stopId));
 
     await this.db.batch([auditLogInsert, stopUpdate]);
+  }
+
+  async claimOrder(params: {
+    orderId: string;
+    claimingDriverId: string;
+  }): Promise<{ success: boolean; message: string; httpStatus: number }> {
+    const { orderId, claimingDriverId } = params;
+
+    // First, verify the order exists and is in the correct state
+    const order = await this.db
+      .select({
+        id: orders.id,
+        publicId: orders.publicId,
+        status: orders.status,
+        serviceId: orders.serviceId,
+        assignedDriverId: orders.assignedDriverId,
+      })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .get();
+
+    if (!order) {
+      return {
+        success: false,
+        message: "Order not found",
+        httpStatus: 404,
+      };
+    }
+
+    if (order.status !== "pending_dispatch") {
+      return {
+        success: false,
+        message: "Order is not available for claiming",
+        httpStatus: 400,
+      };
+    }
+
+    // Verify the driver belongs to the same mitra as the order's service
+    const driverMitra = await this.db
+      .select({
+        mitraId: drivers.mitraId,
+      })
+      .from(drivers)
+      .where(eq(drivers.id, claimingDriverId))
+      .get();
+
+    if (!driverMitra) {
+      return {
+        success: false,
+        message: "Driver not found",
+        httpStatus: 404,
+      };
+    }
+
+    const orderService = await this.db
+      .select({
+        mitraId: services.mitraId,
+      })
+      .from(services)
+      .where(eq(services.id, order.serviceId))
+      .get();
+
+    if (!orderService) {
+      return {
+        success: false,
+        message: "Service not found",
+        httpStatus: 404,
+      };
+    }
+
+    if (driverMitra.mitraId !== orderService.mitraId) {
+      return {
+        success: false,
+        message: "Order not found or not available to this driver",
+        httpStatus: 404,
+      };
+    }
+
+    // Attempt atomic claim using UPDATE WHERE with null check
+    const updateResult = await this.db
+      .update(orders)
+      .set({
+        assignedDriverId: claimingDriverId,
+        status: "claimed",
+      })
+      .where(
+        and(eq(orders.id, orderId), isNull(orders.assignedDriverId))
+      )
+      .run();
+
+    // Check if the update affected any rows
+    if (updateResult.changes === 0) {
+      return {
+        success: false,
+        message: "Order has already been claimed",
+        httpStatus: 409,
+      };
+    }
+
+    // Create audit log for successful claim
+    await this.db.insert(auditLogs).values({
+      actorId: claimingDriverId,
+      targetEntity: "order",
+      targetId: orderId,
+      eventType: "DRIVER_ASSIGNED",
+      payload: {
+        orderPublicId: order.publicId,
+        previousStatus: "pending_dispatch",
+        newStatus: "claimed",
+      },
+    });
+
+    return {
+      success: true,
+      message: `Order ${order.publicId} claimed successfully`,
+      httpStatus: 200,
+    };
   }
 
   async submitReport(

@@ -77,6 +77,38 @@ orders.post(
   }
 );
 
+orders.post("/:orderId/claim", async c => {
+  const orderId = c.req.param("orderId");
+  const driverId = c.get("driverId");
+
+  const db = createDbClient(c.env.DB);
+  const service = new DriverWorkflowService(db);
+
+  try {
+    const result = await service.claimOrder({
+      orderId,
+      claimingDriverId: driverId,
+    });
+
+    return c.json(
+      {
+        success: result.success,
+        message: result.message,
+      },
+      result.httpStatus as any
+    );
+  } catch (error) {
+    return c.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to claim order",
+      },
+      500
+    );
+  }
+});
+
 orders.post("/:orderId/stops/:stopId/complete", async c => {
   const orderId = c.req.param("orderId");
   const stopId = c.req.param("stopId");
