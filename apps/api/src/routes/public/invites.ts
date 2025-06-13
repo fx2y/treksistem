@@ -1,7 +1,8 @@
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
 import type { DbClient } from "@treksistem/db";
+import { Hono } from "hono";
+import { z } from "zod";
+
 import { DriverManagementService } from "../../services/driver-management.service";
 
 const AcceptInviteRequest = z.object({

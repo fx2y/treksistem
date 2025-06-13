@@ -395,6 +395,8 @@ export const auditLogs = sqliteTable(
         "ORDER_UPDATED",
         "SERVICE_CREATED",
         "DRIVER_ASSIGNED",
+        "MITRA_MANUAL_ORDER_CREATED",
+        "MITRA_ORDER_ASSIGNED",
       ],
     }).notNull(), // Changed from action to eventType and added specific events
     payload: text("payload", { mode: "json" }).$type<Record<string, unknown>>(),
@@ -421,7 +423,9 @@ export const invoices = sqliteTable("invoices", {
   mitraId: text("mitra_id")
     .notNull()
     .references(() => mitras.id),
-  type: text("type", { enum: ["PLATFORM_SUBSCRIPTION", "CUSTOMER_PAYMENT"] }).notNull(),
+  type: text("type", {
+    enum: ["PLATFORM_SUBSCRIPTION", "CUSTOMER_PAYMENT"],
+  }).notNull(),
   status: text("status", { enum: ["pending", "paid", "overdue", "cancelled"] })
     .notNull()
     .default("pending"),

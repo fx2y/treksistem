@@ -1,7 +1,8 @@
-import { Hono } from 'hono';
-import { BillingService } from '../../services/billing.service';
-import { z } from 'zod';
-import { zValidator } from '@hono/zod-validator';
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
+import { z } from "zod";
+
+import { BillingService } from "../../services/billing.service";
 
 const app = new Hono<{
   Variables: {
@@ -11,17 +12,21 @@ const app = new Hono<{
 }>();
 
 const querySchema = z.object({
-  status: z.enum(['pending', 'paid', 'all']).optional().default('all'),
-  limit: z.string().transform(Number).optional().default('20'),
+  status: z.enum(["pending", "paid", "all"]).optional().default("all"),
+  limit: z.string().transform(Number).optional().default("20"),
 });
 
-app.get('/invoices', zValidator('query', querySchema), async (c) => {
-  const { status, limit } = c.req.valid('query');
-  const mitraId = c.get('mitraId');
-  const db = c.get('db');
+app.get("/invoices", zValidator("query", querySchema), async c => {
+  const { status, limit } = c.req.valid("query");
+  const mitraId = c.get("mitraId");
+  const db = c.get("db");
 
   const billingService = new BillingService(db);
-  const invoices = await billingService.getInvoicesByMitra(mitraId, status, limit);
+  const invoices = await billingService.getInvoicesByMitra(
+    mitraId,
+    status,
+    limit
+  );
 
   return c.json({
     invoices: invoices.map(invoice => ({
@@ -36,16 +41,16 @@ app.get('/invoices', zValidator('query', querySchema), async (c) => {
   });
 });
 
-app.get('/invoices/:invoiceId', async (c) => {
-  const invoiceId = c.req.param('invoiceId');
-  const mitraId = c.get('mitraId');
-  const db = c.get('db');
+app.get("/invoices/:invoiceId", async c => {
+  const invoiceId = c.req.param("invoiceId");
+  const mitraId = c.get("mitraId");
+  const db = c.get("db");
 
   const billingService = new BillingService(db);
   const invoice = await billingService.getInvoiceByPublicId(invoiceId, mitraId);
 
   if (!invoice) {
-    return c.json({ error: 'Invoice not found' }, 404);
+    return c.json({ error: "Invoice not found" }, 404);
   }
 
   return c.json({

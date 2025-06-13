@@ -38,10 +38,13 @@ services.get("/", zValidator("query", ServiceDiscoverySchema), async c => {
     return c.json(availableServices);
   } catch (error) {
     console.error("Services endpoint error:", error);
-    return c.json({ 
-      error: "Failed to fetch services", 
-      details: error instanceof Error ? error.message : String(error) 
-    }, 500);
+    return c.json(
+      {
+        error: "Failed to fetch services",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      500
+    );
   }
 });
 

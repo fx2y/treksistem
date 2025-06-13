@@ -22,7 +22,9 @@ export interface AdminAuditLogOptions {
     | "DRIVER_AVAILABILITY_CHANGED"
     | "ORDER_STATUS_UPDATED"
     | "ORDER_STOP_COMPLETED"
-    | "REPORT_SUBMITTED";
+    | "REPORT_SUBMITTED"
+    | "MITRA_MANUAL_ORDER_CREATED"
+    | "MITRA_ORDER_ASSIGNED";
   payload: Record<string, unknown>;
 }
 
@@ -41,7 +43,9 @@ export interface AuditLogsTable {
     | "DRIVER_AVAILABILITY_CHANGED"
     | "ORDER_STATUS_UPDATED"
     | "ORDER_STOP_COMPLETED"
-    | "REPORT_SUBMITTED";
+    | "REPORT_SUBMITTED"
+    | "MITRA_MANUAL_ORDER_CREATED"
+    | "MITRA_ORDER_ASSIGNED";
   payload: Record<string, unknown> | null;
   createdAt: Date;
 }
@@ -86,7 +90,9 @@ export class AuditLoggingService {
     | "DRIVER_AVAILABILITY_CHANGED"
     | "ORDER_STATUS_UPDATED"
     | "ORDER_STOP_COMPLETED"
-    | "REPORT_SUBMITTED" {
+    | "REPORT_SUBMITTED"
+    | "MITRA_MANUAL_ORDER_CREATED"
+    | "MITRA_ORDER_ASSIGNED" {
     switch (eventType.toUpperCase()) {
       case "USER_LOGIN":
       case "SESSION_CREATED":
@@ -104,6 +110,10 @@ export class AuditLoggingService {
         return "ORDER_STOP_COMPLETED";
       case "REPORT_SUBMITTED":
         return "REPORT_SUBMITTED";
+      case "MITRA_MANUAL_ORDER_CREATED":
+        return "MITRA_MANUAL_ORDER_CREATED";
+      case "MITRA_ORDER_ASSIGNED":
+        return "MITRA_ORDER_ASSIGNED";
       default:
         return "UPDATE";
     }
