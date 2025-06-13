@@ -1,10 +1,5 @@
 import type { DbClient } from "@treksistem/db";
-import {
-  driverInvites,
-  drivers,
-  users,
-  mitras,
-} from "@treksistem/db";
+import { driverInvites, drivers, users, mitras } from "@treksistem/db";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
@@ -18,7 +13,10 @@ export interface DriverResponse {
 
 export class DriverManagementService {
   constructor(private db: DbClient) {}
-  async inviteDriver(mitraId: string, email: string): Promise<{ inviteLink: string }> {
+  async inviteDriver(
+    mitraId: string,
+    email: string
+  ): Promise<{ inviteLink: string }> {
     // Check subscription status first
     const mitra = await this.db
       .select()
@@ -31,8 +29,13 @@ export class DriverManagementService {
     }
 
     // Enforce subscription status before allowing driver invitations
-    if (mitra.subscriptionStatus === 'past_due' || mitra.subscriptionStatus === 'cancelled') {
-      const error = new Error("Your subscription is not active. Please pay your outstanding invoices to continue adding drivers.");
+    if (
+      mitra.subscriptionStatus === "past_due" ||
+      mitra.subscriptionStatus === "cancelled"
+    ) {
+      const error = new Error(
+        "Your subscription is not active. Please pay your outstanding invoices to continue adding drivers."
+      );
       (error as any).code = "PAYMENT_REQUIRED";
       throw error;
     }
@@ -43,7 +46,9 @@ export class DriverManagementService {
       .where(eq(drivers.mitraId, mitraId));
 
     if (currentDriverCount.length >= mitra.activeDriverLimit) {
-      const error = new Error("Driver limit reached. Please upgrade your subscription to add more drivers.");
+      const error = new Error(
+        "Driver limit reached. Please upgrade your subscription to add more drivers."
+      );
       (error as any).code = "PAYMENT_REQUIRED";
       throw error;
     }
@@ -62,11 +67,13 @@ export class DriverManagementService {
     const existingInvite = await this.db
       .select()
       .from(driverInvites)
-      .where(and(
-        eq(driverInvites.mitraId, mitraId),
-        eq(driverInvites.email, email),
-        eq(driverInvites.status, "pending")
-      ))
+      .where(
+        and(
+          eq(driverInvites.mitraId, mitraId),
+          eq(driverInvites.email, email),
+          eq(driverInvites.status, "pending")
+        )
+      )
       .get();
 
     if (existingInvite) {
@@ -89,7 +96,9 @@ export class DriverManagementService {
     };
   }
 
-  async verifyInvite(token: string): Promise<{ token: string; mitraName: string }> {
+  async verifyInvite(
+    token: string
+  ): Promise<{ token: string; mitraName: string }> {
     const invite = await this.db
       .select()
       .from(driverInvites)
@@ -115,7 +124,10 @@ export class DriverManagementService {
     };
   }
 
-  async acceptInvite(userId: string, token: string): Promise<{ mitraName: string }> {
+  async acceptInvite(
+    userId: string,
+    token: string
+  ): Promise<{ mitraName: string }> {
     const user = await this.db
       .select()
       .from(users)
@@ -152,10 +164,12 @@ export class DriverManagementService {
     const existingDriver = await this.db
       .select()
       .from(drivers)
-      .where(and(
-        eq(drivers.userId, userId),
-        eq(drivers.mitraId, invite.driver_invites.mitraId)
-      ))
+      .where(
+        and(
+          eq(drivers.userId, userId),
+          eq(drivers.mitraId, invite.driver_invites.mitraId)
+        )
+      )
       .get();
 
     if (existingDriver) {
@@ -212,7 +226,9 @@ export class DriverManagementService {
     const invite = await this.db
       .select()
       .from(driverInvites)
-      .where(and(eq(driverInvites.id, inviteId), eq(driverInvites.mitraId, mitraId)))
+      .where(
+        and(eq(driverInvites.id, inviteId), eq(driverInvites.mitraId, mitraId))
+      )
       .get();
 
     if (!invite) {
@@ -220,12 +236,14 @@ export class DriverManagementService {
     }
 
     if (invite.status === "accepted") {
-      throw new Error("Cannot resend an invitation that has already been accepted");
+      throw new Error(
+        "Cannot resend an invitation that has already been accepted"
+      );
     }
 
     // Update the expiry date to extend the invitation
     const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-    
+
     await this.db
       .update(driverInvites)
       .set({ expiresAt: newExpiresAt })

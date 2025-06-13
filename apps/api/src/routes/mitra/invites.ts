@@ -1,5 +1,6 @@
-import { Hono } from "hono";
 import type { DbClient } from "@treksistem/db";
+import { Hono } from "hono";
+
 import { DriverManagementService } from "../../services/driver-management.service";
 
 const app = new Hono<{
@@ -27,7 +28,13 @@ app.post("/:inviteId/resend", async c => {
         return c.json({ error: "Invitation not found" }, 404);
       }
       if (error.message.includes("already been accepted")) {
-        return c.json({ error: "Cannot resend an invitation that has already been accepted." }, 400);
+        return c.json(
+          {
+            error:
+              "Cannot resend an invitation that has already been accepted.",
+          },
+          400
+        );
       }
     }
     return c.json({ error: "Failed to resend invitation" }, 500);

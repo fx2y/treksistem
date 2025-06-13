@@ -1,12 +1,13 @@
-import { DrizzleD1Database } from 'drizzle-orm/d1';
-import { eq, and, gte, lt } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
-import { invoices, mitras } from '@treksistem/db';
-import { generateQRIS } from '../lib/qris';
+import { invoices, mitras } from "@treksistem/db";
+import { eq, and, gte, lt } from "drizzle-orm";
+import { DrizzleD1Database } from "drizzle-orm/d1";
+import { nanoid } from "nanoid";
+
+import { generateQRIS } from "../lib/qris";
 
 export interface CreateInvoiceData {
   mitraId: string;
-  type: 'PLATFORM_SUBSCRIPTION' | 'CUSTOMER_PAYMENT';
+  type: "PLATFORM_SUBSCRIPTION" | "CUSTOMER_PAYMENT";
   amount: number;
   description?: string;
   dueDate?: Date;
@@ -19,7 +20,7 @@ export interface CustomerInvoiceDetails {
 }
 
 export interface ListFilters {
-  status?: 'pending' | 'paid' | 'overdue' | 'cancelled' | 'all';
+  status?: "pending" | "paid" | "overdue" | "cancelled" | "all";
   limit?: number;
   offset?: number;
 }
@@ -34,20 +35,23 @@ export class BillingService {
   constructor(private db: DrizzleD1Database<any>) {}
 
   async createInvoice(data: CreateInvoiceData) {
-    const invoice = await this.db.insert(invoices).values({
-      publicId: nanoid(),
-      mitraId: data.mitraId,
-      type: data.type,
-      amount: data.amount,
-      description: data.description,
-      dueDate: data.dueDate,
-      qrisPayload: generateQRIS({
+    const invoice = await this.db
+      .insert(invoices)
+      .values({
+        publicId: nanoid(),
+        mitraId: data.mitraId,
+        type: data.type,
         amount: data.amount,
-        invoiceId: nanoid(),
-        description: data.description || 'Payment'
-      }),
-      createdAt: new Date(),
-    }).returning();
+        description: data.description,
+        dueDate: data.dueDate,
+        qrisPayload: generateQRIS({
+          amount: data.amount,
+          invoiceId: nanoid(),
+          description: data.description || "Payment",
+        }),
+        createdAt: new Date(),
+      })
+      .returning();
 
     return invoice[0];
   }
@@ -59,11 +63,10 @@ export class BillingService {
       .where(eq(invoices.mitraId, mitraId))
       .limit(limit);
 
-    if (status && status !== 'all') {
-      query = query.where(and(
-        eq(invoices.mitraId, mitraId),
-        eq(invoices.status, status as any)
-      ));
+    if (status && status !== "all") {
+      query = query.where(
+        and(eq(invoices.mitraId, mitraId), eq(invoices.status, status as any))
+      );
     }
 
     return await query;
@@ -71,7 +74,7 @@ export class BillingService {
 
   async getInvoiceByPublicId(publicId: string, mitraId?: string) {
     let whereClause = eq(invoices.publicId, publicId);
-    
+
     if (mitraId) {
       whereClause = and(
         eq(invoices.publicId, publicId),
@@ -79,44 +82,41 @@ export class BillingService {
       );
     }
 
-    const result = await this.db
-      .select()
-      .from(invoices)
-      .where(whereClause);
+    const result = await this.db.select().from(invoices).where(whereClause);
 
     return result[0];
   }
 
   async confirmPayment({ invoiceId, paymentDate, _notes }: ConfirmPaymentData) {
     const invoice = await this.getInvoiceByPublicId(invoiceId);
-    
+
     if (!invoice) {
-      throw new Error('Invoice not found');
+      throw new Error("Invoice not found");
     }
 
-    if (invoice.status === 'paid') {
-      throw new Error('Invoice already paid');
+    if (invoice.status === "paid") {
+      throw new Error("Invoice already paid");
     }
 
     const updatedInvoice = await this.db
       .update(invoices)
       .set({
-        status: 'paid',
+        status: "paid",
         paidAt: paymentDate,
       })
       .where(eq(invoices.publicId, invoiceId))
       .returning();
 
-    if (invoice.type === 'PLATFORM_SUBSCRIPTION') {
+    if (invoice.type === "PLATFORM_SUBSCRIPTION") {
       await this.db
         .update(mitras)
-        .set({ subscriptionStatus: 'active' })
+        .set({ subscriptionStatus: "active" })
         .where(eq(mitras.id, invoice.mitraId));
     }
 
     return {
       invoice: updatedInvoice[0],
-      mitraSubscriptionStatus: 'active'
+      mitraSubscriptionStatus: "active",
     };
   }
 
@@ -130,7 +130,7 @@ export class BillingService {
       .from(mitras)
       .where(
         and(
-          eq(mitras.subscriptionStatus, 'active'),
+          eq(mitras.subscriptionStatus, "active")
           // Add any other eligibility criteria
         )
       );
@@ -144,7 +144,7 @@ export class BillingService {
         .where(
           and(
             eq(invoices.mitraId, mitra.id),
-            eq(invoices.type, 'PLATFORM_SUBSCRIPTION'),
+            eq(invoices.type, "PLATFORM_SUBSCRIPTION"),
             gte(invoices.createdAt, startOfMonth)
           )
         );
@@ -157,9 +157,9 @@ export class BillingService {
 
         const invoice = await this.createInvoice({
           mitraId: mitra.id,
-          type: 'PLATFORM_SUBSCRIPTION',
+          type: "PLATFORM_SUBSCRIPTION",
           amount,
-          description: `Subscription Fee: ${mitra.activeDriverLimit} drivers for ${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`,
+          description: `Subscription Fee: ${mitra.activeDriverLimit} drivers for ${new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`,
           dueDate,
         });
 
@@ -179,8 +179,8 @@ export class BillingService {
       .from(invoices)
       .where(
         and(
-          eq(invoices.type, 'PLATFORM_SUBSCRIPTION'),
-          eq(invoices.status, 'pending'),
+          eq(invoices.type, "PLATFORM_SUBSCRIPTION"),
+          eq(invoices.status, "pending"),
           lt(invoices.dueDate, today)
         )
       );
@@ -190,7 +190,7 @@ export class BillingService {
     for (const invoice of overdueInvoices) {
       await this.db
         .update(invoices)
-        .set({ status: 'overdue' })
+        .set({ status: "overdue" })
         .where(eq(invoices.id, invoice.id));
 
       const mitra = await this.db
@@ -198,10 +198,10 @@ export class BillingService {
         .from(mitras)
         .where(eq(mitras.id, invoice.mitraId));
 
-      if (mitra[0] && mitra[0].subscriptionStatus !== 'past_due') {
+      if (mitra[0] && mitra[0].subscriptionStatus !== "past_due") {
         await this.db
           .update(mitras)
-          .set({ subscriptionStatus: 'past_due' })
+          .set({ subscriptionStatus: "past_due" })
           .where(eq(mitras.id, invoice.mitraId));
       }
 
@@ -211,13 +211,16 @@ export class BillingService {
     return results;
   }
 
-  async createCustomerInvoice(mitraId: string, details: CustomerInvoiceDetails) {
+  async createCustomerInvoice(
+    mitraId: string,
+    details: CustomerInvoiceDetails
+  ) {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 7); // 7 days to pay
 
     return await this.createInvoice({
       mitraId,
-      type: 'CUSTOMER_PAYMENT',
+      type: "CUSTOMER_PAYMENT",
       amount: details.amount,
       description: details.description,
       dueDate,
@@ -233,23 +236,26 @@ export class BillingService {
     return result[0] || null;
   }
 
-  async listInvoices(ownerId: string, ownerType: 'mitra' | 'admin', filters: ListFilters = {}) {
-    const { status = 'all', limit = 20, offset = 0 } = filters;
+  async listInvoices(
+    ownerId: string,
+    ownerType: "mitra" | "admin",
+    filters: ListFilters = {}
+  ) {
+    const { status = "all", limit = 20, offset = 0 } = filters;
 
-    let query = this.db
-      .select()
-      .from(invoices)
-      .limit(limit)
-      .offset(offset);
+    let query = this.db.select().from(invoices).limit(limit).offset(offset);
 
-    if (ownerType === 'mitra') {
+    if (ownerType === "mitra") {
       query = query.where(eq(invoices.mitraId, ownerId));
     }
 
-    if (status && status !== 'all') {
-      const currentWhere = ownerType === 'mitra' ? eq(invoices.mitraId, ownerId) : undefined;
+    if (status && status !== "all") {
+      const currentWhere =
+        ownerType === "mitra" ? eq(invoices.mitraId, ownerId) : undefined;
       const statusWhere = eq(invoices.status, status);
-      query = query.where(currentWhere ? and(currentWhere, statusWhere) : statusWhere);
+      query = query.where(
+        currentWhere ? and(currentWhere, statusWhere) : statusWhere
+      );
     }
 
     return await query;

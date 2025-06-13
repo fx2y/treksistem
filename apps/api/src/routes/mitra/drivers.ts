@@ -1,7 +1,8 @@
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
 import type { DbClient } from "@treksistem/db";
+import { Hono } from "hono";
+import { z } from "zod";
+
 import { DriverManagementService } from "../../services/driver-management.service";
 
 const InviteDriverRequest = z.object({
@@ -27,7 +28,10 @@ app.post("/invite", zValidator("json", InviteDriverRequest), async c => {
     return c.json(result);
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message.includes("already exists") || error.message.includes("already")) {
+      if (
+        error.message.includes("already exists") ||
+        error.message.includes("already")
+      ) {
         return c.json({ error: error.message }, 409);
       }
     }

@@ -1,7 +1,6 @@
 import { createAuthServices, type AuthEnvironment } from "@treksistem/auth";
 import { createDbClient } from "@treksistem/db";
 import { Hono } from "hono";
-import { BillingService } from "./services/billing.service";
 
 import admin from "./routes/admin";
 import auth from "./routes/auth";
@@ -9,8 +8,9 @@ import driver from "./routes/driver";
 import mitra from "./routes/mitra";
 import notifications from "./routes/notifications";
 import pub from "./routes/public";
-import uploads from "./routes/uploads";
 import { payment } from "./routes/public/payment";
+import uploads from "./routes/uploads";
+import { BillingService } from "./services/billing.service";
 
 const app = new Hono<{
   Bindings: {
@@ -64,7 +64,7 @@ export default {
   async scheduled(event, env, _ctx) {
     const db = createDbClient(env.DB);
     const billingService = new BillingService(db);
-    
+
     switch (event.cron) {
       case "0 0 1 * *": // Monthly on the 1st at midnight
         console.log("Running monthly invoice generation...");

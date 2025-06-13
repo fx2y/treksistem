@@ -1,8 +1,8 @@
-import { Hono } from 'hono';
-import { createDbClient } from '@treksistem/db';
-import { BillingService } from '../../services/billing.service';
-import { eq } from 'drizzle-orm';
-import { mitras } from '@treksistem/db';
+import { createDbClient, mitras } from "@treksistem/db";
+import { eq } from "drizzle-orm";
+import { Hono } from "hono";
+
+import { BillingService } from "../../services/billing.service";
 
 type Bindings = {
   DB: D1Database;
@@ -10,7 +10,7 @@ type Bindings = {
 
 const payment = new Hono<{ Bindings: Bindings }>();
 
-payment.get('/:publicInvoiceId', async (c) => {
+payment.get("/:publicInvoiceId", async c => {
   try {
     const { publicInvoiceId } = c.req.param();
     const db = createDbClient(c.env.DB);
@@ -19,20 +19,21 @@ payment.get('/:publicInvoiceId', async (c) => {
     const invoice = await billingService.getInvoiceByPublicId(publicInvoiceId);
 
     if (!invoice) {
-      return c.json({ error: 'Invoice not found' }, 404);
+      return c.json({ error: "Invoice not found" }, 404);
     }
 
-    if (invoice.type !== 'delivery_fee') {
-      return c.json({ error: 'Invoice not accessible publicly' }, 403);
+    if (invoice.type !== "delivery_fee") {
+      return c.json({ error: "Invoice not accessible publicly" }, 403);
     }
 
     // Get mitra business name
-    const mitra = await db.select()
+    const mitra = await db
+      .select()
       .from(mitras)
       .where(eq(mitras.id, invoice.mitraId))
       .limit(1);
 
-    const businessName = mitra[0]?.businessName || 'Treksistem Partner';
+    const businessName = mitra[0]?.businessName || "Treksistem Partner";
 
     return c.json({
       businessName,
@@ -41,12 +42,11 @@ payment.get('/:publicInvoiceId', async (c) => {
       description: invoice.description,
       qrisPayload: invoice.qrisPayload,
       status: invoice.status,
-      dueDate: invoice.dueDate
+      dueDate: invoice.dueDate,
     });
-
   } catch (error) {
-    console.error('Error fetching public invoice:', error);
-    return c.json({ error: 'Internal server error' }, 500);
+    console.error("Error fetching public invoice:", error);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
