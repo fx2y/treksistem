@@ -384,26 +384,29 @@ export const auditLogs = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => nanoid()),
-    adminUserId: text("admin_user_id")
-      .notNull()
-      .references(() => users.id),
+    actorId: text("actor_id").notNull(), // Changed from adminUserId to actorId for flexibility
     impersonatedMitraId: text("impersonated_mitra_id").references(
       () => mitras.id
     ),
     targetEntity: text("target_entity").notNull(),
     targetId: text("target_id").notNull(),
-    action: text("action", {
-      enum: ["CREATE", "UPDATE", "DELETE", "ASSIGN", "INVITE"],
-    }).notNull(),
+    eventType: text("event_type", {
+      enum: [
+        "ORDER_CREATED",
+        "ORDER_UPDATED",
+        "SERVICE_CREATED",
+        "DRIVER_ASSIGNED",
+      ],
+    }).notNull(), // Changed from action to eventType and added specific events
     payload: text("payload", { mode: "json" }).$type<Record<string, unknown>>(),
     timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(
       () => new Date()
     ),
   },
   table => ({
-    adminActionIdx: index("audit_logs_admin_action_idx").on(
-      table.adminUserId,
-      table.action
+    actorEventIdx: index("audit_logs_actor_event_idx").on(
+      table.actorId,
+      table.eventType
     ),
     timestampIdx: index("audit_logs_timestamp_idx").on(table.timestamp),
   })
@@ -608,10 +611,6 @@ export const driverLocationsRelations = relations(
 );
 
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
-  adminUser: one(users, {
-    fields: [auditLogs.adminUserId],
-    references: [users.id],
-  }),
   impersonatedMitra: one(mitras, {
     fields: [auditLogs.impersonatedMitraId],
     references: [mitras.id],

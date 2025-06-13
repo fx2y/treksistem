@@ -37,7 +37,11 @@ services.get("/", zValidator("query", ServiceDiscoverySchema), async c => {
       await publicOrderService.findAvailableServices(params);
     return c.json(availableServices);
   } catch (error) {
-    return c.json({ error: "Failed to fetch services" }, 500);
+    console.error("Services endpoint error:", error);
+    return c.json({ 
+      error: "Failed to fetch services", 
+      details: error instanceof Error ? error.message : String(error) 
+    }, 500);
   }
 });
 
