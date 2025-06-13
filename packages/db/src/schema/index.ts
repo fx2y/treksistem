@@ -418,8 +418,8 @@ export const invoices = sqliteTable("invoices", {
   mitraId: text("mitra_id")
     .notNull()
     .references(() => mitras.id),
-  type: text("type", { enum: ["subscription", "delivery_fee", "other"] }).notNull(),
-  status: text("status", { enum: ["pending", "paid", "expired", "cancelled"] })
+  type: text("type", { enum: ["PLATFORM_SUBSCRIPTION", "CUSTOMER_PAYMENT"] }).notNull(),
+  status: text("status", { enum: ["pending", "paid", "overdue", "cancelled"] })
     .notNull()
     .default("pending"),
   amount: integer("amount").notNull(),

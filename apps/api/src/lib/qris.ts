@@ -15,9 +15,23 @@ export function generateQRIS(options: QRISOptions): string {
     merchantCity = 'Jakarta'
   } = options;
 
+  // Input validation
+  if (!amount || amount <= 0) {
+    throw new Error('QRIS: Amount must be positive');
+  }
+  if (!invoiceId || invoiceId.trim().length === 0) {
+    throw new Error('QRIS: Invoice ID is required');
+  }
+  if (!description || description.trim().length === 0) {
+    throw new Error('QRIS: Description is required');
+  }
+  if (amount > 999999999) {
+    throw new Error('QRIS: Amount exceeds maximum limit');
+  }
+
   // EMVCo QRIS format implementation
-  // This is a simplified implementation for MVP
-  // In production, use proper QRIS library or service
+  // Enhanced implementation with proper validation and error handling
+  // TODO: Replace with certified QRIS library for production use
   
   const payload = [
     '00020101021226', // Payload Format Indicator
@@ -37,7 +51,11 @@ export function generateQRIS(options: QRISOptions): string {
 }
 
 function getFormattedLength(value: string): string {
-  return value.length.toString().padStart(2, '0');
+  const length = value.length;
+  if (length > 99) {
+    throw new Error('QRIS: Field length exceeds maximum (99)');
+  }
+  return length.toString().padStart(2, '0');
 }
 
 function calculateCRC16(data: string): number {

@@ -10,6 +10,7 @@ import mitra from "./routes/mitra";
 import notifications from "./routes/notifications";
 import pub from "./routes/public";
 import uploads from "./routes/uploads";
+import { payment } from "./routes/public/payment";
 
 const app = new Hono<{
   Bindings: {
@@ -56,6 +57,7 @@ app.route("/api/admin", admin);
 app.route("/api/notifications", notifications);
 app.route("/api/public", pub);
 app.route("/api/uploads", uploads);
+app.route("/pay", payment);
 
 export default {
   fetch: app.fetch,

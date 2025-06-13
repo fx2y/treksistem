@@ -19,7 +19,7 @@ export interface DriverResponse {
 export class DriverManagementService {
   constructor(private db: DbClient) {}
   async inviteDriver(mitraId: string, email: string): Promise<{ inviteLink: string }> {
-    // Check driver limit
+    // Check subscription status first
     const mitra = await this.db
       .select()
       .from(mitras)
@@ -28,6 +28,13 @@ export class DriverManagementService {
 
     if (!mitra) {
       throw new Error("Mitra not found");
+    }
+
+    // Enforce subscription status before allowing driver invitations
+    if (mitra.subscriptionStatus === 'past_due' || mitra.subscriptionStatus === 'cancelled') {
+      const error = new Error("Your subscription is not active. Please pay your outstanding invoices to continue adding drivers.");
+      (error as any).code = "PAYMENT_REQUIRED";
+      throw error;
     }
 
     const currentDriverCount = await this.db

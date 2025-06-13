@@ -36,4 +36,7 @@ preview_bucket_name = "treksistem-dev-report-photos"
 
 # Cron triggers
 [triggers]
-crons = ["0 0 1 * *"]  # Monthly invoice generation on the 1st at midnight UTC
+crons = [
+  "0 2 1 * *",  # Monthly subscription invoice generation on the 1st at 2 AM UTC
+  "0 3 * * *"   # Daily overdue invoice checker at 3 AM UTC
+]

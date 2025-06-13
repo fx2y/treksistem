@@ -1,15 +1,27 @@
 import { DrizzleD1Database } from 'drizzle-orm/d1';
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, lt } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { invoices, mitras } from '@treksistem/db';
 import { generateQRIS } from '../lib/qris';
 
 export interface CreateInvoiceData {
   mitraId: string;
-  type: 'subscription' | 'delivery_fee' | 'other';
+  type: 'PLATFORM_SUBSCRIPTION' | 'CUSTOMER_PAYMENT';
   amount: number;
   description?: string;
   dueDate?: Date;
+}
+
+export interface CustomerInvoiceDetails {
+  amount: number;
+  description: string;
+  customerName: string;
+}
+
+export interface ListFilters {
+  status?: 'pending' | 'paid' | 'overdue' | 'cancelled' | 'all';
+  limit?: number;
+  offset?: number;
 }
 
 export interface ConfirmPaymentData {
@@ -95,7 +107,7 @@ export class BillingService {
       .where(eq(invoices.publicId, invoiceId))
       .returning();
 
-    if (invoice.type === 'subscription') {
+    if (invoice.type === 'PLATFORM_SUBSCRIPTION') {
       await this.db
         .update(mitras)
         .set({ subscriptionStatus: 'active' })
@@ -108,7 +120,7 @@ export class BillingService {
     };
   }
 
-  async generateMonthlyInvoices() {
+  async generateMonthlySubscriptionInvoices() {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -132,7 +144,7 @@ export class BillingService {
         .where(
           and(
             eq(invoices.mitraId, mitra.id),
-            eq(invoices.type, 'subscription'),
+            eq(invoices.type, 'PLATFORM_SUBSCRIPTION'),
             gte(invoices.createdAt, startOfMonth)
           )
         );
@@ -145,7 +157,7 @@ export class BillingService {
 
         const invoice = await this.createInvoice({
           mitraId: mitra.id,
-          type: 'subscription',
+          type: 'PLATFORM_SUBSCRIPTION',
           amount,
           description: `Subscription Fee: ${mitra.activeDriverLimit} drivers for ${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`,
           dueDate,
@@ -156,5 +168,90 @@ export class BillingService {
     }
 
     return results;
+  }
+
+  async handleOverdueSubscriptionInvoices() {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    const overdueInvoices = await this.db
+      .select()
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.type, 'PLATFORM_SUBSCRIPTION'),
+          eq(invoices.status, 'pending'),
+          lt(invoices.dueDate, today)
+        )
+      );
+
+    const results = [];
+
+    for (const invoice of overdueInvoices) {
+      await this.db
+        .update(invoices)
+        .set({ status: 'overdue' })
+        .where(eq(invoices.id, invoice.id));
+
+      const mitra = await this.db
+        .select()
+        .from(mitras)
+        .where(eq(mitras.id, invoice.mitraId));
+
+      if (mitra[0] && mitra[0].subscriptionStatus !== 'past_due') {
+        await this.db
+          .update(mitras)
+          .set({ subscriptionStatus: 'past_due' })
+          .where(eq(mitras.id, invoice.mitraId));
+      }
+
+      results.push(invoice);
+    }
+
+    return results;
+  }
+
+  async createCustomerInvoice(mitraId: string, details: CustomerInvoiceDetails) {
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7); // 7 days to pay
+
+    return await this.createInvoice({
+      mitraId,
+      type: 'CUSTOMER_PAYMENT',
+      amount: details.amount,
+      description: details.description,
+      dueDate,
+    });
+  }
+
+  async getInvoiceById(invoiceId: string) {
+    const result = await this.db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.publicId, invoiceId));
+
+    return result[0] || null;
+  }
+
+  async listInvoices(ownerId: string, ownerType: 'mitra' | 'admin', filters: ListFilters = {}) {
+    const { status = 'all', limit = 20, offset = 0 } = filters;
+
+    let query = this.db
+      .select()
+      .from(invoices)
+      .limit(limit)
+      .offset(offset);
+
+    if (ownerType === 'mitra') {
+      query = query.where(eq(invoices.mitraId, ownerId));
+    }
+
+    if (status && status !== 'all') {
+      const currentWhere = ownerType === 'mitra' ? eq(invoices.mitraId, ownerId) : undefined;
+      const statusWhere = eq(invoices.status, status);
+      query = query.where(currentWhere ? and(currentWhere, statusWhere) : statusWhere);
+    }
+
+    return await query;
   }
 }
