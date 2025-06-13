@@ -115,6 +115,10 @@ export const vehicles = sqliteTable("vehicles", {
     .references(() => mitras.id),
   licensePlate: text("license_plate").notNull(),
   description: text("description"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
 });
 
 // Master tables for service configuration
