@@ -278,6 +278,59 @@ export class PublicOrderService {
       // Use fallback ID
     }
 
+    // Broadcast NEW_ORDER_AVAILABLE notifications to all active drivers for this mitra
+    try {
+      const activeDrivers = await this.db
+        .select({
+          driverId: schema.drivers.id,
+          userId: schema.drivers.userId,
+          userPhone: schema.users.email, // Using email as phone placeholder
+        })
+        .from(schema.drivers)
+        .innerJoin(schema.users, eq(schema.drivers.userId, schema.users.id))
+        .where(
+          and(
+            eq(schema.drivers.mitraId, service.mitraId),
+            eq(schema.drivers.status, "active")
+          )
+        );
+
+      const mitra = await this.db
+        .select({ businessName: schema.mitras.businessName })
+        .from(schema.mitras)
+        .where(eq(schema.mitras.id, service.mitraId))
+        .get();
+
+      const pickupStop = request.stops.find(stop => stop.type === "pickup");
+      const dropoffStop = request.stops.find(stop => stop.type === "dropoff");
+
+      for (const driver of activeDrivers) {
+        try {
+          await this.notificationService.generate(
+            "NEW_ORDER_AVAILABLE",
+            {
+              type: "NEW_ORDER_AVAILABLE",
+              data: {
+                recipientPhone: driver.userPhone,
+                orderPublicId: publicId,
+                mitraName: mitra?.businessName || "Unknown",
+                pickupAddress: pickupStop?.address || "Unknown pickup",
+                destinationAddress: dropoffStop?.address || "Unknown destination",
+              },
+            },
+            {
+              orderId: orderId,
+            }
+          );
+        } catch (notificationError) {
+          console.error(`Failed to notify driver ${driver.driverId}:`, notificationError);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to broadcast order to drivers:", error);
+      // Continue execution even if broadcast fails
+    }
+
     return {
       orderId: orderId
         .slice(0, 8)

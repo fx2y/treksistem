@@ -1,4 +1,4 @@
-import { auditLogs, orderReports, drivers } from "@treksistem/db";
+import { auditLogs, orderReports, drivers, orders, services, mitras } from "@treksistem/db";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { DriverWorkflowService } from "./driver-workflow.service";
@@ -17,6 +17,31 @@ const mockOrder = {
   ordererName: "John Doe",
   recipientName: "Jane Doe",
   assignedDriverId: "driver-1",
+  serviceId: "service-1",
+};
+
+const mockUnassignedOrder = {
+  id: "order-2",
+  publicId: "pub-order-2",
+  status: "pending_dispatch",
+  ordererName: "John Doe",
+  recipientName: "Jane Doe",
+  assignedDriverId: null,
+  serviceId: "service-1",
+};
+
+const mockDriver = {
+  id: "driver-1",
+  mitraId: "mitra-1",
+  userId: "user-1",
+  status: "active",
+};
+
+const mockService = {
+  id: "service-1",
+  mitraId: "mitra-1",
+  name: "Food Delivery",
+  isPublic: true,
 };
 
 const mockStop = {
@@ -291,6 +316,225 @@ describe("DriverWorkflowService", () => {
       await expect(
         service.submitReport("driver-1", "order-1", reportData)
       ).rejects.toThrow("Order not found or not assigned to this driver");
+    });
+  });
+
+  describe("claimOrder", () => {
+    it("should successfully claim an unassigned order", async () => {
+      // Mock order lookup - order exists and is pending_dispatch
+      mockDb.select
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(mockUnassignedOrder),
+        })
+        // Mock driver lookup - driver exists and belongs to mitra-1
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(mockDriver),
+        })
+        // Mock service lookup - service belongs to mitra-1
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(mockService),
+        });
+
+      // Mock successful update (1 row affected)
+      const updateMock = {
+        set: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ changes: 1 }),
+      };
+      mockDb.update.mockReturnValue(updateMock);
+
+      // Mock audit log insert
+      const insertMock = { values: vi.fn().mockResolvedValue({}) };
+      mockDb.insert.mockReturnValue(insertMock);
+
+      const result = await service.claimOrder({
+        orderId: "order-2",
+        claimingDriverId: "driver-1",
+      });
+
+      expect(result).toEqual({
+        success: true,
+        message: "Order pub-order-2 claimed successfully",
+        httpStatus: 200,
+      });
+
+      expect(mockDb.update).toHaveBeenCalledWith(orders);
+      expect(updateMock.set).toHaveBeenCalledWith({
+        assignedDriverId: "driver-1",
+        status: "claimed",
+      });
+      expect(mockDb.insert).toHaveBeenCalledWith(auditLogs);
+    });
+
+    it("should return 404 when order not found", async () => {
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(null),
+      });
+
+      const result = await service.claimOrder({
+        orderId: "nonexistent-order",
+        claimingDriverId: "driver-1",
+      });
+
+      expect(result).toEqual({
+        success: false,
+        message: "Order not found",
+        httpStatus: 404,
+      });
+    });
+
+    it("should return 400 when order is not in pending_dispatch status", async () => {
+      const claimedOrder = { ...mockUnassignedOrder, status: "claimed" };
+      
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        get: vi.fn().mockResolvedValue(claimedOrder),
+      });
+
+      const result = await service.claimOrder({
+        orderId: "order-2",
+        claimingDriverId: "driver-1",
+      });
+
+      expect(result).toEqual({
+        success: false,
+        message: "Order is not available for claiming",
+        httpStatus: 400,
+      });
+    });
+
+    it("should return 404 when driver not found", async () => {
+      mockDb.select
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(mockUnassignedOrder),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(null),
+        });
+
+      const result = await service.claimOrder({
+        orderId: "order-2",
+        claimingDriverId: "nonexistent-driver",
+      });
+
+      expect(result).toEqual({
+        success: false,
+        message: "Driver not found",
+        httpStatus: 404,
+      });
+    });
+
+    it("should return 404 when driver belongs to different mitra", async () => {
+      const differentMitraDriver = { ...mockDriver, mitraId: "mitra-2" };
+      
+      mockDb.select
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(mockUnassignedOrder),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(differentMitraDriver),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(mockService),
+        });
+
+      const result = await service.claimOrder({
+        orderId: "order-2",
+        claimingDriverId: "driver-1",
+      });
+
+      expect(result).toEqual({
+        success: false,
+        message: "Order not found or not available to this driver",
+        httpStatus: 404,
+      });
+    });
+
+    it("should return 409 when order already claimed (race condition)", async () => {
+      mockDb.select
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(mockUnassignedOrder),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(mockDriver),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(mockService),
+        });
+
+      // Mock failed update (0 rows affected - another driver claimed it)
+      const updateMock = {
+        set: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ changes: 0 }),
+      };
+      mockDb.update.mockReturnValue(updateMock);
+
+      const result = await service.claimOrder({
+        orderId: "order-2",
+        claimingDriverId: "driver-1",
+      });
+
+      expect(result).toEqual({
+        success: false,
+        message: "Order has already been claimed",
+        httpStatus: 409,
+      });
+    });
+
+    it("should return 404 when service not found", async () => {
+      mockDb.select
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(mockUnassignedOrder),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(mockDriver),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          get: vi.fn().mockResolvedValue(null),
+        });
+
+      const result = await service.claimOrder({
+        orderId: "order-2",
+        claimingDriverId: "driver-1",
+      });
+
+      expect(result).toEqual({
+        success: false,
+        message: "Service not found",
+        httpStatus: 404,
+      });
     });
   });
 });
