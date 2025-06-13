@@ -6,11 +6,12 @@
     "dev": "/opt/homebrew/bin/wrangler dev src/index.ts",
     "deploy": "/opt/homebrew/bin/wrangler deploy",
     "build": "echo 'Build step handled by wrangler deploy'",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{js,ts,tsx,json,md,css,html}\" --cache"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.7.0",
+    "@hono/zod-validator": "^0.4.0",
     "@treksistem/auth": "workspace:*",
     "@treksistem/db": "workspace:*",
     "@treksistem/geo": "workspace:*",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240512.0",
     "typescript": "^5.0.0",
+    "vitest": "^3.2.3",
     "wrangler": "^3.57.2"
   }
 }

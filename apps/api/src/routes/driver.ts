@@ -1,8 +1,11 @@
-import type { createAuthServices } from "@treksistem/auth";
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
+import type { createAuthServices } from "@treksistem/auth";
 import { createDbClient, driverLocations } from "@treksistem/db";
+import { Hono } from "hono";
+import { z } from "zod";
+
+import orders from "./driver/orders";
+import status from "./driver/status";
 
 // Validation schema for driver location payload
 const DriverLocationPayload = z.object({
@@ -33,17 +36,16 @@ driver.use("*", async (c, next) => {
   return authMiddleware.requireDriverRole(c, next);
 });
 
-driver.get("/orders", async c => {
-  // Return empty array for now - endpoint exists but empty
-  return c.json([]);
-});
+// Mount sub-routes
+driver.route("/orders", orders);
+driver.route("/status", status);
 
 driver.post("/location", zValidator("json", DriverLocationPayload), async c => {
   const { lat, lng } = c.req.valid("json");
   const driverId = c.get("driverId");
-  
+
   const db = createDbClient(c.env.DB);
-  
+
   await db
     .insert(driverLocations)
     .values({
@@ -60,7 +62,7 @@ driver.post("/location", zValidator("json", DriverLocationPayload), async c => {
         lastSeenAt: new Date(),
       },
     });
-  
+
   return c.body(null, 204);
 });
 
