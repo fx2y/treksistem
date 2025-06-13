@@ -5,6 +5,7 @@ import type { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { z } from "zod";
 
+import { MitraMonitoringService } from "../../services/mitra-monitoring.service";
 import { MitraOrderService } from "../../services/mitra-order.service";
 
 const StopInputSchema = z.object({
@@ -32,6 +33,24 @@ const AssignOrderSchema = z.object({
   vehicleId: z.string().optional(),
 });
 
+const GetMitraOrdersQuerySchema = z.object({
+  status: z
+    .enum([
+      "pending_dispatch",
+      "accepted",
+      "pickup",
+      "in_transit",
+      "delivered",
+      "cancelled",
+      "claimed",
+    ])
+    .optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().default(20),
+});
+
 const orders = new Hono<{
   Bindings: {
     DB: D1Database;
@@ -47,6 +66,23 @@ const orders = new Hono<{
     userId: string;
   };
 }>();
+
+// GET /api/mitra/orders - Get paginated and filtered orders for dashboard
+orders.get("/", zValidator("query", GetMitraOrdersQuerySchema), async c => {
+  try {
+    const db = c.get("db");
+    const mitraId = c.get("mitraId");
+    const query = c.req.valid("query");
+
+    const monitoringService = new MitraMonitoringService(db);
+    const result = await monitoringService.getOrders(mitraId, query);
+
+    return c.json(result, 200);
+  } catch (error) {
+    console.error("Failed to get mitra orders:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
 
 // POST /api/mitra/orders - Create manual order
 orders.post("/", zValidator("json", CreateManualOrderSchema), async c => {
