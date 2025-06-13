@@ -9,6 +9,7 @@ import invites from "./mitra/invites";
 import { logbookRoutes } from "./mitra/logbook";
 import masterData from "./mitra/master-data";
 import orders from "./mitra/orders";
+import profile from "./mitra/profile";
 import services from "./mitra/services";
 import vehicles from "./mitra/vehicles";
 
@@ -50,6 +51,7 @@ mitra.route("/drivers", drivers);
 mitra.route("/invites", invites);
 mitra.route("/logbook", logbookRoutes);
 mitra.route("/orders", orders);
+mitra.route("/profile", profile);
 mitra.route("/services", services);
 mitra.route("/vehicles", vehicles);
 mitra.route("/master-data", masterData);
