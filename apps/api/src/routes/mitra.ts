@@ -3,6 +3,7 @@ import * as schema from "@treksistem/db";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 
+import billing from "./mitra/billing";
 import drivers from "./mitra/drivers";
 import masterData from "./mitra/master-data";
 import services from "./mitra/services";
@@ -40,6 +41,7 @@ mitra.use("*", async (c, next) => {
 });
 
 // Mount service routes
+mitra.route("/billing", billing);
 mitra.route("/drivers", drivers);
 mitra.route("/services", services);
 mitra.route("/master-data", masterData);

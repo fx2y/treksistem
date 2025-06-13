@@ -19,6 +19,28 @@ export interface DriverResponse {
 export class DriverManagementService {
   constructor(private db: DbClient) {}
   async inviteDriver(mitraId: string, email: string): Promise<{ inviteLink: string }> {
+    // Check driver limit
+    const mitra = await this.db
+      .select()
+      .from(mitras)
+      .where(eq(mitras.id, mitraId))
+      .get();
+
+    if (!mitra) {
+      throw new Error("Mitra not found");
+    }
+
+    const currentDriverCount = await this.db
+      .select({ count: drivers.id })
+      .from(drivers)
+      .where(eq(drivers.mitraId, mitraId));
+
+    if (currentDriverCount.length >= mitra.activeDriverLimit) {
+      const error = new Error("Driver limit reached. Please upgrade your subscription to add more drivers.");
+      (error as any).code = "PAYMENT_REQUIRED";
+      throw error;
+    }
+
     const existingDriver = await this.db
       .select()
       .from(drivers)

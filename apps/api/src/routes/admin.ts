@@ -18,6 +18,8 @@ import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
 
+import billing from "./admin/billing";
+
 const admin = new Hono<{
   Bindings: {
     DB: D1Database;
@@ -456,5 +458,7 @@ admin.post("/notifications/templates/seed", async c => {
     return c.json({ error: "Failed to seed templates" }, 500);
   }
 });
+
+admin.route("/", billing);
 
 export default admin;

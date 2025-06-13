@@ -58,7 +58,6 @@ export const mitras = sqliteTable("mitras", {
   })
     .notNull()
     .default("free_tier"),
-  midtransSubscriptionId: text("midtrans_subscription_id"),
   activeDriverLimit: integer("active_driver_limit").notNull().default(2),
 });
 
@@ -409,6 +408,31 @@ export const auditLogs = sqliteTable(
   })
 );
 
+// Invoices table - generic billing and payment tracking
+export const invoices = sqliteTable("invoices", {
+  id: integer("id").primaryKey(),
+  publicId: text("public_id")
+    .notNull()
+    .unique()
+    .$defaultFn(() => nanoid()),
+  mitraId: text("mitra_id")
+    .notNull()
+    .references(() => mitras.id),
+  type: text("type", { enum: ["subscription", "delivery_fee", "other"] }).notNull(),
+  status: text("status", { enum: ["pending", "paid", "expired", "cancelled"] })
+    .notNull()
+    .default("pending"),
+  amount: integer("amount").notNull(),
+  currency: text("currency").notNull().default("IDR"),
+  description: text("description"),
+  qrisPayload: text("qris_payload"),
+  dueDate: integer("due_date", { mode: "timestamp" }),
+  paidAt: integer("paid_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   mitras: many(mitras),
@@ -427,6 +451,7 @@ export const mitrasRelations = relations(mitras, ({ one, many }) => ({
   vehicles: many(vehicles),
   services: many(services),
   auditLogs: many(auditLogs),
+  invoices: many(invoices),
 }));
 
 export const driversRelations = relations(drivers, ({ one, many }) => ({
@@ -622,5 +647,12 @@ export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
   user: one(users, {
     fields: [refreshTokens.userId],
     references: [users.id],
+  }),
+}));
+
+export const invoicesRelations = relations(invoices, ({ one }) => ({
+  mitra: one(mitras, {
+    fields: [invoices.mitraId],
+    references: [mitras.id],
   }),
 }));

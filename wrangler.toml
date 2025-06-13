@@ -33,3 +33,7 @@ migrations_dir = "packages/db/migrations"
 binding = "R2_BUCKET"
 bucket_name = "treksistem-prod-report-photos"
 preview_bucket_name = "treksistem-dev-report-photos"
+
+# Cron triggers
+[triggers]
+crons = ["0 0 1 * *"]  # Monthly invoice generation on the 1st at midnight UTC
