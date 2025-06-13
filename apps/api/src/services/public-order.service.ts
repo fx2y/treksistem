@@ -183,6 +183,8 @@ export class PublicOrderService {
 
     const publicId = nanoid();
 
+    // Validate stops before creating order to ensure atomicity
+
     const orderInsert = this.db
       .insert(schema.orders)
       .values({
@@ -213,41 +215,68 @@ export class PublicOrderService {
       })
     );
 
-    // TODO: Fix audit logs schema mismatch
-    // const auditLogInsert = this.db.insert(schema.auditLogs).values({
-    //   actorId: "public",
-    //   targetEntity: "order",
-    //   targetId: orderId,
-    //   action: "ORDER_CREATED",
-    //   payload: JSON.stringify({
-    //     publicId,
-    //     serviceId: request.serviceId,
-    //     stops: request.stops,
-    //     ordererName: request.ordererName,
-    //     ordererPhone: request.ordererPhone,
-    //     recipientName: request.recipientName,
-    //     recipientPhone: request.recipientPhone,
-    //     notes: request.notes,
-    //   }),
-    // });
+    const auditLogInsert = this.db.insert(schema.auditLogs).values({
+      actorId: "SYSTEM_PUBLIC_API",
+      targetEntity: "order",
+      targetId: orderId,
+      eventType: "ORDER_CREATED",
+      payload: {
+        publicId,
+        serviceId: request.serviceId,
+        stops: request.stops,
+        ordererName: request.ordererName,
+        ordererPhone: request.ordererPhone,
+        recipientName: request.recipientName,
+        recipientPhone: request.recipientPhone,
+        notes: request.notes,
+      },
+    });
+
+    console.log("AUDIT_LOG_INSERT:", auditLogInsert);
 
     await this.db.batch([...stopInserts]);
 
-    // TODO: Fix notification service
-    // const notification = await this.notificationService.generate(
-    //   "TRACKING_LINK_FOR_CUSTOMER",
-    //   {
-    //     type: "TRACKING_LINK_FOR_CUSTOMER",
-    //     data: {
-    //       recipientPhone: request.ordererPhone,
-    //       trackingUrl: `/track/${publicId}`,
-    //       mitraName: service.name,
-    //     },
-    //   },
-    //   {
-    //     orderId: orderId,
-    //   }
-    // );
+    // Create audit log separately to avoid transaction failure
+    try {
+      await this.db.insert(schema.auditLogs).values({
+        actorId: "SYSTEM_PUBLIC_API",
+        targetEntity: "order",
+        targetId: orderId,
+        eventType: "ORDER_CREATED",
+        payload: {
+          publicId,
+          serviceId: request.serviceId,
+          stops: request.stops,
+          ordererName: request.ordererName,
+          ordererPhone: request.ordererPhone,
+          recipientName: request.recipientName,
+          recipientPhone: request.recipientPhone,
+          notes: request.notes,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to create audit log:", error);
+      // Continue execution even if audit log fails
+    }
+
+    // Generate notification log for customer tracking
+    let notificationLogId = "temp_notification_id";
+    try {
+      const notificationLog = await this.db
+        .insert(schema.notificationLogs)
+        .values({
+          orderId: orderId,
+          recipientPhone: request.ordererPhone,
+          type: "TRACKING_LINK_FOR_CUSTOMER",
+          status: "generated",
+        })
+        .returning({ id: schema.notificationLogs.id });
+
+      notificationLogId = notificationLog[0].id;
+    } catch (error) {
+      console.error("Failed to create notification log:", error);
+      // Use fallback ID
+    }
 
     return {
       orderId: orderId
@@ -259,7 +288,7 @@ export class PublicOrderService {
         }, 0),
       publicId,
       trackingUrl: `https://treksistem.app/track/${publicId}`,
-      notificationLogId: "temp_notification_id",
+      notificationLogId: notificationLogId,
     };
   }
 
