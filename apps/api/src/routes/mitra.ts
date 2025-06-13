@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import billing from "./mitra/billing";
 import drivers from "./mitra/drivers";
 import invites from "./mitra/invites";
+import { logbookRoutes } from "./mitra/logbook";
 import masterData from "./mitra/master-data";
 import orders from "./mitra/orders";
 import services from "./mitra/services";
@@ -47,6 +48,7 @@ mitra.use("*", async (c, next) => {
 mitra.route("/billing", billing);
 mitra.route("/drivers", drivers);
 mitra.route("/invites", invites);
+mitra.route("/logbook", logbookRoutes);
 mitra.route("/orders", orders);
 mitra.route("/services", services);
 mitra.route("/vehicles", vehicles);
