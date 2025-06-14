@@ -1,18 +1,20 @@
 import { createDbClient } from "@treksistem/db";
 import { NotificationService } from "@treksistem/notifications";
+import { createAuthServices } from "@treksistem/auth";
 
 import type { Bindings } from "../types";
 
 import { AuditService } from "./audit.service";
+import { AuthService } from "./auth.service";
 import { BillingService } from "./billing.service";
 import { DriverManagementService } from "./driver-management.service";
 import { DriverWorkflowService } from "./driver-workflow.service";
 import { LogbookService } from "./logbook.service";
+import { MasterDataService } from "./master-data.service";
 import { MitraMonitoringService } from "./mitra-monitoring.service";
 import { MitraOrderService } from "./mitra-order.service";
 import { MitraProfileService } from "./mitra-profile.service";
 import { MitraServiceManagementService } from "./mitra-service-management.service";
-import { MasterDataService } from "./master-data.service";
 import { PublicOrderService } from "./public-order.service";
 import { TestService } from "./test.service";
 import { UploadService } from "./upload.service";
@@ -22,6 +24,7 @@ export interface ServiceContainer {
   db: ReturnType<typeof createDbClient>;
   notificationService: NotificationService;
   auditService: AuditService;
+  authService: AuthService;
   billingService: BillingService;
   driverManagementService: DriverManagementService;
   driverWorkflowService: DriverWorkflowService;
@@ -39,6 +42,16 @@ export interface ServiceContainer {
 
 export function createServices(env: Bindings): ServiceContainer {
   const db = createDbClient(env.DB);
+
+  // Create auth services
+  const authServices = createAuthServices(env);
+  const authService = new AuthService({
+    db,
+    googleProvider: authServices.googleProvider,
+    jwtService: authServices.jwtService,
+    refreshTokenService: authServices.refreshTokenService,
+    frontendUrl: env.FRONTEND_URL,
+  });
 
   const notificationService = new NotificationService(db);
   const auditService = new AuditService(db);
@@ -64,6 +77,7 @@ export function createServices(env: Bindings): ServiceContainer {
     db,
     notificationService,
     auditService,
+    authService,
     billingService,
     driverManagementService,
     driverWorkflowService,

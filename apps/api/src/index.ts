@@ -2,7 +2,6 @@ import { createAuthServices, type AuthEnvironment } from "@treksistem/auth";
 import { Hono } from "hono";
 
 import { BaseError } from "./lib/errors";
-
 import admin from "./routes/admin";
 import auth from "./routes/auth";
 import driver from "./routes/driver";

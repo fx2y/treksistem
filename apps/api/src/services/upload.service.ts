@@ -1,8 +1,5 @@
 import type { DbClient } from "@treksistem/db";
-import {
-  createR2UploadService,
-  type RequestUploadUrlBody,
-} from "@treksistem/storage";
+import { createR2UploadService } from "@treksistem/storage";
 import { nanoid } from "nanoid";
 
 import { ForbiddenError } from "../lib/errors";

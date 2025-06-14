@@ -2,8 +2,8 @@ import { invoices, mitras } from "@treksistem/db";
 import type { DbClient } from "@treksistem/db";
 import { eq, and, gte, lt } from "drizzle-orm";
 
-import { generateQRIS } from "../lib/qris";
 import { NotFoundError, ForbiddenError } from "../lib/errors";
+import { generateQRIS } from "../lib/qris";
 
 export interface CreateInvoiceData {
   mitraId: string;
@@ -58,7 +58,7 @@ export class BillingService {
     const conditions = [eq(invoices.mitraId, mitraId)];
 
     if (status && status !== "all") {
-      conditions.push(eq(invoices.status, status as any));
+      conditions.push(eq(invoices.status, status as "pending" | "paid" | "overdue" | "cancelled"));
     }
 
     return await this.db

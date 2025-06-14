@@ -88,7 +88,7 @@ describe("MitraServiceManagementService", () => {
 
       await expect(
         service.createService("mitra-1", validInput)
-      ).rejects.toThrow("Failed to retrieve created service");
+      ).rejects.toThrow("Service not found");
     });
 
     it("should rollback transaction when service creation fails", async () => {
@@ -106,12 +106,7 @@ describe("MitraServiceManagementService", () => {
       });
 
       mockDb.transaction = vi.fn().mockImplementation(async (callback: any) => {
-        try {
-          return await callback(mockTx);
-        } catch (error) {
-          // Simulate rollback behavior
-          throw error;
-        }
+        return await callback(mockTx);
       });
 
       await expect(
@@ -148,12 +143,7 @@ describe("MitraServiceManagementService", () => {
       });
 
       mockDb.transaction = vi.fn().mockImplementation(async (callback: any) => {
-        try {
-          return await callback(mockTx);
-        } catch (error) {
-          // Simulate rollback behavior - service should not exist
-          throw error;
-        }
+        return await callback(mockTx);
       });
 
       await expect(
@@ -246,7 +236,7 @@ describe("MitraServiceManagementService", () => {
       };
 
       // Create a separate mock for Promise.all queries
-      const promiseAllQueries = [
+      [
         { where: vi.fn().mockResolvedValue([]) }, // vehicleTypeLinks
         { where: vi.fn().mockResolvedValue([]) }, // payloadTypeLinks  
         { where: vi.fn().mockResolvedValue([]) }, // facilityLinks
@@ -274,16 +264,16 @@ describe("MitraServiceManagementService", () => {
       expect(result?.name).toBe("Food Delivery");
     });
 
-    it("should return null if service not found", async () => {
+    it("should throw error if service not found", async () => {
       mockDb.select.mockReturnThis();
       mockDb.from.mockReturnThis();
       mockDb.leftJoin.mockReturnThis();
       mockDb.where.mockReturnThis();
       mockDb.limit.mockResolvedValue([]);
 
-      const result = await service.getServiceById("mitra-1", "service-1");
-
-      expect(result).toBeNull();
+      await expect(
+        service.getServiceById("mitra-1", "service-1")
+      ).rejects.toThrow("Service not found");
     });
   });
 
@@ -351,7 +341,7 @@ describe("MitraServiceManagementService", () => {
 
       await expect(
         service.updateService("mitra-1", "service-1", updateInput)
-      ).rejects.toThrow("Service not found after update");
+      ).rejects.toThrow("Service not found");
     });
   });
 });

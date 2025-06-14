@@ -278,12 +278,7 @@ describe("MitraOrderService", () => {
       });
 
       mockDb.transaction = vi.fn().mockImplementation(async (callback: any) => {
-        try {
-          return await callback(mockTx);
-        } catch (error) {
-          // Simulate rollback behavior
-          throw error;
-        }
+        return await callback(mockTx);
       });
 
       await expect(
@@ -323,12 +318,7 @@ describe("MitraOrderService", () => {
       });
 
       mockDb.transaction = vi.fn().mockImplementation(async (callback: any) => {
-        try {
-          return await callback(mockTx);
-        } catch (error) {
-          // Simulate rollback behavior - order should not exist
-          throw error;
-        }
+        return await callback(mockTx);
       });
 
       await expect(

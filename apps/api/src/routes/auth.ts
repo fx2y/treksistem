@@ -1,6 +1,5 @@
 import { createAuthServices, type AuthEnvironment } from "@treksistem/auth";
 import { Hono } from "hono";
-import { getCookie } from "hono/cookie";
 
 import { rateLimit } from "../middleware/rate-limiter";
 import type { ServiceContainer } from "../services/factory";
@@ -22,13 +21,27 @@ const authRateLimit = rateLimit({
 auth.use("*", authRateLimit);
 
 auth.get("/login/google", async c => {
-  // TODO: Move this logic to a dedicated AuthService
-  return c.text("Google OAuth login - needs reimplementation");
+  const { authService } = c.get("services");
+  const loginData = await authService.initiateGoogleLogin();
+  
+  // Store state in session/cookie for validation
+  // For now, return the redirect URL and state for client handling
+  return c.json(loginData);
 });
 
 auth.get("/callback/google", async c => {
-  // TODO: Move this logic to a dedicated AuthService
-  return c.text("Google OAuth callback - needs reimplementation");
+  const { authService } = c.get("services");
+  const code = c.req.query("code");
+  const state = c.req.query("state");
+  const storedState = c.req.header("x-auth-state"); // Should come from session/cookie
+  const codeVerifier = c.req.header("x-code-verifier"); // Should come from session/cookie
+  
+  if (!code || !state || !storedState || !codeVerifier) {
+    return c.json({ error: "Missing required parameters" }, 400);
+  }
+  
+  const tokens = await authService.handleGoogleCallback(code, state, storedState, codeVerifier);
+  return c.json(tokens);
 });
 
 auth.use("/me", async (c, next) => {
@@ -43,13 +56,22 @@ auth.get("/me", async c => {
 });
 
 auth.post("/logout", async c => {
-  // TODO: Move this logic to a dedicated AuthService
-  return c.json({ success: true });
+  const { authService } = c.get("services");
+  const refreshToken = c.req.header("x-refresh-token");
+  const result = await authService.logout(refreshToken || undefined);
+  return c.json(result);
 });
 
 auth.post("/refresh", async c => {
-  // TODO: Move this logic to a dedicated AuthService
-  return c.json({ status: "ok" });
+  const { authService } = c.get("services");
+  const refreshToken = c.req.header("x-refresh-token");
+  
+  if (!refreshToken) {
+    return c.json({ error: "Refresh token required" }, 400);
+  }
+  
+  const tokens = await authService.refreshAccessToken(refreshToken);
+  return c.json(tokens);
 });
 
 export default auth;
