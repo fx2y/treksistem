@@ -87,7 +87,26 @@ app.onError((err, c) => {
         code: err.code,
         ...(err.details && { details: err.details }),
       },
-      err.statusCode as 200 | 201 | 202 | 204 | 300 | 301 | 302 | 304 | 400 | 401 | 403 | 404 | 409 | 422 | 429 | 500 | 502 | 503 | 504
+      err.statusCode as
+        | 200
+        | 201
+        | 202
+        | 204
+        | 300
+        | 301
+        | 302
+        | 304
+        | 400
+        | 401
+        | 403
+        | 404
+        | 409
+        | 422
+        | 429
+        | 500
+        | 502
+        | 503
+        | 504
     );
   }
 
@@ -99,6 +118,12 @@ app.onError((err, c) => {
     500
   );
 });
+
+// Export the app instance for testing
+export { app };
+
+// Export AppType for Hono RPC client typing
+export type AppType = typeof app;
 
 export default {
   fetch: app.fetch,
@@ -116,14 +141,14 @@ export default {
           console.error("Failed to generate monthly invoices:", error);
         }
         break;
-        
+
       case "0 2 * * *": // Daily at 2 AM
         console.log("Running daily cleanup tasks...");
         try {
           // Clean up expired OAuth sessions and refresh tokens
           await services.authService.cleanupExpiredSessions();
           console.log("Cleaned up expired auth sessions");
-          
+
           // Clean up expired rate limit entries
           await services.rateLimitService.cleanup();
           console.log("Cleaned up expired rate limit entries");

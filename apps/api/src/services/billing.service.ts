@@ -4,6 +4,7 @@ import { eq, and, gte, lt } from "drizzle-orm";
 
 import { NotFoundError, ForbiddenError } from "../lib/errors";
 import { generateQRIS } from "../lib/qris";
+
 import { AuditService } from "./audit.service";
 
 export interface CreateInvoiceData {
@@ -30,6 +31,15 @@ export interface ConfirmPaymentData {
   invoiceId: string;
   paymentDate: Date;
   notes?: string;
+}
+
+export interface WebhookUpdateData {
+  publicInvoiceId: string;
+  transactionStatus: string;
+  fraudStatus?: string;
+  paymentType?: string;
+  transactionTime?: string;
+  transactionId?: string;
 }
 
 export class BillingService {
@@ -81,7 +91,12 @@ export class BillingService {
     const conditions = [eq(invoices.mitraId, mitraId)];
 
     if (status && status !== "all") {
-      conditions.push(eq(invoices.status, status as "pending" | "paid" | "overdue" | "cancelled"));
+      conditions.push(
+        eq(
+          invoices.status,
+          status as "pending" | "paid" | "overdue" | "cancelled"
+        )
+      );
     }
 
     return await this.db
@@ -345,5 +360,123 @@ export class BillingService {
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .limit(limit)
       .offset(offset);
+  }
+
+  async updateInvoiceStatus(data: WebhookUpdateData) {
+    const invoice = await this.getInvoiceByPublicId(data.publicInvoiceId);
+
+    if (!invoice) {
+      throw new NotFoundError(`Invoice not found: ${data.publicInvoiceId}`);
+    }
+
+    // Map Midtrans transaction status to our invoice status
+    let newStatus: "pending" | "paid" | "overdue" | "cancelled";
+    let paidAt: Date | null = null;
+
+    switch (data.transactionStatus) {
+      case "capture":
+      case "settlement":
+        // Only mark as paid if fraud status is acceptable
+        if (!data.fraudStatus || data.fraudStatus === "accept") {
+          newStatus = "paid";
+          paidAt = data.transactionTime
+            ? new Date(data.transactionTime)
+            : new Date();
+        } else {
+          // Fraud detected, don't mark as paid
+          newStatus = invoice.status as
+            | "pending"
+            | "paid"
+            | "overdue"
+            | "cancelled";
+        }
+        break;
+      case "pending":
+        newStatus = "pending";
+        break;
+      case "deny":
+      case "cancel":
+      case "expire":
+        newStatus = "cancelled";
+        break;
+      case "failure":
+        newStatus = "cancelled";
+        break;
+      default:
+        // Unknown status, don't update
+        console.warn(`Unknown transaction status: ${data.transactionStatus}`);
+        return invoice;
+    }
+
+    // Only update if status actually changed
+    if (newStatus === invoice.status) {
+      return invoice;
+    }
+
+    const updateData: any = {
+      status: newStatus,
+      updatedAt: new Date(),
+    };
+
+    if (paidAt) {
+      updateData.paidAt = paidAt;
+    }
+
+    const updatedInvoice = await this.db
+      .update(invoices)
+      .set(updateData)
+      .where(eq(invoices.publicId, data.publicInvoiceId))
+      .returning();
+
+    const updated = updatedInvoice[0];
+
+    // Handle subscription status update if this is a platform subscription
+    if (updated.type === "PLATFORM_SUBSCRIPTION" && newStatus === "paid") {
+      await this.db
+        .update(mitras)
+        .set({ subscriptionStatus: "active" })
+        .where(eq(mitras.id, updated.mitraId));
+
+      // Audit log subscription status change
+      if (this.auditService) {
+        await this.auditService.log({
+          actorId: "WEBHOOK",
+          mitraId: updated.mitraId,
+          entityType: "MITRA",
+          entityId: updated.mitraId,
+          eventType: "SUBSCRIPTION_STATUS_CHANGED",
+          details: {
+            previousStatus: "past_due",
+            newStatus: "active",
+            triggeredBy: "webhook_payment",
+            invoiceId: updated.id,
+            transactionId: data.transactionId,
+            paymentType: data.paymentType,
+          },
+        });
+      }
+    }
+
+    // Audit log invoice status change
+    if (this.auditService) {
+      await this.auditService.log({
+        actorId: "WEBHOOK",
+        mitraId: updated.mitraId,
+        entityType: "INVOICE",
+        entityId: updated.id.toString(),
+        eventType: "INVOICE_STATUS_UPDATED",
+        details: {
+          previousStatus: invoice.status,
+          newStatus: newStatus,
+          transactionStatus: data.transactionStatus,
+          fraudStatus: data.fraudStatus,
+          transactionId: data.transactionId,
+          paymentType: data.paymentType,
+          transactionTime: data.transactionTime,
+        },
+      });
+    }
+
+    return updated;
   }
 }

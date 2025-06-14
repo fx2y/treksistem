@@ -2,6 +2,12 @@
   "name": "@treksistem/api",
   "version": "0.1.0",
   "private": true,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
   "scripts": {
     "dev": "/opt/homebrew/bin/wrangler dev src/index.ts",
     "deploy": "wrangler deploy",
@@ -30,6 +36,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240512.0",
+    "better-sqlite3": "^11.7.0",
+    "drizzle-kit": "^0.20.14",
     "typescript": "^5.0.0",
     "vitest": "^3.2.3",
     "wrangler": "^3.57.2"

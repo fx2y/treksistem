@@ -1,6 +1,6 @@
+import { createAuthServices } from "@treksistem/auth";
 import { createDbClient } from "@treksistem/db";
 import { NotificationService } from "@treksistem/notifications";
-import { createAuthServices } from "@treksistem/auth";
 
 import type { Bindings } from "../types";
 
@@ -21,6 +21,7 @@ import { SchemaValidationService } from "./schema-validation.service";
 import { TestService } from "./test.service";
 import { UploadService } from "./upload.service";
 import { VehicleService } from "./vehicle.service";
+import { WebhookRetryService } from "./webhook-retry.service";
 
 export interface ServiceContainer {
   db: ReturnType<typeof createDbClient>;
@@ -42,6 +43,7 @@ export interface ServiceContainer {
   testService: TestService;
   uploadService: UploadService;
   vehicleService: VehicleService;
+  webhookRetryService: WebhookRetryService;
 }
 
 export function createServices(env: Bindings): ServiceContainer {
@@ -71,14 +73,28 @@ export function createServices(env: Bindings): ServiceContainer {
     auditService
   );
   const mitraProfileService = new MitraProfileService(db, auditService);
-  const mitraServiceManagementService = new MitraServiceManagementService(db, auditService);
+  const mitraServiceManagementService = new MitraServiceManagementService(
+    db,
+    auditService
+  );
   const masterDataService = new MasterDataService(db);
-  const publicOrderService = new PublicOrderService(db, notificationService, auditService);
-  const rateLimitService = new RateLimitService({ db });
-  const schemaValidationService = new SchemaValidationService({ db });
+  const publicOrderService = new PublicOrderService(
+    db,
+    notificationService,
+    auditService
+  );
+  const rateLimitService = new RateLimitService({
+    db,
+    redisKV: env.RATE_LIMIT_KV,
+  });
+  const schemaValidationService = new SchemaValidationService({
+    db,
+    alertingKV: env.ALERTING_KV,
+  });
   const testService = new TestService(db, env.DB);
   const uploadService = new UploadService(db, env);
   const vehicleService = new VehicleService(db, auditService);
+  const webhookRetryService = new WebhookRetryService(env.DB);
 
   return {
     db,
@@ -100,5 +116,6 @@ export function createServices(env: Bindings): ServiceContainer {
     testService,
     uploadService,
     vehicleService,
+    webhookRetryService,
   };
 }

@@ -1,11 +1,12 @@
+import type { JwtService, RefreshTokenService } from "@treksistem/auth";
 import type { DbClient } from "@treksistem/db";
 import { users, refreshTokens, oauthSessions } from "@treksistem/db";
-import { eq, gt, lt } from "drizzle-orm";
 import type { Google } from "arctic";
 import { generateState, generateCodeVerifier } from "arctic";
-import type { JwtService, RefreshTokenService } from "@treksistem/auth";
+import { eq, gt, lt } from "drizzle-orm";
 
 import { BadRequestError } from "../lib/errors";
+
 import { AuditService } from "./audit.service";
 
 export interface AuthServiceDependencies {
@@ -42,7 +43,7 @@ export class AuthService {
       state,
       codeVerifier,
       {
-        scopes: ["openid", "profile", "email"]
+        scopes: ["openid", "profile", "email"],
       }
     );
 
@@ -79,7 +80,9 @@ export class AuthService {
 
     if (session.expiresAt < new Date()) {
       // Clean up expired session
-      await this.deps.db.delete(oauthSessions).where(eq(oauthSessions.id, session.id));
+      await this.deps.db
+        .delete(oauthSessions)
+        .where(eq(oauthSessions.id, session.id));
       throw new BadRequestError("OAuth session expired", "SESSION_EXPIRED");
     }
 
@@ -108,7 +111,12 @@ export class AuthService {
         );
       }
 
-      const googleUser = await response.json() as { id: string; email: string; name: string; picture?: string };
+      const googleUser = (await response.json()) as {
+        id: string;
+        email: string;
+        name: string;
+        picture?: string;
+      };
 
       // Create or update user in database
       let user = await this.deps.db.query.users.findFirst({
@@ -127,7 +135,7 @@ export class AuthService {
           })
           .returning()
           .then(rows => rows[0]);
-        
+
         user = newUser;
       } else {
         // Update existing user info
@@ -144,18 +152,20 @@ export class AuthService {
       }
 
       if (!user) {
-        throw new BadRequestError("Failed to create or update user", "USER_CREATION_FAILED");
+        throw new BadRequestError(
+          "Failed to create or update user",
+          "USER_CREATION_FAILED"
+        );
       }
 
       const accessToken = await this.deps.jwtService.signAccessToken({
         userId: user.id,
       });
-      
+
       // Create refresh token and store in database
-      const { token: refreshToken, hashedToken } = await this.deps.refreshTokenService.createRefreshToken(
-        user.id
-      );
-      
+      const { token: refreshToken, hashedToken } =
+        await this.deps.refreshTokenService.createRefreshToken(user.id);
+
       await this.deps.db.insert(refreshTokens).values({
         userId: user.id,
         hashedToken,
@@ -163,7 +173,9 @@ export class AuthService {
       });
 
       // Clean up OAuth session after successful login
-      await this.deps.db.delete(oauthSessions).where(eq(oauthSessions.id, session.id));
+      await this.deps.db
+        .delete(oauthSessions)
+        .where(eq(oauthSessions.id, session.id));
 
       // Audit log the login
       if (this.deps.auditService) {
@@ -186,7 +198,10 @@ export class AuthService {
         expiresIn: 15 * 60, // 15 minutes
       };
     } catch (error) {
-      if (error instanceof Error && error.message.includes("Bad verification code")) {
+      if (
+        error instanceof Error &&
+        error.message.includes("Bad verification code")
+      ) {
         throw new BadRequestError("Invalid authorization code", "INVALID_CODE");
       }
       throw error;
@@ -205,13 +220,13 @@ export class AuthService {
     // Find matching token by verifying hash
     let validToken = null;
     let matchedUser = null;
-    
+
     for (const token of storedTokens) {
       const isValid = await this.deps.refreshTokenService.verifyRefreshToken(
         refreshToken,
         token.hashedToken
       );
-      
+
       if (isValid && token.expiresAt > new Date()) {
         validToken = token;
         matchedUser = token.user;
@@ -220,21 +235,25 @@ export class AuthService {
     }
 
     if (!validToken || !matchedUser) {
-      throw new BadRequestError("Invalid refresh token", "INVALID_REFRESH_TOKEN");
+      throw new BadRequestError(
+        "Invalid refresh token",
+        "INVALID_REFRESH_TOKEN"
+      );
     }
 
     // Delete the old refresh token
-    await this.deps.db.delete(refreshTokens).where(eq(refreshTokens.id, validToken.id));
+    await this.deps.db
+      .delete(refreshTokens)
+      .where(eq(refreshTokens.id, validToken.id));
 
     // Create new tokens
     const newAccessToken = await this.deps.jwtService.signAccessToken({
       userId: matchedUser.id,
     });
-    
-    const { token: newRefreshToken, hashedToken } = await this.deps.refreshTokenService.createRefreshToken(
-      matchedUser.id
-    );
-    
+
+    const { token: newRefreshToken, hashedToken } =
+      await this.deps.refreshTokenService.createRefreshToken(matchedUser.id);
+
     // Store new refresh token
     await this.deps.db.insert(refreshTokens).values({
       userId: matchedUser.id,
@@ -262,26 +281,35 @@ export class AuthService {
     };
   }
 
-  async logout(refreshToken?: string, userId?: string): Promise<LogoutResponse> {
+  async logout(
+    refreshToken?: string,
+    userId?: string
+  ): Promise<LogoutResponse> {
     // Invalidate refresh token in database if provided
     if (refreshToken) {
       try {
         // Find and delete refresh tokens for this user
         if (userId) {
           // Delete all refresh tokens for the user (logout from all devices)
-          await this.deps.db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+          await this.deps.db
+            .delete(refreshTokens)
+            .where(eq(refreshTokens.userId, userId));
         } else {
           // Try to find and delete the specific refresh token
-          const storedTokens = await this.deps.db.query.refreshTokens.findMany();
-          
+          const storedTokens =
+            await this.deps.db.query.refreshTokens.findMany();
+
           for (const token of storedTokens) {
-            const isValid = await this.deps.refreshTokenService.verifyRefreshToken(
-              refreshToken,
-              token.hashedToken
-            );
-            
+            const isValid =
+              await this.deps.refreshTokenService.verifyRefreshToken(
+                refreshToken,
+                token.hashedToken
+              );
+
             if (isValid) {
-              await this.deps.db.delete(refreshTokens).where(eq(refreshTokens.id, token.id));
+              await this.deps.db
+                .delete(refreshTokens)
+                .where(eq(refreshTokens.id, token.id));
               userId = token.userId; // Set userId for audit log
               break;
             }
@@ -313,9 +341,13 @@ export class AuthService {
 
   async cleanupExpiredSessions(): Promise<void> {
     // Clean up expired OAuth sessions
-    await this.deps.db.delete(oauthSessions).where(lt(oauthSessions.expiresAt, new Date()));
-    
+    await this.deps.db
+      .delete(oauthSessions)
+      .where(lt(oauthSessions.expiresAt, new Date()));
+
     // Clean up expired refresh tokens
-    await this.deps.db.delete(refreshTokens).where(lt(refreshTokens.expiresAt, new Date()));
+    await this.deps.db
+      .delete(refreshTokens)
+      .where(lt(refreshTokens.expiresAt, new Date()));
   }
 }

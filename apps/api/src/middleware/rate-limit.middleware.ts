@@ -1,4 +1,5 @@
 import type { Context, MiddlewareHandler } from "hono";
+
 import type { RateLimitService } from "../services/rate-limit.service";
 
 interface RateLimitOptions {
@@ -18,7 +19,7 @@ export function createRateLimitMiddleware(
 
     // Extract identifier
     let identifier: string;
-    
+
     if (keyExtractor) {
       const extracted = keyExtractor(c);
       if (!extracted) {
@@ -39,17 +40,23 @@ export function createRateLimitMiddleware(
     }
 
     // Check rate limit before processing request
-    const result = await rateLimitService.checkRateLimit(endpoint, identifier, keyType);
-    
+    const result = await rateLimitService.checkRateLimit(
+      endpoint,
+      identifier,
+      keyType
+    );
+
     if (!result.allowed) {
-      const resetIn = result.resetTime ? Math.ceil((result.resetTime - Date.now()) / 1000) : 0;
-      
+      const resetIn = result.resetTime
+        ? Math.ceil((result.resetTime - Date.now()) / 1000)
+        : 0;
+
       // Set rate limit headers
       c.header("X-RateLimit-Limit", result.total?.toString() || "0");
       c.header("X-RateLimit-Remaining", "0");
       c.header("X-RateLimit-Reset", result.resetTime?.toString() || "0");
       c.header("Retry-After", resetIn.toString());
-      
+
       return c.json(
         {
           error: "Rate limit exceeded",
@@ -91,7 +98,7 @@ export function rateLimitByMitraId(
 ): MiddlewareHandler {
   return createRateLimitMiddleware(rateLimitService, {
     endpoint,
-    keyExtractor: (c) => c.get("mitraId"),
+    keyExtractor: c => c.get("mitraId"),
     keyType: "mitraId",
   });
 }
@@ -102,18 +109,18 @@ export function rateLimitByIP(
 ): MiddlewareHandler {
   return createRateLimitMiddleware(rateLimitService, {
     endpoint,
-    keyExtractor: (c) => {
+    keyExtractor: c => {
       // Try to get real IP from common headers
       const forwarded = c.req.header("x-forwarded-for");
       if (forwarded) {
         return forwarded.split(",")[0].trim();
       }
-      
+
       const realIp = c.req.header("x-real-ip");
       if (realIp) {
         return realIp;
       }
-      
+
       // Fallback to connection IP (may not be available in all environments)
       return c.env?.CF_CONNECTING_IP || "unknown";
     },

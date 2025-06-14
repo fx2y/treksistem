@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+
 import type { ServiceContainer } from "../../services/factory";
 
 const schema = new Hono<{
@@ -11,11 +12,11 @@ const schema = new Hono<{
 schema.get("/validate", async c => {
   const { schemaValidationService } = c.get("services");
   const result = await schemaValidationService.runFullValidation();
-  
+
   if (!result.isValid) {
     return c.json(result, 422);
   }
-  
+
   return c.json({
     message: "Schema validation passed",
     result,
@@ -26,7 +27,7 @@ schema.get("/validate", async c => {
 schema.get("/info", async c => {
   const { schemaValidationService } = c.get("services");
   const result = await schemaValidationService.validateSchema();
-  
+
   return c.json({
     message: "Schema information",
     result,
@@ -37,11 +38,11 @@ schema.get("/info", async c => {
 schema.get("/foreign-keys", async c => {
   const { schemaValidationService } = c.get("services");
   const result = await schemaValidationService.checkForeignKeyConstraints();
-  
+
   if (!result.isValid) {
     return c.json(result, 422);
   }
-  
+
   return c.json({
     message: "Foreign key constraints are valid",
     result,
