@@ -28,9 +28,9 @@
 			const updatedService = await apiClient.put<Service>(`/mitra/services/${service.id}`, {
 				isPublic: !service.isPublic
 			});
-			
+
 			// Update local state
-			services = services.map(s => s.id === service.id ? updatedService : s);
+			services = services.map((s) => (s.id === service.id ? updatedService : s));
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to update service';
 		}
@@ -41,9 +41,7 @@
 	<div class="sm:flex sm:items-center">
 		<div class="sm:flex-auto">
 			<h1 class="text-2xl font-bold text-gray-900">Services</h1>
-			<p class="mt-1 text-sm text-gray-500">
-				Manage your delivery services and pricing
-			</p>
+			<p class="mt-1 text-sm text-gray-500">Manage your delivery services and pricing</p>
 		</div>
 		<div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
 			<a
@@ -121,18 +119,22 @@
 										</button>
 									</div>
 									<div class="mt-1 text-sm text-gray-500">
-										Range: {service.maxRangeKm} km • 
-										Base: Rp {service.rate.baseFee.toLocaleString('id-ID')} • 
-										Per km: Rp {service.rate.feePerKm.toLocaleString('id-ID')}
+										Range: {service.maxRangeKm} km • Base: Rp {service.rate.baseFee.toLocaleString(
+											'id-ID'
+										)} • Per km: Rp {service.rate.feePerKm.toLocaleString('id-ID')}
 									</div>
 									<div class="mt-1 text-sm text-gray-500">
-										{service.supportedVehicleTypeIds.length} vehicle types • 
+										{service.supportedVehicleTypeIds.length} vehicle types •
 										{service.supportedPayloadTypeIds.length} payload types
 									</div>
 								</div>
 							</div>
 							<div class="flex items-center space-x-2">
-								<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {service.isPublic ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+								<span
+									class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {service.isPublic
+										? 'bg-green-100 text-green-800'
+										: 'bg-gray-100 text-gray-800'}"
+								>
 									{service.isPublic ? 'Public' : 'Private'}
 								</span>
 								<a

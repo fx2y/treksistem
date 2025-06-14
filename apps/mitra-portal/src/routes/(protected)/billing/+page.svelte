@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/services/apiClient';
 	import type { Invoice } from '$lib/types';
-	import { CreditCard, Clock, CheckCircle, AlertTriangle, QrCode, Calendar } from 'lucide-svelte';
+	import { Clock, CheckCircle, AlertTriangle, QrCode, Calendar } from 'lucide-svelte';
 
 	let invoices: Invoice[] = [];
 	let loading = true;
@@ -19,11 +19,14 @@
 	async function loadInvoices() {
 		try {
 			loading = true;
-			
+
 			const params = new URLSearchParams();
 			if (statusFilter !== 'all') params.append('status', statusFilter);
 
-			const response = await apiClient.get<{ invoices: Invoice[] }>('/mitra/billing/invoices', params);
+			const response = await apiClient.get<{ invoices: Invoice[] }>(
+				'/mitra/billing/invoices',
+				params
+			);
 			invoices = response.invoices;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load invoices';
@@ -134,9 +137,7 @@
 	<div class="sm:flex sm:items-center">
 		<div class="sm:flex-auto">
 			<h1 class="text-2xl font-bold text-gray-900">Billing</h1>
-			<p class="mt-1 text-sm text-gray-500">
-				Manage your invoices and payments
-			</p>
+			<p class="mt-1 text-sm text-gray-500">Manage your invoices and payments</p>
 		</div>
 	</div>
 
@@ -186,7 +187,7 @@
 			<div class="text-gray-500">
 				<p class="text-lg font-medium">No invoices found</p>
 				<p class="mt-1 text-sm">
-					{statusFilter === 'all' 
+					{statusFilter === 'all'
 						? 'Invoices will appear here when generated'
 						: `No ${statusFilter} invoices found`}
 				</p>
@@ -200,7 +201,10 @@
 						<div class="flex items-center justify-between">
 							<div class="flex items-center">
 								<div class="flex-shrink-0">
-									<svelte:component this={getStatusIcon(invoice.status)} class="h-5 w-5 text-gray-400" />
+									<svelte:component
+										this={getStatusIcon(invoice.status)}
+										class="h-5 w-5 text-gray-400"
+									/>
 								</div>
 								<div class="ml-4">
 									<div class="flex items-center">
@@ -227,7 +231,11 @@
 									<div class="text-lg font-medium text-gray-900">
 										{formatCurrency(invoice.amount, invoice.currency)}
 									</div>
-									<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getStatusColor(invoice.status)}">
+									<span
+										class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getStatusColor(
+											invoice.status
+										)}"
+									>
 										{invoice.status}
 									</span>
 								</div>
@@ -254,16 +262,25 @@
 <!-- QR Code Modal -->
 {#if showQRModal && selectedInvoice}
 	<div class="fixed inset-0 z-50 overflow-y-auto">
-		<div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-			<div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" on:click={closeQRModal}></div>
+		<div
+			class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0"
+		>
+			<div
+				class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+				on:click={closeQRModal}
+				on:keydown={closeQRModal}
+				role="button"
+				tabindex="0"
+				aria-label="Close QR modal"
+			></div>
 
-			<div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+			<div
+				class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+			>
 				<div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
 					<div class="sm:flex sm:items-start">
 						<div class="w-full mt-3 text-center sm:mt-0 sm:text-left">
-							<h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-								Payment QR Code
-							</h3>
+							<h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Payment QR Code</h3>
 							<div class="text-center">
 								<div class="mb-4">
 									<p class="text-sm text-gray-600">Invoice #{selectedInvoice.publicId}</p>
@@ -271,22 +288,26 @@
 										{formatCurrency(selectedInvoice.amount, selectedInvoice.currency)}
 									</p>
 								</div>
-								
+
 								<!-- QR Code Display -->
 								<div class="flex justify-center mb-4">
 									{#if qrCodeDataURL}
-										<img 
-											src={qrCodeDataURL} 
+										<img
+											src={qrCodeDataURL}
 											alt="QRIS Payment QR Code"
 											class="border border-gray-200 rounded-lg"
 										/>
 									{:else}
-										<div class="w-[200px] h-[200px] border border-gray-200 rounded-lg flex items-center justify-center">
-											<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+										<div
+											class="w-[200px] h-[200px] border border-gray-200 rounded-lg flex items-center justify-center"
+										>
+											<div
+												class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+											></div>
 										</div>
 									{/if}
 								</div>
-								
+
 								<div class="text-sm text-gray-600 space-y-2">
 									<p>Scan this QR code with any Indonesian payment app:</p>
 									<p class="font-medium">Dana • GoPay • OVO • LinkAja • ShopeePay</p>

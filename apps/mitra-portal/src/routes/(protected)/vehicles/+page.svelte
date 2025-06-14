@@ -74,8 +74,11 @@
 
 			if (editingVehicle) {
 				// Update existing vehicle
-				const updatedVehicle = await apiClient.put<Vehicle>(`/mitra/vehicles/${editingVehicle.id}`, vehicleData);
-				vehicles = vehicles.map(v => v.id === editingVehicle?.id ? updatedVehicle : v);
+				const updatedVehicle = await apiClient.put<Vehicle>(
+					`/mitra/vehicles/${editingVehicle.id}`,
+					vehicleData
+				);
+				vehicles = vehicles.map((v) => (v.id === editingVehicle?.id ? updatedVehicle : v));
 			} else {
 				// Create new vehicle
 				const newVehicle = await apiClient.post<Vehicle>('/mitra/vehicles', vehicleData);
@@ -97,7 +100,7 @@
 
 		try {
 			await apiClient.del(`/mitra/vehicles/${vehicleId}`);
-			vehicles = vehicles.filter(v => v.id !== vehicleId);
+			vehicles = vehicles.filter((v) => v.id !== vehicleId);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to delete vehicle';
 		}
@@ -108,9 +111,7 @@
 	<div class="sm:flex sm:items-center">
 		<div class="sm:flex-auto">
 			<h1 class="text-2xl font-bold text-gray-900">Vehicles</h1>
-			<p class="mt-1 text-sm text-gray-500">
-				Manage your delivery vehicle fleet
-			</p>
+			<p class="mt-1 text-sm text-gray-500">Manage your delivery vehicle fleet</p>
 		</div>
 		<div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
 			<button

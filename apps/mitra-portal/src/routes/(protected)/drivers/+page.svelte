@@ -11,7 +11,7 @@
 	let inviteEmail = '';
 	let inviteError = '';
 	let inviteSuccess = '';
-	
+
 	// Subscription status
 	let canInviteDrivers = true;
 	let subscriptionMessage = '';
@@ -42,13 +42,13 @@
 				driverLimit: number;
 				subscriptionStatus: string;
 			}>('/mitra/subscription-status');
-			
+
 			canInviteDrivers = response.canInviteDrivers;
-			
+
 			if (!canInviteDrivers) {
 				subscriptionMessage = `Driver limit reached (${response.currentDriverCount}/${response.driverLimit}). Please contact admin to upgrade your subscription.`;
 			}
-		} catch (err) {
+		} catch {
 			// If endpoint doesn't exist yet, assume we can invite
 			canInviteDrivers = true;
 		}
@@ -65,13 +65,13 @@
 			inviteError = '';
 			inviteSuccess = '';
 
-			const response = await apiClient.post<{ inviteLink: string }>('/mitra/drivers/invite', {
+			await apiClient.post<{ inviteLink: string }>('/mitra/drivers/invite', {
 				email: inviteEmail.trim()
 			});
 
 			inviteSuccess = `Invitation sent to ${inviteEmail}`;
 			inviteEmail = '';
-			
+
 			// Refresh drivers list and subscription status
 			await loadDrivers();
 			await checkSubscriptionStatus();
@@ -89,8 +89,8 @@
 
 		try {
 			await apiClient.del(`/mitra/drivers/${driverId}`);
-			drivers = drivers.filter(d => d.id !== driverId);
-			
+			drivers = drivers.filter((d) => d.id !== driverId);
+
 			// Check subscription status again as we now have fewer drivers
 			await checkSubscriptionStatus();
 		} catch (err) {
@@ -129,9 +129,7 @@
 	<div class="sm:flex sm:items-center">
 		<div class="sm:flex-auto">
 			<h1 class="text-2xl font-bold text-gray-900">Drivers</h1>
-			<p class="mt-1 text-sm text-gray-500">
-				Manage your team of delivery drivers
-			</p>
+			<p class="mt-1 text-sm text-gray-500">Manage your team of delivery drivers</p>
 		</div>
 	</div>
 
@@ -143,9 +141,7 @@
 					<AlertCircle class="h-5 w-5 text-yellow-400" />
 				</div>
 				<div class="ml-3">
-					<h3 class="text-sm font-medium text-yellow-800">
-						Driver Limit Reached
-					</h3>
+					<h3 class="text-sm font-medium text-yellow-800">Driver Limit Reached</h3>
 					<div class="mt-2 text-sm text-yellow-700">
 						<p>{subscriptionMessage}</p>
 					</div>
@@ -187,11 +183,11 @@
 						Send Invitation
 					</button>
 				</form>
-				
+
 				{#if inviteError}
 					<div class="mt-3 text-sm text-red-600">{inviteError}</div>
 				{/if}
-				
+
 				{#if inviteSuccess}
 					<div class="mt-3 text-sm text-green-600">{inviteSuccess}</div>
 				{/if}
@@ -242,7 +238,10 @@
 										<h3 class="text-lg font-medium text-gray-900">
 											{driver.name}
 										</h3>
-										<svelte:component this={getStatusIcon(driver.status)} class="ml-2 h-4 w-4 text-gray-400" />
+										<svelte:component
+											this={getStatusIcon(driver.status)}
+											class="ml-2 h-4 w-4 text-gray-400"
+										/>
 									</div>
 									<div class="mt-1 text-sm text-gray-500">
 										{driver.email}
@@ -250,7 +249,11 @@
 								</div>
 							</div>
 							<div class="flex items-center space-x-2">
-								<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getStatusColor(driver.status)}">
+								<span
+									class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getStatusColor(
+										driver.status
+									)}"
+								>
 									{driver.status.replace('_', ' ')}
 								</span>
 								<button
