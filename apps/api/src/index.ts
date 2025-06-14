@@ -11,6 +11,7 @@ import pub from "./routes/public";
 import { payment } from "./routes/public/payment";
 import test from "./routes/test";
 import uploads from "./routes/uploads";
+import webhooks from "./routes/webhooks";
 import { createServices, type ServiceContainer } from "./services/factory";
 import type { Bindings } from "./types";
 
@@ -27,6 +28,9 @@ const app = new Hono<{
   };
 }>();
 
+// Schema validation flag to ensure we only run it once per worker
+let schemaValidated = false;
+
 app.use("*", async (c, next) => {
   const authEnv: AuthEnvironment = {
     DB: c.env.DB,
@@ -41,6 +45,19 @@ app.use("*", async (c, next) => {
 
   const services = createServices(c.env);
   c.set("services", services);
+
+  // Run schema validation once per worker startup
+  if (!schemaValidated) {
+    try {
+      await services.schemaValidationService.ensureSchemaValid();
+      console.log("Schema validation passed");
+      schemaValidated = true;
+    } catch (error) {
+      console.error("Schema validation failed:", error);
+      // In production, you might want to fail fast here
+      // throw error;
+    }
+  }
 
   await next();
 });
@@ -57,6 +74,7 @@ app.route("/api/notifications", notifications);
 app.route("/api/public", pub);
 app.route("/api/test", test);
 app.route("/api/uploads", uploads);
+app.route("/api/webhooks", webhooks);
 app.route("/pay", payment);
 
 app.onError((err, c) => {
@@ -69,7 +87,7 @@ app.onError((err, c) => {
         code: err.code,
         ...(err.details && { details: err.details }),
       },
-      err.statusCode as any
+      err.statusCode as 200 | 201 | 202 | 204 | 300 | 301 | 302 | 304 | 400 | 401 | 403 | 404 | 409 | 422 | 429 | 500 | 502 | 503 | 504
     );
   }
 
@@ -84,7 +102,7 @@ app.onError((err, c) => {
 
 export default {
   fetch: app.fetch,
-  async scheduled(event: any, env: any, _ctx: any) {
+  async scheduled(event: { cron: string }, env: any, _ctx: ExecutionContext) {
     const services = createServices(env);
 
     switch (event.cron) {
@@ -96,6 +114,21 @@ export default {
           console.log(`Generated ${results.length} monthly invoices`);
         } catch (error) {
           console.error("Failed to generate monthly invoices:", error);
+        }
+        break;
+        
+      case "0 2 * * *": // Daily at 2 AM
+        console.log("Running daily cleanup tasks...");
+        try {
+          // Clean up expired OAuth sessions and refresh tokens
+          await services.authService.cleanupExpiredSessions();
+          console.log("Cleaned up expired auth sessions");
+          
+          // Clean up expired rate limit entries
+          await services.rateLimitService.cleanup();
+          console.log("Cleaned up expired rate limit entries");
+        } catch (error) {
+          console.error("Failed to run cleanup tasks:", error);
         }
         break;
     }

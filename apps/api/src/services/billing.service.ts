@@ -4,6 +4,7 @@ import { eq, and, gte, lt } from "drizzle-orm";
 
 import { NotFoundError, ForbiddenError } from "../lib/errors";
 import { generateQRIS } from "../lib/qris";
+import { AuditService } from "./audit.service";
 
 export interface CreateInvoiceData {
   mitraId: string;
@@ -32,7 +33,10 @@ export interface ConfirmPaymentData {
 }
 
 export class BillingService {
-  constructor(private db: DbClient) {}
+  constructor(
+    private db: DbClient,
+    private auditService?: AuditService
+  ) {}
 
   async createInvoice(data: CreateInvoiceData) {
     const invoice = await this.db
@@ -51,7 +55,26 @@ export class BillingService {
       })
       .returning();
 
-    return invoice[0];
+    const createdInvoice = invoice[0];
+
+    // Audit log the invoice creation
+    if (this.auditService) {
+      await this.auditService.log({
+        actorId: "SYSTEM",
+        mitraId: data.mitraId,
+        entityType: "INVOICE",
+        entityId: createdInvoice.id.toString(),
+        eventType: "INVOICE_CREATED",
+        details: {
+          type: data.type,
+          amount: data.amount,
+          description: data.description,
+          dueDate: data.dueDate,
+        },
+      });
+    }
+
+    return createdInvoice;
   }
 
   async getInvoicesByMitra(mitraId: string, status?: string, limit = 20) {
@@ -142,6 +165,39 @@ export class BillingService {
         .update(mitras)
         .set({ subscriptionStatus: "active" })
         .where(eq(mitras.id, invoice.mitraId));
+
+      // Audit log subscription status change
+      if (this.auditService) {
+        await this.auditService.log({
+          actorId: "SYSTEM",
+          mitraId: invoice.mitraId,
+          entityType: "INVOICE",
+          entityId: invoice.mitraId,
+          eventType: "SUBSCRIPTION_STATUS_CHANGED",
+          details: {
+            previousStatus: "past_due",
+            newStatus: "active",
+            triggeredBy: "payment_confirmation",
+            invoiceId: invoice.id,
+          },
+        });
+      }
+    }
+
+    // Audit log payment confirmation
+    if (this.auditService) {
+      await this.auditService.log({
+        actorId: "SYSTEM",
+        mitraId: invoice.mitraId,
+        entityType: "INVOICE",
+        entityId: invoice.id.toString(),
+        eventType: "INVOICE_PAYMENT_CONFIRMED",
+        details: {
+          amount: invoice.amount,
+          paymentDate,
+          type: invoice.type,
+        },
+      });
     }
 
     return {

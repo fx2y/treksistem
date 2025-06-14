@@ -3,6 +3,7 @@ import type { createAuthServices } from "@treksistem/auth";
 import { Hono } from "hono";
 import { z } from "zod";
 
+import { rateLimitByIP } from "../../middleware/rate-limit.middleware";
 import type { ServiceContainer } from "../../services/factory";
 
 const orders = new Hono<{
@@ -47,12 +48,19 @@ const OrderCreationRequestSchema = z.object({
   notes: z.string().max(1000).trim().optional(),
 });
 
-orders.post("/", zValidator("json", OrderCreationRequestSchema), async c => {
-  const { publicOrderService } = c.get("services");
-  const request = c.req.valid("json");
+orders.post("/", 
+  async (c, next) => {
+    const { rateLimitService } = c.get("services");
+    return rateLimitByIP(rateLimitService, "order:create")(c, next);
+  },
+  zValidator("json", OrderCreationRequestSchema), 
+  async c => {
+    const { publicOrderService } = c.get("services");
+    const request = c.req.valid("json");
 
-  const orderResponse = await publicOrderService.createOrder(request);
-  return c.json(orderResponse, 201);
-});
+    const orderResponse = await publicOrderService.createOrder(request);
+    return c.json(orderResponse, 201);
+  }
+);
 
 export default orders;

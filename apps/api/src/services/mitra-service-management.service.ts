@@ -12,6 +12,7 @@ import {
 import { eq, and, inArray } from "drizzle-orm";
 
 import { NotFoundError } from "../lib/errors";
+import { AuditService } from "./audit.service";
 
 export interface CreateServiceRequest {
   name: string;
@@ -64,7 +65,10 @@ export interface ServiceResponse {
 }
 
 export class MitraServiceManagementService {
-  constructor(private db: DbClient) {}
+  constructor(
+    private db: DbClient,
+    private auditService?: AuditService
+  ) {}
 
   async createService(
     mitraId: string,
@@ -119,6 +123,28 @@ export class MitraServiceManagementService {
       if (!createdService) {
         throw new Error("Failed to retrieve created service");
       }
+
+      // Audit log the service creation
+      if (this.auditService) {
+        await this.auditService.log({
+          actorId: mitraId,
+          mitraId,
+          entityType: "SERVICE",
+          entityId: serviceId,
+          eventType: "SERVICE_CREATED",
+          details: {
+            name: data.name,
+            isPublic: data.isPublic,
+            maxRangeKm: data.maxRangeKm,
+            baseFee: data.rate.baseFee,
+            feePerKm: data.rate.feePerKm,
+            supportedVehicleTypes: data.supportedVehicleTypeIds.length,
+            supportedPayloadTypes: data.supportedPayloadTypeIds.length,
+            availableFacilities: data.availableFacilityIds?.length || 0,
+          },
+        });
+      }
+
       return createdService;
     });
   }
@@ -403,6 +429,22 @@ export class MitraServiceManagementService {
       if (!updatedService) {
         throw new Error("Service not found after update");
       }
+
+      // Audit log the service update
+      if (this.auditService) {
+        await this.auditService.log({
+          actorId: mitraId,
+          mitraId,
+          entityType: "SERVICE",
+          entityId: serviceId,
+          eventType: "SERVICE_UPDATED",
+          details: {
+            changes: data,
+            serviceId,
+          },
+        });
+      }
+
       return updatedService;
     });
   }

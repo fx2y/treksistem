@@ -16,6 +16,8 @@ import { MitraOrderService } from "./mitra-order.service";
 import { MitraProfileService } from "./mitra-profile.service";
 import { MitraServiceManagementService } from "./mitra-service-management.service";
 import { PublicOrderService } from "./public-order.service";
+import { RateLimitService } from "./rate-limit.service";
+import { SchemaValidationService } from "./schema-validation.service";
 import { TestService } from "./test.service";
 import { UploadService } from "./upload.service";
 import { VehicleService } from "./vehicle.service";
@@ -35,6 +37,8 @@ export interface ServiceContainer {
   mitraServiceManagementService: MitraServiceManagementService;
   masterDataService: MasterDataService;
   publicOrderService: PublicOrderService;
+  rateLimitService: RateLimitService;
+  schemaValidationService: SchemaValidationService;
   testService: TestService;
   uploadService: UploadService;
   vehicleService: VehicleService;
@@ -42,6 +46,9 @@ export interface ServiceContainer {
 
 export function createServices(env: Bindings): ServiceContainer {
   const db = createDbClient(env.DB);
+
+  const notificationService = new NotificationService(db);
+  const auditService = new AuditService(db);
 
   // Create auth services
   const authServices = createAuthServices(env);
@@ -51,12 +58,10 @@ export function createServices(env: Bindings): ServiceContainer {
     jwtService: authServices.jwtService,
     refreshTokenService: authServices.refreshTokenService,
     frontendUrl: env.FRONTEND_URL,
+    auditService,
   });
-
-  const notificationService = new NotificationService(db);
-  const auditService = new AuditService(db);
-  const billingService = new BillingService(db);
-  const driverManagementService = new DriverManagementService(db);
+  const billingService = new BillingService(db, auditService);
+  const driverManagementService = new DriverManagementService(db, auditService);
   const driverWorkflowService = new DriverWorkflowService(db);
   const logbookService = new LogbookService(db);
   const mitraMonitoringService = new MitraMonitoringService(db);
@@ -65,10 +70,12 @@ export function createServices(env: Bindings): ServiceContainer {
     notificationService,
     auditService
   );
-  const mitraProfileService = new MitraProfileService(db);
-  const mitraServiceManagementService = new MitraServiceManagementService(db);
+  const mitraProfileService = new MitraProfileService(db, auditService);
+  const mitraServiceManagementService = new MitraServiceManagementService(db, auditService);
   const masterDataService = new MasterDataService(db);
-  const publicOrderService = new PublicOrderService(db, notificationService);
+  const publicOrderService = new PublicOrderService(db, notificationService, auditService);
+  const rateLimitService = new RateLimitService({ db });
+  const schemaValidationService = new SchemaValidationService({ db });
   const testService = new TestService(db, env.DB);
   const uploadService = new UploadService(db, env);
   const vehicleService = new VehicleService(db, auditService);
@@ -88,6 +95,8 @@ export function createServices(env: Bindings): ServiceContainer {
     mitraServiceManagementService,
     masterDataService,
     publicOrderService,
+    rateLimitService,
+    schemaValidationService,
     testService,
     uploadService,
     vehicleService,

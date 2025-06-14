@@ -4,7 +4,11 @@ export type AuditEventType =
   | "ORDER_CREATED"
   | "ORDER_UPDATED"
   | "SERVICE_CREATED"
+  | "SERVICE_UPDATED"
   | "DRIVER_ASSIGNED"
+  | "DRIVER_INVITED"
+  | "DRIVER_ACCEPTED_INVITE"
+  | "DRIVER_REMOVED"
   | "MITRA_MANUAL_ORDER_CREATED"
   | "MITRA_ORDER_ASSIGNED"
   | "VEHICLE_CREATED"
@@ -12,6 +16,12 @@ export type AuditEventType =
   | "VEHICLE_DELETED"
   | "USER_LOGIN"
   | "USER_LOGOUT"
+  | "TOKEN_REFRESH"
+  | "INVOICE_CREATED"
+  | "INVOICE_PAYMENT_CONFIRMED"
+  | "SUBSCRIPTION_STATUS_CHANGED"
+  | "MITRA_PROFILE_UPDATED"
+  | "MITRA_ONBOARDING_COMPLETED"
   | "MASTER_DATA_CREATED"
   | "MASTER_DATA_UPDATED"
   | "MASTER_DATA_DELETED";
@@ -25,6 +35,8 @@ export interface AuditLogOptions {
     | "DRIVER"
     | "VEHICLE"
     | "USER"
+    | "INVOICE"
+    | "MITRA"
     | "MASTER_DATA";
   entityId: string;
   eventType: AuditEventType;
@@ -73,7 +85,9 @@ export async function logAdminAction(
       | "ORDER"
       | "SERVICE"
       | "DRIVER"
-      | "VEHICLE",
+      | "VEHICLE"
+      | "INVOICE"
+      | "MITRA",
     entityId: options.targetId,
     eventType:
       `${options.targetEntity.toUpperCase()}_${options.action}D` as AuditEventType,

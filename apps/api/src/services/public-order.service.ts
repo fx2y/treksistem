@@ -8,6 +8,7 @@ import {
 import { and, eq } from "drizzle-orm";
 
 import { NotFoundError } from "../lib/errors";
+import { AuditService } from "./audit.service";
 
 export interface StopInput {
   address: string;
@@ -77,7 +78,8 @@ export interface OrderTrackingResponse {
 export class PublicOrderService {
   constructor(
     private db: DbClient,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private auditService?: AuditService
   ) {}
 
   async findAvailableServices(
@@ -236,14 +238,14 @@ export class PublicOrderService {
 
     const { orderId, publicId, notificationLogId } = result;
 
-    // Create audit log separately to avoid transaction failure
-    try {
-      await this.db.insert(schema.auditLogs).values({
-        adminUserId: "SYSTEM_PUBLIC_API",
-        targetEntity: "order",
-        targetId: orderId,
-        action: "ORDER_CREATED",
-        payload: {
+    // Create audit log using the audit service
+    if (this.auditService) {
+      await this.auditService.log({
+        actorId: "SYSTEM_PUBLIC_API",
+        entityType: "ORDER",
+        entityId: orderId,
+        eventType: "ORDER_CREATED",
+        details: {
           publicId,
           serviceId: request.serviceId,
           stops: request.stops,
@@ -254,9 +256,6 @@ export class PublicOrderService {
           notes: request.notes,
         },
       });
-    } catch (error) {
-      console.error("Failed to create audit log:", error);
-      // Continue execution even if audit log fails
     }
 
     // Broadcast NEW_ORDER_AVAILABLE notifications to all active drivers for this mitra

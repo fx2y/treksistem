@@ -3,6 +3,8 @@ import { driverInvites, drivers, users, mitras } from "@treksistem/db";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
+import { AuditService } from "./audit.service";
+
 export interface DriverResponse {
   id: string;
   userId: string;
@@ -12,7 +14,10 @@ export interface DriverResponse {
 }
 
 export class DriverManagementService {
-  constructor(private db: DbClient) {}
+  constructor(
+    private db: DbClient,
+    private auditService?: AuditService
+  ) {}
   async inviteDriver(
     mitraId: string,
     email: string
@@ -83,13 +88,28 @@ export class DriverManagementService {
     const token = nanoid(32);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    await this.db.insert(driverInvites).values({
+    const [createdInvite] = await this.db.insert(driverInvites).values({
       mitraId,
       email,
       token,
       expiresAt,
       status: "pending",
-    });
+    }).returning({ id: driverInvites.id });
+
+    // Audit log the driver invitation
+    if (this.auditService) {
+      await this.auditService.log({
+        actorId: mitraId,
+        mitraId,
+        entityType: "DRIVER",
+        entityId: createdInvite.id,
+        eventType: "DRIVER_INVITED",
+        details: {
+          email,
+          expiresAt,
+        },
+      });
+    }
 
     return {
       inviteLink: `https://treksistem.app/join?token=${token}`,
@@ -176,16 +196,32 @@ export class DriverManagementService {
       throw new Error("User is already a driver for this Mitra");
     }
 
-    await this.db.insert(drivers).values({
+    const [newDriver] = await this.db.insert(drivers).values({
       userId,
       mitraId: invite.driver_invites.mitraId,
       status: "active",
-    });
+    }).returning({ id: drivers.id });
 
     await this.db
       .update(driverInvites)
       .set({ status: "accepted" })
       .where(eq(driverInvites.id, invite.driver_invites.id));
+
+    // Audit log the driver acceptance
+    if (this.auditService) {
+      await this.auditService.log({
+        actorId: userId,
+        mitraId: invite.driver_invites.mitraId,
+        entityType: "DRIVER",
+        entityId: newDriver.id,
+        eventType: "DRIVER_ACCEPTED_INVITE",
+        details: {
+          email: user.email,
+          inviteToken: token,
+          mitraName: invite.mitras.businessName,
+        },
+      });
+    }
 
     return {
       mitraName: invite.mitras.businessName,
@@ -220,6 +256,20 @@ export class DriverManagementService {
     }
 
     await this.db.delete(drivers).where(eq(drivers.id, driverId));
+
+    // Audit log the driver removal
+    if (this.auditService) {
+      await this.auditService.log({
+        actorId: mitraId,
+        mitraId,
+        entityType: "DRIVER",
+        entityId: driverId,
+        eventType: "DRIVER_REMOVED",
+        details: {
+          removedDriverId: driverId,
+        },
+      });
+    }
   }
 
   async resendInvite(mitraId: string, inviteId: string): Promise<void> {

@@ -10,6 +10,7 @@ declare module "hono" {
   interface ContextVariableMap {
     jwtPayload: JwtPayload;
     user: User;
+    userId: string;
     mitraId: string;
     driverId: string;
   }
@@ -30,7 +31,18 @@ export function createAuthMiddleware(jwtService: JwtService, db: any) {
       return c.json({ error: "Invalid token" }, 401);
     }
 
+    // Fetch user details and set in context
+    const user = await db.query.users.findFirst({
+      where: (users: any, { eq }: any) => eq(users.id, payload.userId),
+    });
+
+    if (!user) {
+      return c.json({ error: "User not found" }, 401);
+    }
+
     c.set("jwtPayload", payload);
+    c.set("user", user);
+    c.set("userId", user.id);
     await next();
   }
 
@@ -71,20 +83,90 @@ export function createAuthMiddleware(jwtService: JwtService, db: any) {
   }
 
   async function requireAdminRole(c: Context, next: Next) {
-    const payload = c.get("jwtPayload");
-    if (!payload) {
+    const user = c.get("user");
+    if (!user) {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const user = await db.query.users.findFirst({
-      where: (users: any, { eq }: any) => eq(users.id, payload.userId),
-    });
-
-    if (user?.role !== "admin") {
+    if (user.role !== "admin") {
       return c.json({ error: "Forbidden - Admin role required" }, 403);
     }
 
     await next();
+  }
+
+  function requirePermission(permission: string) {
+    return async (c: Context, next: Next) => {
+      const user = c.get("user");
+      if (!user) {
+        return c.json({ error: "Unauthorized" }, 401);
+      }
+
+      // Check if user has permission based on role
+      const hasPermission = await checkUserPermission(user, permission);
+      if (!hasPermission) {
+        return c.json({ 
+          error: `Forbidden - Permission '${permission}' required` 
+        }, 403);
+      }
+
+      await next();
+    };
+  }
+
+  async function checkUserPermission(user: any, permission: string): Promise<boolean> {
+    // Admin users have all permissions
+    if (user.role === "admin") {
+      return true;
+    }
+
+    // Permission matrix based on user roles and context
+    const permissionChecks: Record<string, () => Promise<boolean>> = {
+      // Mitra permissions
+      "mitra:manage_drivers": async () => {
+        const mitra = await db.query.mitras.findFirst({
+          where: (mitras: any, { eq }: any) => eq(mitras.userId, user.id),
+        });
+        return !!mitra;
+      },
+      
+      "mitra:manage_services": async () => {
+        const mitra = await db.query.mitras.findFirst({
+          where: (mitras: any, { eq }: any) => eq(mitras.userId, user.id),
+        });
+        return !!mitra;
+      },
+      
+      "mitra:view_analytics": async () => {
+        const mitra = await db.query.mitras.findFirst({
+          where: (mitras: any, { eq }: any) => eq(mitras.userId, user.id),
+        });
+        return !!mitra;
+      },
+
+      // Driver permissions
+      "driver:manage_orders": async () => {
+        const driver = await db.query.drivers.findFirst({
+          where: (drivers: any, { eq }: any) => eq(drivers.userId, user.id),
+        });
+        return !!driver;
+      },
+      
+      "driver:update_location": async () => {
+        const driver = await db.query.drivers.findFirst({
+          where: (drivers: any, { eq }: any) => eq(drivers.userId, user.id),
+        });
+        return !!driver;
+      },
+
+      // Admin permissions
+      "admin:impersonate": () => Promise.resolve(user.role === "admin"),
+      "admin:system_settings": () => Promise.resolve(user.role === "admin"),
+      "admin:user_management": () => Promise.resolve(user.role === "admin"),
+    };
+
+    const check = permissionChecks[permission];
+    return check ? await check() : false;
   }
 
   async function getUserProfile(
@@ -149,6 +231,8 @@ export function createAuthMiddleware(jwtService: JwtService, db: any) {
     requireMitraRole,
     requireDriverRole,
     requireAdminRole,
+    requirePermission,
+    checkUserPermission,
     getUserProfile,
   };
 }

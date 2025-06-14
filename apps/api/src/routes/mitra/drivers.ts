@@ -1,9 +1,9 @@
 import { zValidator } from "@hono/zod-validator";
-import type { DbClient } from "@treksistem/db";
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { DriverManagementService } from "../../services/driver-management.service";
+import { rateLimitByMitraId } from "../../middleware/rate-limit.middleware";
+import type { ServiceContainer } from "../../services/factory";
 
 const InviteDriverRequest = z.object({
   email: z.string().email().max(254).trim(),
@@ -16,62 +16,40 @@ const DriverParamsSchema = z.object({
 const app = new Hono<{
   Variables: {
     mitraId: string;
-    db: DbClient;
+    services: ServiceContainer;
   };
 }>();
 
-app.post("/invite", zValidator("json", InviteDriverRequest), async c => {
-  try {
+app.post("/invite", 
+  async (c, next) => {
+    const { rateLimitService } = c.get("services");
+    return rateLimitByMitraId(rateLimitService, "driver:invite")(c, next);
+  },
+  zValidator("json", InviteDriverRequest), 
+  async c => {
     const { email } = c.req.valid("json");
     const mitraId = c.get("mitraId");
-    const db = c.get("db");
-    const driverService = new DriverManagementService(db);
+    const { driverManagementService } = c.get("services");
 
-    const result = await driverService.inviteDriver(mitraId, email);
-
+    const result = await driverManagementService.inviteDriver(mitraId, email);
     return c.json(result);
-  } catch (error) {
-    if (error instanceof Error) {
-      if (
-        error.message.includes("already exists") ||
-        error.message.includes("already")
-      ) {
-        return c.json({ error: error.message }, 409);
-      }
-    }
-    return c.json({ error: "Failed to send invitation" }, 500);
   }
-});
+);
 
 app.get("/", async c => {
-  try {
-    const mitraId = c.get("mitraId");
-    const db = c.get("db");
-    const driverService = new DriverManagementService(db);
-    const drivers = await driverService.listDriversForMitra(mitraId);
-
-    return c.json(drivers);
-  } catch (error) {
-    return c.json({ error: "Failed to fetch drivers" }, 500);
-  }
+  const mitraId = c.get("mitraId");
+  const { driverManagementService } = c.get("services");
+  const drivers = await driverManagementService.listDriversForMitra(mitraId);
+  return c.json(drivers);
 });
 
 app.delete("/:driverId", zValidator("param", DriverParamsSchema), async c => {
-  try {
-    const mitraId = c.get("mitraId");
-    const { driverId } = c.req.valid("param");
-    const db = c.get("db");
-    const driverService = new DriverManagementService(db);
+  const mitraId = c.get("mitraId");
+  const { driverId } = c.req.valid("param");
+  const { driverManagementService } = c.get("services");
 
-    await driverService.removeDriver(mitraId, driverId);
-
-    return c.body(null, 204);
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("not found")) {
-      return c.json({ error: error.message }, 404);
-    }
-    return c.json({ error: "Failed to remove driver" }, 500);
-  }
+  await driverManagementService.removeDriver(mitraId, driverId);
+  return c.body(null, 204);
 });
 
 export default app;

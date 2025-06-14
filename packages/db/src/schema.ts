@@ -40,6 +40,20 @@ export const refreshTokens = sqliteTable("refresh_tokens", {
     .default(sql`(current_timestamp)`),
 });
 
+// OAuth sessions table - server-side session management for OAuth flows
+export const oauthSessions = sqliteTable("oauth_sessions", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  state: text("state").notNull().unique(),
+  codeVerifier: text("code_verifier").notNull(),
+  provider: text("provider").notNull().default("google"),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(current_timestamp)`),
+});
+
 // Mitras table - business entities (UMKM)
 export const mitras = sqliteTable("mitras", {
   id: text("id")
@@ -653,6 +667,8 @@ export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const oauthSessionsRelations = relations(oauthSessions, () => ({}));
 
 export const invoicesRelations = relations(invoices, ({ one }) => ({
   mitra: one(mitras, {

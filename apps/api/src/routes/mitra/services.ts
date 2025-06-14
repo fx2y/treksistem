@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
+import { rateLimitByMitraId } from "../../middleware/rate-limit.middleware";
 import type { ServiceContainer } from "../../services/factory";
 
 const createServiceSchema = z.object({
@@ -40,17 +41,24 @@ const app = new Hono<{
 }>();
 
 // Create a new service
-app.post("/", zValidator("json", createServiceSchema), async c => {
-  const mitraId = c.get("mitraId");
-  const data = c.req.valid("json");
-  const { mitraServiceManagementService } = c.get("services");
+app.post("/", 
+  async (c, next) => {
+    const { rateLimitService } = c.get("services");
+    return rateLimitByMitraId(rateLimitService, "service:create")(c, next);
+  },
+  zValidator("json", createServiceSchema), 
+  async c => {
+    const mitraId = c.get("mitraId");
+    const data = c.req.valid("json");
+    const { mitraServiceManagementService } = c.get("services");
 
-  const service = await mitraServiceManagementService.createService(
-    mitraId,
-    data
-  );
-  return c.json(service, 201);
-});
+    const service = await mitraServiceManagementService.createService(
+      mitraId,
+      data
+    );
+    return c.json(service, 201);
+  }
+);
 
 // Get all services for the authenticated mitra
 app.get("/", async c => {
