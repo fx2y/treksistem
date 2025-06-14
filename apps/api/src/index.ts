@@ -60,17 +60,18 @@ app.route("/pay", payment);
 
 export default {
   fetch: app.fetch,
-  async scheduled(event, env, _ctx) {
+  async scheduled(event: any, env: any, _ctx: any) {
     const services = createServices(env);
 
     switch (event.cron) {
       case "0 0 1 * *": // Monthly on the 1st at midnight
-        console.log("Running monthly invoice generation...");
+        console.log("Generating monthly subscription invoices...");
         try {
-          const invoices = await services.billingService.generateMonthlyInvoices();
-          console.log(`Generated ${invoices.length} invoices`);
+          const results =
+            await services.billingService.generateMonthlySubscriptionInvoices();
+          console.log(`Generated ${results.length} monthly invoices`);
         } catch (error) {
-          console.error("Monthly invoice generation failed:", error);
+          console.error("Failed to generate monthly invoices:", error);
         }
         break;
     }

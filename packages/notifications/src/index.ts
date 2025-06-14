@@ -14,7 +14,7 @@ export class NotificationService {
   private templateRepo: TemplateRepository;
   private logRepo: LogRepository;
 
-  constructor(private db: DrizzleD1Database<Record<string, unknown>>) {
+  constructor(private db: DrizzleD1Database<any>) {
     this.templateRepo = new TemplateRepository(db);
     this.logRepo = new LogRepository(db);
   }

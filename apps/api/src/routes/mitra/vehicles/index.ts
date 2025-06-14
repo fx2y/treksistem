@@ -1,13 +1,8 @@
 import { zValidator } from "@hono/zod-validator";
-import type { createAuthServices } from "@treksistem/auth";
-import type { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 
-import { AuditService } from "../../../services/audit.service";
-import {
-  VehicleService,
-  ConflictError,
-} from "../../../services/vehicle.service";
+import type { ServiceContainer } from "../../../services/factory";
+import { ConflictError } from "../../../services/vehicle.service";
 
 import {
   createVehicleSchema,
@@ -17,28 +12,18 @@ import {
 } from "./validation";
 
 const vehicles = new Hono<{
-  Bindings: {
-    DB: D1Database;
-    GOOGLE_CLIENT_ID: string;
-    GOOGLE_CLIENT_SECRET: string;
-    JWT_SECRET: string;
-    FRONTEND_URL: string;
-  };
   Variables: {
-    authServices: ReturnType<typeof createAuthServices>;
-    db: ReturnType<typeof drizzle>;
+    services: ServiceContainer;
     mitraId: string;
     userId: string;
   };
 }>();
 
 vehicles.get("/", zValidator("query", paginationQuerySchema), async c => {
-  const db = c.get("db");
   const mitraId = c.get("mitraId");
   const { limit, cursor } = c.req.valid("query");
 
-  const auditService = new AuditService(db);
-  const vehicleService = new VehicleService(db, auditService);
+  const { vehicleService } = c.get("services");
   const result = await vehicleService.getVehicles(mitraId, { limit, cursor });
 
   return c.json(result);
@@ -48,12 +33,10 @@ vehicles.get(
   "/:vehicleId",
   zValidator("param", vehicleParamsSchema),
   async c => {
-    const db = c.get("db");
     const mitraId = c.get("mitraId");
     const { vehicleId } = c.req.valid("param");
 
-    const auditService = new AuditService(db);
-    const vehicleService = new VehicleService(db, auditService);
+    const { vehicleService } = c.get("services");
     const vehicle = await vehicleService.getVehicleById(mitraId, vehicleId);
 
     if (!vehicle) {
@@ -65,12 +48,10 @@ vehicles.get(
 );
 
 vehicles.post("/", zValidator("json", createVehicleSchema), async c => {
-  const db = c.get("db");
   const mitraId = c.get("mitraId");
   const data = c.req.valid("json");
 
-  const auditService = new AuditService(db);
-  const vehicleService = new VehicleService(db, auditService);
+  const { vehicleService } = c.get("services");
   const vehicle = await vehicleService.createVehicle(mitraId, data);
 
   return c.json(vehicle, 201);
@@ -81,13 +62,11 @@ vehicles.put(
   zValidator("param", vehicleParamsSchema),
   zValidator("json", updateVehicleSchema),
   async c => {
-    const db = c.get("db");
     const mitraId = c.get("mitraId");
     const { vehicleId } = c.req.valid("param");
     const data = c.req.valid("json");
 
-    const auditService = new AuditService(db);
-    const vehicleService = new VehicleService(db, auditService);
+    const { vehicleService } = c.get("services");
 
     try {
       const vehicle = await vehicleService.updateVehicle(
@@ -109,12 +88,10 @@ vehicles.delete(
   "/:vehicleId",
   zValidator("param", vehicleParamsSchema),
   async c => {
-    const db = c.get("db");
     const mitraId = c.get("mitraId");
     const { vehicleId } = c.req.valid("param");
 
-    const auditService = new AuditService(db);
-    const vehicleService = new VehicleService(db, auditService);
+    const { vehicleService } = c.get("services");
 
     try {
       const result = await vehicleService.deleteVehicle(mitraId, vehicleId);

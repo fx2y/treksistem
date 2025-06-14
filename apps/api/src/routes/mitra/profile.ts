@@ -1,10 +1,8 @@
 import { zValidator } from "@hono/zod-validator";
-import type { createAuthServices } from "@treksistem/auth";
-import type { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { MitraProfileService } from "../../services/mitra-profile.service";
+import type { ServiceContainer } from "../../services/factory";
 
 const UpdateMitraProfileSchema = z.object({
   businessName: z
@@ -23,8 +21,7 @@ const profile = new Hono<{
     FRONTEND_URL: string;
   };
   Variables: {
-    authServices: ReturnType<typeof createAuthServices>;
-    db: ReturnType<typeof drizzle>;
+    services: ServiceContainer;
     mitraId: string;
     userId: string;
   };
@@ -32,11 +29,10 @@ const profile = new Hono<{
 
 profile.get("/", async c => {
   try {
-    const db = c.get("db");
+    const { mitraProfileService } = c.get("services");
     const mitraId = c.get("mitraId");
 
-    const profileService = new MitraProfileService(db);
-    const profileData = await profileService.getProfile(mitraId);
+    const profileData = await mitraProfileService.getProfile(mitraId);
 
     if (!profileData) {
       return c.json({ error: "Profile not found" }, 404);
@@ -51,12 +47,14 @@ profile.get("/", async c => {
 
 profile.put("/", zValidator("json", UpdateMitraProfileSchema), async c => {
   try {
-    const db = c.get("db");
+    const { mitraProfileService } = c.get("services");
     const mitraId = c.get("mitraId");
     const input = c.req.valid("json");
 
-    const profileService = new MitraProfileService(db);
-    const updatedProfile = await profileService.updateProfile(mitraId, input);
+    const updatedProfile = await mitraProfileService.updateProfile(
+      mitraId,
+      input
+    );
 
     if (!updatedProfile) {
       return c.json({ error: "Profile not found" }, 404);
@@ -71,11 +69,11 @@ profile.put("/", zValidator("json", UpdateMitraProfileSchema), async c => {
 
 profile.put("/complete-onboarding", async c => {
   try {
-    const db = c.get("db");
+    const { mitraProfileService } = c.get("services");
     const mitraId = c.get("mitraId");
 
-    const profileService = new MitraProfileService(db);
-    const updatedProfile = await profileService.completeOnboarding(mitraId);
+    const updatedProfile =
+      await mitraProfileService.completeOnboarding(mitraId);
 
     if (!updatedProfile) {
       return c.json({ error: "Profile not found" }, 404);

@@ -2,12 +2,14 @@ import type { DbClient as Database } from "@treksistem/db";
 import {
   services,
   serviceRates,
+  servicesToVehicleTypes,
+  servicesToPayloadTypes,
+  servicesToFacilities,
   masterVehicleTypes,
   masterPayloadTypes,
   masterFacilities,
 } from "@treksistem/db";
 import { eq, and, inArray } from "drizzle-orm";
-import { nanoid } from "nanoid";
 
 export interface CreateServiceRequest {
   name: string;
@@ -72,21 +74,20 @@ export class MitraService {
     mitraId: string,
     data: CreateServiceRequest
   ): Promise<ServiceResponse> {
-    const serviceId = nanoid();
-
-    // Insert service
-    await this.db.insert(services).values({
-      id: serviceId,
-      mitraId,
-      name: data.name,
-      isPublic: data.isPublic,
-      maxRangeKm: data.maxRangeKm,
-    });
+    // Insert service first to get auto-generated ID
+    const [insertedService] = await this.db
+      .insert(services)
+      .values({
+        mitraId,
+        name: data.name,
+        isPublic: data.isPublic,
+        maxRangeKm: data.maxRangeKm,
+      })
+      .returning({ id: services.id });
+    const serviceId = insertedService.id;
 
     // Insert service rates
-    const rateId = nanoid();
     await this.db.insert(serviceRates).values({
-      id: rateId,
       serviceId,
       baseFee: data.rate.baseFee,
       feePerKm: data.rate.feePerKm,

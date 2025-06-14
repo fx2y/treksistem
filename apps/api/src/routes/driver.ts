@@ -1,8 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
 import type { createAuthServices } from "@treksistem/auth";
-import { createDbClient, driverLocations } from "@treksistem/db";
+import { driverLocations } from "@treksistem/db";
 import { Hono } from "hono";
 import { z } from "zod";
+
+import type { ServiceContainer } from "../services/factory";
 
 import orders from "./driver/orders";
 import status from "./driver/status";
@@ -23,6 +25,7 @@ const driver = new Hono<{
   };
   Variables: {
     authServices: ReturnType<typeof createAuthServices>;
+    services: ServiceContainer;
   };
 }>();
 
@@ -44,7 +47,7 @@ driver.post("/location", zValidator("json", DriverLocationPayload), async c => {
   const { lat, lng } = c.req.valid("json");
   const driverId = c.get("driverId");
 
-  const db = createDbClient(c.env.DB);
+  const { db } = c.get("services");
 
   await db
     .insert(driverLocations)

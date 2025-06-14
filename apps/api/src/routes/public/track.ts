@@ -1,21 +1,18 @@
-import * as schema from "@treksistem/db";
-import { NotificationService } from "@treksistem/notifications";
-import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 
-import { PublicOrderService } from "../../services/public-order.service";
+import type { ServiceContainer } from "../../services/factory";
 
 const track = new Hono<{
   Bindings: {
     DB: D1Database;
   };
+  Variables: {
+    services: ServiceContainer;
+  };
 }>();
 
 track.get("/:publicId", async c => {
-  const db = drizzle(c.env.DB, { schema });
-  const notificationService = new NotificationService(db);
-  const publicOrderService = new PublicOrderService(db, notificationService);
-
+  const { publicOrderService } = c.get("services");
   const publicId = c.req.param("publicId");
 
   if (!publicId) {

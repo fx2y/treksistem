@@ -1,9 +1,8 @@
 import type { createAuthServices } from "@treksistem/auth";
-import * as schema from "@treksistem/db";
-import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 
 import { rateLimit } from "../middleware/rate-limiter";
+import type { ServiceContainer } from "../services/factory";
 
 import invites from "./public/invites";
 import orders from "./public/orders";
@@ -21,17 +20,10 @@ const pub = new Hono<{
   };
   Variables: {
     authServices: ReturnType<typeof createAuthServices>;
+    services: ServiceContainer;
     userId: string;
-    db: ReturnType<typeof drizzle>;
   };
 }>();
-
-// Database middleware for invites endpoints
-pub.use("/invites/*", async (c, next) => {
-  const db = drizzle(c.env.DB, { schema });
-  c.set("db", db);
-  await next();
-});
 
 // Middleware for authenticated invites endpoints
 pub.use("/invites/*", async (c, next) => {

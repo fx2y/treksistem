@@ -7,6 +7,8 @@ import {
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
 
+import type { ServiceContainer } from "../services/factory";
+
 const uploads = new Hono<{
   Bindings: {
     DB: D1Database;
@@ -23,6 +25,7 @@ const uploads = new Hono<{
   };
   Variables: {
     authServices: ReturnType<typeof createAuthServices>;
+    services: ServiceContainer;
   };
 }>();
 

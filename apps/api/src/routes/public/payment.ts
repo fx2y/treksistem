@@ -22,7 +22,7 @@ payment.get("/:publicInvoiceId", async c => {
       return c.json({ error: "Invoice not found" }, 404);
     }
 
-    if (invoice.type !== "delivery_fee") {
+    if (invoice.type !== "CUSTOMER_PAYMENT") {
       return c.json({ error: "Invoice not accessible publicly" }, 403);
     }
 

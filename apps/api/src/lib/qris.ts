@@ -1,6 +1,5 @@
 interface QRISOptions {
   amount: number;
-  invoiceId: string;
   description: string;
   merchantName?: string;
   merchantCity?: string;
@@ -9,7 +8,6 @@ interface QRISOptions {
 export function generateQRIS(options: QRISOptions): string {
   const {
     amount,
-    invoiceId,
     description,
     merchantName = "Treksistem",
     merchantCity = "Jakarta",
@@ -18,9 +16,6 @@ export function generateQRIS(options: QRISOptions): string {
   // Input validation
   if (!amount || amount <= 0) {
     throw new Error("QRIS: Amount must be positive");
-  }
-  if (!invoiceId || invoiceId.trim().length === 0) {
-    throw new Error("QRIS: Invoice ID is required");
   }
   if (!description || description.trim().length === 0) {
     throw new Error("QRIS: Description is required");
@@ -42,7 +37,7 @@ export function generateQRIS(options: QRISOptions): string {
     "5802ID", // Country Code
     `59${getFormattedLength(merchantName)}${merchantName}`, // Merchant Name
     `60${getFormattedLength(merchantCity)}${merchantCity}`, // Merchant City
-    `62${getFormattedLength(`05${getFormattedLength(invoiceId)}${invoiceId}07${getFormattedLength(description)}${description}`)}05${getFormattedLength(invoiceId)}${invoiceId}07${getFormattedLength(description)}${description}`, // Additional Data
+    `62${getFormattedLength(`07${getFormattedLength(description)}${description}`)}07${getFormattedLength(description)}${description}`, // Additional Data
   ].join("");
 
   // Add CRC16 checksum

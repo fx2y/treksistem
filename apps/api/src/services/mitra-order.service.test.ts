@@ -1,5 +1,6 @@
+import type { DbClient } from "@treksistem/db";
+import { orders, orderStops } from "@treksistem/db";
 import type { NotificationService } from "@treksistem/notifications";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { MitraOrderService } from "./mitra-order.service";
@@ -32,6 +33,7 @@ describe("MitraOrderService", () => {
       update: vi.fn().mockReturnThis(),
       set: vi.fn().mockReturnThis(),
       values: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockReturnThis(),
       batch: vi.fn().mockResolvedValue([]),
     };
 
@@ -45,9 +47,14 @@ describe("MitraOrderService", () => {
       }),
     };
 
+    const mockAuditService = {
+      log: vi.fn(),
+    };
+
     service = new MitraOrderService(
-      mockDb as DrizzleD1Database<any>,
-      mockNotificationService as NotificationService
+      mockDb as DbClient,
+      mockNotificationService as NotificationService,
+      mockAuditService as any
     );
 
     process.env.PUBLIC_URL = "https://test.example.com";
@@ -85,6 +92,10 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup
       mockDb.limit.mockResolvedValueOnce([{ baseFee: 5000, feePerKm: 2000 }]);
+      // Mock order insertion
+      mockDb.returning.mockResolvedValueOnce([
+        { id: "test-id", publicId: "test-public-id" },
+      ]);
 
       const result = await service.createManualOrder(
         "mitra-1",
@@ -104,13 +115,8 @@ describe("MitraOrderService", () => {
         },
       });
 
-      expect(mockDb.batch).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.anything(), // order insert
-          expect.anything(), // stop inserts
-          expect.anything(), // stop inserts
-        ])
-      );
+      expect(mockDb.insert).toHaveBeenCalledWith(orders);
+      expect(mockDb.insert).toHaveBeenCalledWith(orderStops);
     });
 
     it("should throw error if service not found", async () => {
@@ -145,6 +151,10 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup
       mockDb.limit.mockResolvedValueOnce([{ baseFee: 5000, feePerKm: 2000 }]);
+      // Mock order insertion
+      mockDb.returning.mockResolvedValueOnce([
+        { id: "test-id", publicId: "test-public-id" },
+      ]);
 
       const result = await service.createManualOrder(
         "mitra-1",
@@ -153,7 +163,8 @@ describe("MitraOrderService", () => {
       );
 
       expect(result.orderId).toBe("test-id");
-      expect(mockDb.batch).toHaveBeenCalled();
+      expect(mockDb.insert).toHaveBeenCalledWith(orders);
+      expect(mockDb.insert).toHaveBeenCalledWith(orderStops);
     });
 
     it("should throw error if assigned driver not owned by mitra", async () => {
@@ -181,6 +192,10 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup
       mockDb.limit.mockResolvedValueOnce([{ baseFee: 5000, feePerKm: 2000 }]);
+      // Mock order insertion
+      mockDb.returning.mockResolvedValueOnce([
+        { id: "test-id", publicId: "test-public-id" },
+      ]);
 
       mockNotificationService.generate.mockRejectedValueOnce(
         new Error("Notification failed")
@@ -203,6 +218,10 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup - no rates found
       mockDb.limit.mockResolvedValueOnce([]);
+      // Mock order insertion
+      mockDb.returning.mockResolvedValueOnce([
+        { id: "test-id", publicId: "test-public-id" },
+      ]);
 
       const result = await service.createManualOrder(
         "mitra-1",
@@ -250,11 +269,12 @@ describe("MitraOrderService", () => {
         status: "accepted",
       });
 
-      expect(mockDb.batch).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.anything(), // order update
-        ])
-      );
+      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockDb.set).toHaveBeenCalledWith({
+        assignedDriverId: "driver-1",
+        assignedVehicleId: "vehicle-1",
+        status: "accepted",
+      });
     });
 
     it("should throw error if order not found", async () => {
@@ -322,7 +342,7 @@ describe("MitraOrderService", () => {
       );
 
       expect(result.status).toBe("accepted");
-      expect(mockDb.batch).toHaveBeenCalled();
+      expect(mockDb.update).toHaveBeenCalled();
     });
 
     it("should throw error if vehicle not owned by mitra", async () => {

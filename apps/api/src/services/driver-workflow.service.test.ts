@@ -1,4 +1,4 @@
-import { auditLogs, orderReports, drivers, orders, services, mitras } from "@treksistem/db";
+import { auditLogs, orderReports, drivers, orders } from "@treksistem/db";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { DriverWorkflowService } from "./driver-workflow.service";
@@ -393,7 +393,7 @@ describe("DriverWorkflowService", () => {
 
     it("should return 400 when order is not in pending_dispatch status", async () => {
       const claimedOrder = { ...mockUnassignedOrder, status: "claimed" };
-      
+
       mockDb.select.mockReturnValueOnce({
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
@@ -439,7 +439,7 @@ describe("DriverWorkflowService", () => {
 
     it("should return 404 when driver belongs to different mitra", async () => {
       const differentMitraDriver = { ...mockDriver, mitraId: "mitra-2" };
-      
+
       mockDb.select
         .mockReturnValueOnce({
           from: vi.fn().mockReturnThis(),

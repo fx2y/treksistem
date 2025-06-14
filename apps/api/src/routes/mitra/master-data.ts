@@ -1,12 +1,16 @@
 import { Hono } from "hono";
 
-import { MitraService } from "../../services/mitra.service";
+import type { ServiceContainer } from "../../services/factory";
 
-const app = new Hono();
+const app = new Hono<{
+  Variables: {
+    services: ServiceContainer;
+  };
+}>();
 
 // Get all master data for service creation forms
 app.get("/", async c => {
-  const mitraService = new MitraService(c.get("db"));
+  const { mitraService } = c.get("services");
 
   try {
     const masterData = await mitraService.getMasterData();

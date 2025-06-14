@@ -1,4 +1,4 @@
-import type { DrizzleD1Database } from "drizzle-orm/d1";
+import type { DbClient } from "@treksistem/db";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { VehicleService } from "./vehicle.service";
@@ -19,6 +19,7 @@ describe("VehicleService", () => {
       update: vi.fn().mockReturnThis(),
       set: vi.fn().mockReturnThis(),
       delete: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
     };
 
     // Chain all methods properly
@@ -26,7 +27,7 @@ describe("VehicleService", () => {
       mockDb[key] = vi.fn().mockReturnValue(mockDb);
     });
 
-    service = new VehicleService(mockDb as DrizzleD1Database);
+    service = new VehicleService(mockDb as DbClient);
   });
 
   describe("getVehicles", () => {
@@ -46,32 +47,38 @@ describe("VehicleService", () => {
         },
       ];
 
-      mockDb.where.mockResolvedValueOnce(mockVehicles);
+      mockDb.limit.mockResolvedValueOnce(mockVehicles);
 
       const result = await service.getVehicles("mitra-1");
 
-      expect(result).toEqual([
-        {
-          id: "vehicle-1",
-          licensePlate: "N 1234 ABC",
-          description: "Honda Vario 125",
-          createdAt: "2023-01-01T00:00:00.000Z",
-        },
-        {
-          id: "vehicle-2",
-          licensePlate: "N 5678 DEF",
-          description: null,
-          createdAt: "2023-01-02T00:00:00.000Z",
-        },
-      ]);
+      expect(result).toEqual({
+        data: [
+          {
+            id: "vehicle-1",
+            licensePlate: "N 1234 ABC",
+            description: "Honda Vario 125",
+            createdAt: "2023-01-01T00:00:00.000Z",
+          },
+          {
+            id: "vehicle-2",
+            licensePlate: "N 5678 DEF",
+            description: null,
+            createdAt: "2023-01-02T00:00:00.000Z",
+          },
+        ],
+        nextCursor: null,
+      });
     });
 
     it("should return empty array when no vehicles found", async () => {
-      mockDb.where.mockResolvedValueOnce([]);
+      mockDb.limit.mockResolvedValueOnce([]);
 
       const result = await service.getVehicles("mitra-1");
 
-      expect(result).toEqual([]);
+      expect(result).toEqual({
+        data: [],
+        nextCursor: null,
+      });
     });
   });
 
@@ -130,7 +137,7 @@ describe("VehicleService", () => {
 
       expect(mockDb.values).toHaveBeenCalledWith({
         mitraId: "mitra-1",
-        licensePlate: "N 1234 ABC",
+        licensePlate: "N1234ABC",
         description: "Honda Vario 125",
       });
     });
@@ -158,7 +165,7 @@ describe("VehicleService", () => {
 
       expect(mockDb.values).toHaveBeenCalledWith({
         mitraId: "mitra-1",
-        licensePlate: "N 1234 ABC",
+        licensePlate: "N1234ABC",
         description: null,
       });
     });
@@ -189,7 +196,7 @@ describe("VehicleService", () => {
 
       expect(mockDb.set).toHaveBeenCalledWith({
         updatedAt: expect.any(Date),
-        licensePlate: "N 5678 DEF",
+        licensePlate: "N5678DEF",
         description: "Updated description",
       });
     });
@@ -210,7 +217,7 @@ describe("VehicleService", () => {
 
       expect(mockDb.set).toHaveBeenCalledWith({
         updatedAt: expect.any(Date),
-        licensePlate: "N 5678 DEF",
+        licensePlate: "N5678DEF",
       });
     });
 

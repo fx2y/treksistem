@@ -1,6 +1,8 @@
-import { createDbClient, notificationLogs } from "@treksistem/db";
+import { notificationLogs } from "@treksistem/db";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
+
+import type { ServiceContainer } from "../services/factory";
 
 type NotificationEnvironment = {
   DB: D1Database;
@@ -8,11 +10,14 @@ type NotificationEnvironment = {
 
 const notifications = new Hono<{
   Bindings: NotificationEnvironment;
+  Variables: {
+    services: ServiceContainer;
+  };
 }>();
 
 notifications.post("/:logId/triggered", async c => {
   const { logId } = c.req.param();
-  const db = createDbClient(c.env.DB);
+  const { db } = c.get("services");
 
   try {
     const result = await db

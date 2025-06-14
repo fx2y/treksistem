@@ -1,11 +1,11 @@
-import type { DrizzleD1Database } from "drizzle-orm/d1";
+import type { DbClient } from "@treksistem/db";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { MitraMonitoringService } from "./mitra-monitoring.service";
 
 describe("MitraMonitoringService", () => {
   let service: MitraMonitoringService;
-  let mockDb: DrizzleD1Database<Record<string, never>>;
+  let mockDb: DbClient;
 
   beforeEach(() => {
     mockDb = {
@@ -13,6 +13,9 @@ describe("MitraMonitoringService", () => {
       from: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       innerJoin: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      offset: vi.fn().mockReturnThis(),
       query: {
         orders: {
           findMany: vi.fn().mockResolvedValue([]),
@@ -20,7 +23,7 @@ describe("MitraMonitoringService", () => {
       },
     };
 
-    service = new MitraMonitoringService(mockDb);
+    service = new MitraMonitoringService(mockDb as any);
   });
 
   describe("getOrders", () => {
@@ -34,8 +37,8 @@ describe("MitraMonitoringService", () => {
         }),
       });
 
-      // Mock orders query
-      const mockOrders = [
+      // Mock main orders query
+      mockDb.offset.mockResolvedValueOnce([
         {
           id: "order-1",
           publicId: "pub-1",
@@ -43,26 +46,10 @@ describe("MitraMonitoringService", () => {
           createdAt: new Date("2024-01-01T10:00:00Z"),
           estimatedCost: 25000,
           recipientName: "John Doe",
-          assignedDriver: null,
-          service: { mitraId: "mitra-1" },
-          stops: [
-            {
-              sequence: 1,
-              type: "pickup",
-              address: "Pickup Location",
-              status: "pending",
-            },
-            {
-              sequence: 2,
-              type: "dropoff",
-              address: "Dropoff Location",
-              status: "pending",
-            },
-          ],
+          serviceId: "service-1",
+          assignedDriverId: null,
         },
-      ];
-
-      mockDb.query.orders.findMany = vi.fn().mockResolvedValue(mockOrders);
+      ]);
 
       const result = await service.getOrders("mitra-1", {
         page: 1,
@@ -79,27 +66,16 @@ describe("MitraMonitoringService", () => {
             estimatedCost: 25000,
             recipientName: "John Doe",
             driverName: null,
-            stops: [
-              {
-                sequence: 1,
-                type: "pickup",
-                address: "Pickup Location",
-                status: "pending",
-              },
-              {
-                sequence: 2,
-                type: "dropoff",
-                address: "Dropoff Location",
-                status: "pending",
-              },
-            ],
+            stops: [],
+            stopCount: 0,
           },
         ],
-        meta: {
+        pagination: {
           totalItems: 5,
           totalPages: 1,
           currentPage: 1,
-          itemsPerPage: 20,
+          limit: 20,
+          offset: 0,
         },
       });
     });

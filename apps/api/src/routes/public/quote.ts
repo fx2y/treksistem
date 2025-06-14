@@ -1,15 +1,15 @@
 import { zValidator } from "@hono/zod-validator";
-import * as schema from "@treksistem/db";
-import { NotificationService } from "@treksistem/notifications";
-import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { PublicOrderService } from "../../services/public-order.service";
+import type { ServiceContainer } from "../../services/factory";
 
 const quote = new Hono<{
   Bindings: {
     DB: D1Database;
+  };
+  Variables: {
+    services: ServiceContainer;
   };
 }>();
 
@@ -26,10 +26,7 @@ const QuoteRequestSchema = z.object({
 });
 
 quote.post("/", zValidator("json", QuoteRequestSchema), async c => {
-  const db = drizzle(c.env.DB, { schema });
-  const notificationService = new NotificationService(db);
-  const publicOrderService = new PublicOrderService(db, notificationService);
-
+  const { publicOrderService } = c.get("services");
   const request = c.req.valid("json");
 
   try {

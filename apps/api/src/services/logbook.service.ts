@@ -1,6 +1,13 @@
-import { orders, orderReports, drivers, users, vehicles, services } from "@treksistem/db";
+import {
+  orders,
+  orderReports,
+  drivers,
+  users,
+  vehicles,
+  services,
+} from "@treksistem/db";
+import type { DbClient } from "@treksistem/db";
 import { eq, and, gte, lt, desc } from "drizzle-orm";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
 
 export interface LogbookEntry {
   timestamp: string;
@@ -18,20 +25,21 @@ export interface LogbookQuery {
 }
 
 export class LogbookService {
-  constructor(private db: DrizzleD1Database) {}
+  constructor(private db: DbClient) {}
 
-  async getLogbook(mitraId: string, query: LogbookQuery): Promise<LogbookEntry[]> {
+  async getLogbook(
+    mitraId: string,
+    query: LogbookQuery
+  ): Promise<LogbookEntry[]> {
     // Build query conditions
-    const conditions = [
-      eq(services.mitraId, mitraId)
-    ];
+    const conditions = [eq(services.mitraId, mitraId)];
 
     // Add vehicle filter if provided
     if (query.vehicleId) {
       conditions.push(eq(orders.assignedVehicleId, query.vehicleId));
     }
 
-    // Add driver filter if provided  
+    // Add driver filter if provided
     if (query.driverId) {
       conditions.push(eq(orders.assignedDriverId, query.driverId));
     }
@@ -41,7 +49,7 @@ export class LogbookService {
       const startDate = new Date(`${query.date}T00:00:00.000Z`);
       const endDate = new Date(startDate);
       endDate.setUTCDate(endDate.getUTCDate() + 1);
-      
+
       conditions.push(
         gte(orderReports.timestamp, startDate),
         lt(orderReports.timestamp, endDate)
@@ -69,13 +77,16 @@ export class LogbookService {
 
     // Transform results into LogbookEntry format
     return results.map(row => ({
-      timestamp: row.timestamp?.toISOString() || '',
-      event: row.stage === 'pickup' ? 'Pickup reported' : 
-             row.stage === 'dropoff' ? 'Drop-off reported' : 
-             'Transit update reported',
-      address: row.notes || 'No location details',
-      driverName: row.driverName || 'Unknown Driver',
-      vehicleLicensePlate: row.vehicleLicensePlate || 'Unknown Vehicle',
+      timestamp: row.timestamp?.toISOString() || "",
+      event:
+        row.stage === "pickup"
+          ? "Pickup reported"
+          : row.stage === "dropoff"
+            ? "Drop-off reported"
+            : "Transit update reported",
+      address: row.notes || "No location details",
+      driverName: row.driverName || "Unknown Driver",
+      vehicleLicensePlate: row.vehicleLicensePlate || "Unknown Vehicle",
       orderPublicId: row.orderPublicId,
     }));
   }

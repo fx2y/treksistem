@@ -1,22 +1,18 @@
 import type { createAuthServices } from "@treksistem/auth";
 import {
-  createDbClient,
   masterVehicleTypes,
   masterPayloadTypes,
   masterFacilities,
   mitras,
   users,
-  driverInvites,
   services,
-  type NewDriverInvite,
   type NewService,
 } from "@treksistem/db";
-import * as schema from "@treksistem/db";
 import { TemplateRepository, seedTemplates } from "@treksistem/notifications";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
-import { nanoid } from "nanoid";
+
+import type { ServiceContainer } from "../services/factory";
 
 import billing from "./admin/billing";
 
@@ -30,6 +26,7 @@ const admin = new Hono<{
   };
   Variables: {
     authServices: ReturnType<typeof createAuthServices>;
+    services: ServiceContainer;
     jwtPayload: { userId: string };
   };
 }>();
@@ -46,7 +43,7 @@ admin.use("*", async (c, next) => {
 
 // Get all mitras
 admin.get("/mitras", async c => {
-  const db = createDbClient(c.env.DB);
+  const { db } = c.get("services");
 
   const allMitras = await db
     .select({
@@ -66,7 +63,7 @@ admin.get("/mitras", async c => {
 // Get master data by category
 admin.get("/master-data/:category", async c => {
   const category = c.req.param("category");
-  const db = createDbClient(c.env.DB);
+  const { db } = c.get("services");
 
   let data;
 
@@ -91,7 +88,7 @@ admin.get("/master-data/:category", async c => {
 admin.post("/master-data/:category", async c => {
   const category = c.req.param("category");
   const { name, icon } = await c.req.json();
-  const db = createDbClient(c.env.DB);
+  const { db } = c.get("services");
   const payload = c.get("jwtPayload");
 
   if (!name) {
@@ -124,13 +121,14 @@ admin.post("/master-data/:category", async c => {
   }
 
   const created = result[0];
-  const { auditService } = c.get("authServices");
-  await auditService.logAdminAction({
-    adminUserId: payload.userId,
-    targetEntity: category,
-    targetId: created.id,
-    action: "CREATE",
-    payload: {
+  const { auditService } = c.get("services");
+  await auditService.log({
+    actorId: payload.userId,
+    entityType: "MASTER_DATA",
+    entityId: created.id,
+    eventType: "MASTER_DATA_CREATED",
+    details: {
+      category,
       name,
       icon,
     },
@@ -144,7 +142,7 @@ admin.put("/master-data/:category/:itemId", async c => {
   const category = c.req.param("category");
   const itemId = c.req.param("itemId");
   const { name, icon } = await c.req.json();
-  const db = createDbClient(c.env.DB);
+  const { db } = c.get("services");
   const payload = c.get("jwtPayload");
 
   if (!name) {
@@ -183,13 +181,14 @@ admin.put("/master-data/:category/:itemId", async c => {
     return c.json({ error: "Item not found" }, 404);
   }
 
-  const { auditService } = c.get("authServices");
-  await auditService.logAdminAction({
-    adminUserId: payload.userId,
-    targetEntity: category,
-    targetId: itemId,
-    action: "UPDATE",
-    payload: {
+  const { auditService } = c.get("services");
+  await auditService.log({
+    actorId: payload.userId,
+    entityType: "MASTER_DATA",
+    entityId: itemId,
+    eventType: "MASTER_DATA_UPDATED",
+    details: {
+      category,
       name,
       icon,
     },
@@ -202,7 +201,7 @@ admin.put("/master-data/:category/:itemId", async c => {
 admin.delete("/master-data/:category/:itemId", async c => {
   const category = c.req.param("category");
   const itemId = c.req.param("itemId");
-  const db = createDbClient(c.env.DB);
+  const { db } = c.get("services");
   const payload = c.get("jwtPayload");
 
   let result;
@@ -234,13 +233,14 @@ admin.delete("/master-data/:category/:itemId", async c => {
     return c.json({ error: "Item not found" }, 404);
   }
 
-  const { auditService } = c.get("authServices");
-  await auditService.logAdminAction({
-    adminUserId: payload.userId,
-    targetEntity: category,
-    targetId: itemId,
-    action: "DELETE",
-    payload: {
+  const { auditService } = c.get("services");
+  await auditService.log({
+    actorId: payload.userId,
+    entityType: "MASTER_DATA",
+    entityId: itemId,
+    eventType: "MASTER_DATA_DELETED",
+    details: {
+      category,
       deletedItem: result[0],
     },
   });
@@ -252,7 +252,7 @@ admin.delete("/master-data/:category/:itemId", async c => {
 admin.post("/mitras/:mitraId/services", async c => {
   const mitraId = c.req.param("mitraId");
   const serviceData = await c.req.json();
-  const db = createDbClient(c.env.DB);
+  const { db } = c.get("services");
   const payload = c.get("jwtPayload");
 
   // Verify mitra exists
@@ -275,16 +275,14 @@ admin.post("/mitras/:mitraId/services", async c => {
   const result = await db.insert(services).values(newService).returning();
   const created = result[0];
 
-  const { auditService } = c.get("authServices");
-  await auditService.logAdminAction({
-    adminUserId: payload.userId,
-    targetEntity: "service",
-    targetId: created.id,
-    action: "CREATE",
-    payload: {
-      mitraId,
-      ...serviceData,
-    },
+  const { auditService } = c.get("services");
+  await auditService.log({
+    actorId: payload.userId,
+    mitraId,
+    entityType: "SERVICE",
+    entityId: created.id,
+    eventType: "SERVICE_CREATED",
+    details: serviceData,
   });
 
   return c.json(created, 201);
@@ -294,8 +292,7 @@ admin.post("/mitras/:mitraId/services", async c => {
 admin.post("/mitras/:mitraId/drivers/invite", async c => {
   const mitraId = c.req.param("mitraId");
   const { email } = await c.req.json();
-  const db = createDbClient(c.env.DB);
-  const payload = c.get("jwtPayload");
+  const { db, driverManagementService } = c.get("services");
 
   if (!email) {
     return c.json({ error: "Email is required" }, 400);
@@ -311,39 +308,18 @@ admin.post("/mitras/:mitraId/drivers/invite", async c => {
     return c.json({ error: "Mitra not found" }, 404);
   }
 
-  // Create driver invite
-  const inviteToken = nanoid(32);
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-  const newInvite: NewDriverInvite = {
+  // Create driver invite using service
+  const inviteResult = await driverManagementService.inviteDriver(
     mitraId,
-    email,
-    token: inviteToken,
-    expiresAt,
-    status: "pending",
-  };
+    email
+  );
 
-  const result = await db.insert(driverInvites).values(newInvite).returning();
-  const created = result[0];
-
-  const { auditService } = c.get("authServices");
-  await auditService.logAdminAction({
-    adminUserId: payload.userId,
-    targetEntity: "driver_invite",
-    targetId: created.id,
-    action: "INVITE",
-    payload: { mitraId, email },
-  });
-
-  // Generate invite link
-  const inviteLink = `${c.env.FRONTEND_URL}/join?token=${inviteToken}`;
-
-  return c.json({ inviteLink });
+  return c.json(inviteResult);
 });
 
 // Notification Template Management API
 admin.get("/notifications/templates", async c => {
-  const db = drizzle(c.env.DB, { schema });
+  const { db } = c.get("services");
   const templateRepo = new TemplateRepository(db);
 
   const templates = await templateRepo.findAll();
@@ -351,7 +327,7 @@ admin.get("/notifications/templates", async c => {
 });
 
 admin.post("/notifications/templates", async c => {
-  const db = drizzle(c.env.DB, { schema });
+  const { db } = c.get("services");
   const templateRepo = new TemplateRepository(db);
 
   const body = await c.req.json();
@@ -374,7 +350,7 @@ admin.post("/notifications/templates", async c => {
 });
 
 admin.get("/notifications/templates/:id", async c => {
-  const db = drizzle(c.env.DB, { schema });
+  const { db } = c.get("services");
   const templateRepo = new TemplateRepository(db);
 
   const id = c.req.param("id");
@@ -388,7 +364,7 @@ admin.get("/notifications/templates/:id", async c => {
 });
 
 admin.put("/notifications/templates/:id", async c => {
-  const db = drizzle(c.env.DB, { schema });
+  const { db } = c.get("services");
   const templateRepo = new TemplateRepository(db);
 
   const id = c.req.param("id");
@@ -404,7 +380,7 @@ admin.put("/notifications/templates/:id", async c => {
 });
 
 admin.delete("/notifications/templates/:id", async c => {
-  const db = drizzle(c.env.DB, { schema });
+  const { db } = c.get("services");
   const templateRepo = new TemplateRepository(db);
 
   const id = c.req.param("id");
@@ -420,7 +396,7 @@ admin.delete("/notifications/templates/:id", async c => {
 
 // Seed default templates endpoint
 admin.post("/notifications/templates/seed", async c => {
-  const db = drizzle(c.env.DB, { schema });
+  const { db } = c.get("services");
 
   try {
     await seedTemplates(db);

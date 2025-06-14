@@ -5,10 +5,9 @@ import {
   drivers,
   auditLogs,
   services,
-  mitras,
+  type DbClient,
 } from "@treksistem/db";
-import { eq, and, isNull, sql } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { eq, and, isNull } from "drizzle-orm";
 
 export interface OrderStopDetails {
   id: string;
@@ -54,7 +53,7 @@ const ORDER_STATUS_TRANSITIONS: Record<string, string[]> = {
 };
 
 export class DriverWorkflowService {
-  constructor(private db: any) {}
+  constructor(private db: DbClient) {}
 
   async getAssignedOrders(driverId: string): Promise<DriverOrder[]> {
     const orderList = await this.db
@@ -123,13 +122,21 @@ export class DriverWorkflowService {
       .set({ status })
       .where(eq(drivers.id, driverId));
 
-    await this.db.batch([auditLogInsert, driverUpdate]);
+    await auditLogInsert;
+    await driverUpdate;
   }
 
   async updateOrderStatus(
     driverId: string,
     orderId: string,
-    newStatus: string
+    newStatus:
+      | "pending_dispatch"
+      | "accepted"
+      | "pickup"
+      | "in_transit"
+      | "delivered"
+      | "cancelled"
+      | "claimed"
   ): Promise<void> {
     const order = await this.db
       .select()
@@ -165,7 +172,8 @@ export class DriverWorkflowService {
       .set({ status: newStatus })
       .where(eq(orders.id, orderId));
 
-    await this.db.batch([auditLogInsert, orderUpdate]);
+    await auditLogInsert;
+    await orderUpdate;
   }
 
   async completeOrderStop(
@@ -211,7 +219,8 @@ export class DriverWorkflowService {
       .set({ status: "completed" })
       .where(eq(orderStops.id, stopId));
 
-    await this.db.batch([auditLogInsert, stopUpdate]);
+    await auditLogInsert;
+    await stopUpdate;
   }
 
   async claimOrder(params: {
@@ -295,15 +304,13 @@ export class DriverWorkflowService {
       .update(orders)
       .set({
         assignedDriverId: claimingDriverId,
-        status: "claimed",
+        status: "claimed" as const,
       })
-      .where(
-        and(eq(orders.id, orderId), isNull(orders.assignedDriverId))
-      )
+      .where(and(eq(orders.id, orderId), isNull(orders.assignedDriverId)))
       .run();
 
     // Check if the update affected any rows
-    if (updateResult.changes === 0) {
+    if ((updateResult as any).changes === 0) {
       return {
         success: false,
         message: "Order has already been claimed",
@@ -313,10 +320,10 @@ export class DriverWorkflowService {
 
     // Create audit log for successful claim
     await this.db.insert(auditLogs).values({
-      actorId: claimingDriverId,
+      adminUserId: claimingDriverId,
       targetEntity: "order",
       targetId: orderId,
-      eventType: "DRIVER_ASSIGNED",
+      action: "DRIVER_ASSIGNED",
       payload: {
         orderPublicId: order.publicId,
         previousStatus: "pending_dispatch",
@@ -358,7 +365,7 @@ export class DriverWorkflowService {
     const auditLogInsert = this.db.insert(auditLogs).values({
       adminUserId: driverId,
       targetEntity: "order_report",
-      targetId: nanoid(),
+      targetId: orderId,
       action: "CREATE",
       payload: {
         action: "REPORT_SUBMITTED",
@@ -369,16 +376,15 @@ export class DriverWorkflowService {
       },
     });
 
-    const operations = [reportInsert, auditLogInsert];
+    // Execute operations sequentially
+    await reportInsert;
+    await auditLogInsert;
 
     if (reportData.stage === "dropoff") {
-      const orderUpdate = this.db
+      await this.db
         .update(orders)
-        .set({ status: "delivered" })
+        .set({ status: "delivered" as const })
         .where(eq(orders.id, orderId));
-      operations.push(orderUpdate);
     }
-
-    await this.db.batch(operations);
   }
 }

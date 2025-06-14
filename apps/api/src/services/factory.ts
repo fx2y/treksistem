@@ -1,4 +1,6 @@
 import { createDbClient } from "@treksistem/db";
+import { NotificationService } from "@treksistem/notifications";
+
 import type { Bindings } from "../types";
 
 import { AuditService } from "./audit.service";
@@ -14,6 +16,8 @@ import { PublicOrderService } from "./public-order.service";
 import { VehicleService } from "./vehicle.service";
 
 export interface ServiceContainer {
+  db: ReturnType<typeof createDbClient>;
+  notificationService: NotificationService;
   auditService: AuditService;
   billingService: BillingService;
   driverManagementService: DriverManagementService;
@@ -29,20 +33,27 @@ export interface ServiceContainer {
 
 export function createServices(env: Bindings): ServiceContainer {
   const db = createDbClient(env.DB);
-  
+
+  const notificationService = new NotificationService(db);
   const auditService = new AuditService(db);
   const billingService = new BillingService(db);
   const driverManagementService = new DriverManagementService(db);
   const driverWorkflowService = new DriverWorkflowService(db);
   const logbookService = new LogbookService(db);
   const mitraMonitoringService = new MitraMonitoringService(db);
-  const mitraOrderService = new MitraOrderService(db);
+  const mitraOrderService = new MitraOrderService(
+    db,
+    notificationService,
+    auditService
+  );
   const mitraProfileService = new MitraProfileService(db);
   const mitraService = new MitraService(db);
-  const publicOrderService = new PublicOrderService(db);
-  const vehicleService = new VehicleService(db);
+  const publicOrderService = new PublicOrderService(db, notificationService);
+  const vehicleService = new VehicleService(db, auditService);
 
   return {
+    db,
+    notificationService,
     auditService,
     billingService,
     driverManagementService,

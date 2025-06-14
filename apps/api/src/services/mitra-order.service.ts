@@ -6,11 +6,10 @@ import {
   drivers,
   vehicles,
 } from "@treksistem/db";
+import type { DbClient } from "@treksistem/db";
 import { getDistance } from "@treksistem/geo";
 import { NotificationService } from "@treksistem/notifications";
 import { eq, and } from "drizzle-orm";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
-import { nanoid } from "nanoid";
 
 import { AuditService } from "./audit.service";
 
@@ -57,14 +56,11 @@ export interface AssignOrderResponse {
 }
 
 export class MitraOrderService {
-  private auditService: AuditService;
-
   constructor(
-    private db: DrizzleD1Database<any>,
-    private notificationService: NotificationService
-  ) {
-    this.auditService = new AuditService(db);
-  }
+    private db: DbClient,
+    private notificationService: NotificationService,
+    private auditService: AuditService
+  ) {}
 
   async createManualOrder(
     mitraId: string,
@@ -145,19 +141,14 @@ export class MitraOrderService {
       estimatedCost = rate.baseFee + rate.feePerKm * totalDistance;
     }
 
-    const orderId = nanoid();
-    const publicId = nanoid(12);
-
     // Prepare database batch operations
     const orderData = {
-      id: orderId,
-      publicId,
       serviceId: input.serviceId,
       assignedDriverId: input.assignToDriverId || null,
       assignedVehicleId: input.assignToVehicleId || null,
-      status: (input.assignToDriverId
-        ? "accepted"
-        : "pending_dispatch") as const,
+      status: input.assignToDriverId
+        ? ("accepted" as const)
+        : ("pending_dispatch" as const),
       ordererName: input.ordererName,
       ordererPhone: input.ordererPhone,
       recipientName: input.recipientName,
@@ -166,24 +157,25 @@ export class MitraOrderService {
       notes: input.notes || null,
     };
 
-    const stopOperations = input.stops.map((stop, index) =>
-      this.db.insert(orderStops).values({
-        id: nanoid(),
+    // Insert order first to get auto-generated ID
+    const [insertedOrder] = await this.db
+      .insert(orders)
+      .values(orderData)
+      .returning({ id: orders.id, publicId: orders.publicId });
+    const { id: orderId, publicId } = insertedOrder;
+
+    // Insert stops with the order ID - sequential inserts for proper relationship handling
+    for (const [index, stop] of input.stops.entries()) {
+      await this.db.insert(orderStops).values({
         orderId,
         sequence: index + 1,
         type: stop.type,
         address: stop.address,
         lat: stop.lat,
         lng: stop.lng,
-        status: "pending",
-      })
-    );
-
-    // Execute atomic transaction
-    await this.db.batch([
-      this.db.insert(orders).values(orderData),
-      ...stopOperations,
-    ]);
+        status: "pending" as const,
+      });
+    }
 
     // Log audit event
     await this.auditService.log({
@@ -292,16 +284,14 @@ export class MitraOrderService {
     }
 
     // Execute atomic transaction
-    await this.db.batch([
-      this.db
-        .update(orders)
-        .set({
-          assignedDriverId: input.driverId,
-          assignedVehicleId: input.vehicleId || null,
-          status: "accepted",
-        })
-        .where(eq(orders.id, orderId)),
-    ]);
+    await this.db
+      .update(orders)
+      .set({
+        assignedDriverId: input.driverId,
+        assignedVehicleId: input.vehicleId || null,
+        status: "accepted" as const,
+      })
+      .where(eq(orders.id, orderId));
 
     // Log audit event
     await this.auditService.log({
@@ -320,7 +310,7 @@ export class MitraOrderService {
 
     return {
       orderId,
-      status: "accepted",
+      status: "accepted" as const,
     };
   }
 }

@@ -1,5 +1,4 @@
-import { auditLogs } from "@treksistem/db";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
+import { auditLogs, type DbClient } from "@treksistem/db";
 
 export type AuditEventType =
   | "ORDER_CREATED"
@@ -10,19 +9,30 @@ export type AuditEventType =
   | "MITRA_ORDER_ASSIGNED"
   | "VEHICLE_CREATED"
   | "VEHICLE_UPDATED"
-  | "VEHICLE_DELETED";
+  | "VEHICLE_DELETED"
+  | "USER_LOGIN"
+  | "USER_LOGOUT"
+  | "MASTER_DATA_CREATED"
+  | "MASTER_DATA_UPDATED"
+  | "MASTER_DATA_DELETED";
 
 export interface AuditLogOptions {
   actorId: string;
   mitraId?: string;
-  entityType: "ORDER" | "SERVICE" | "DRIVER" | "VEHICLE";
+  entityType:
+    | "ORDER"
+    | "SERVICE"
+    | "DRIVER"
+    | "VEHICLE"
+    | "USER"
+    | "MASTER_DATA";
   entityId: string;
   eventType: AuditEventType;
   details?: Record<string, unknown>;
 }
 
 export class AuditService {
-  constructor(private db: DrizzleD1Database) {}
+  constructor(private db: DbClient) {}
 
   async log(options: AuditLogOptions): Promise<void> {
     try {
@@ -32,7 +42,7 @@ export class AuditService {
         targetEntity: options.entityType.toLowerCase(),
         targetId: options.entityId,
         action: options.eventType,
-        payload: options.details || null,
+        payload: options.details || {},
       });
     } catch (error) {
       // Audit logging MUST NOT fail the primary business operation
@@ -52,7 +62,7 @@ export interface AdminAuditLogOptions {
 }
 
 export async function logAdminAction(
-  db: DrizzleD1Database,
+  db: DbClient,
   options: AdminAuditLogOptions
 ): Promise<void> {
   const auditService = new AuditService(db);

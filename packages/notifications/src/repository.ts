@@ -26,7 +26,7 @@ export interface NotificationLog {
 }
 
 export class TemplateRepository {
-  constructor(private db: DrizzleD1Database<Record<string, unknown>>) {}
+  constructor(private db: DrizzleD1Database<any>) {}
 
   async findByTypeAndLanguage(
     type: NotificationType,
@@ -101,7 +101,7 @@ export class TemplateRepository {
 }
 
 export class LogRepository {
-  constructor(private db: DrizzleD1Database<Record<string, unknown>>) {}
+  constructor(private db: DrizzleD1Database<any>) {}
 
   async create(log: {
     orderId: string;

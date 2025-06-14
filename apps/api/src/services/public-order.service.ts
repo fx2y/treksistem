@@ -1,8 +1,11 @@
 import * as schema from "@treksistem/db";
+import type { DbClient } from "@treksistem/db";
 import { getDistance } from "@treksistem/geo";
-import { NotificationService } from "@treksistem/notifications";
+import {
+  NotificationService,
+  type NotificationType,
+} from "@treksistem/notifications";
 import { and, eq } from "drizzle-orm";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
 
 export interface StopInput {
   address: string;
@@ -71,7 +74,7 @@ export interface OrderTrackingResponse {
 
 export class PublicOrderService {
   constructor(
-    private db: DrizzleD1Database<typeof schema>,
+    private db: DbClient,
     private notificationService: NotificationService
   ) {}
 
@@ -192,53 +195,33 @@ export class PublicOrderService {
         recipientPhone: request.recipientPhone,
         notes: request.notes,
         estimatedCost: quote.estimatedCost,
-        status: "pending_dispatch",
+        status: "pending_dispatch" as const,
       })
-      .returning({ id: schema.orders.id });
+      .returning({ id: schema.orders.id, publicId: schema.orders.publicId });
 
-    const [orderResult] = await this.db.batch([orderInsert]);
-    const orderId = orderResult[0].id;
+    const [orderResult] = await orderInsert;
+    const { id: orderId, publicId } = orderResult;
 
-    const stopInserts = request.stops.map((stop, index) =>
-      this.db.insert(schema.orderStops).values({
+    // Insert stops sequentially
+    for (const [index, stop] of request.stops.entries()) {
+      await this.db.insert(schema.orderStops).values({
         orderId,
         sequence: index + 1,
         type: stop.type,
         address: stop.address,
         lat: stop.lat,
         lng: stop.lng,
-        status: "pending",
-      })
-    );
-
-    const auditLogInsert = this.db.insert(schema.auditLogs).values({
-      actorId: "SYSTEM_PUBLIC_API",
-      targetEntity: "order",
-      targetId: orderId,
-      eventType: "ORDER_CREATED",
-      payload: {
-        publicId,
-        serviceId: request.serviceId,
-        stops: request.stops,
-        ordererName: request.ordererName,
-        ordererPhone: request.ordererPhone,
-        recipientName: request.recipientName,
-        recipientPhone: request.recipientPhone,
-        notes: request.notes,
-      },
-    });
-
-    console.log("AUDIT_LOG_INSERT:", auditLogInsert);
-
-    await this.db.batch([...stopInserts]);
+        status: "pending" as const,
+      });
+    }
 
     // Create audit log separately to avoid transaction failure
     try {
       await this.db.insert(schema.auditLogs).values({
-        actorId: "SYSTEM_PUBLIC_API",
+        adminUserId: "SYSTEM_PUBLIC_API",
         targetEntity: "order",
         targetId: orderId,
-        eventType: "ORDER_CREATED",
+        action: "ORDER_CREATED",
         payload: {
           publicId,
           serviceId: request.serviceId,
@@ -303,7 +286,7 @@ export class PublicOrderService {
       for (const driver of activeDrivers) {
         try {
           await this.notificationService.generate(
-            "NEW_ORDER_AVAILABLE",
+            "NEW_ORDER_AVAILABLE" as NotificationType,
             {
               type: "NEW_ORDER_AVAILABLE",
               data: {
@@ -314,7 +297,7 @@ export class PublicOrderService {
                 destinationAddress:
                   dropoffStop?.address || "Unknown destination",
               },
-            },
+            } as const,
             {
               orderId: orderId,
             }

@@ -1,14 +1,6 @@
+import type { DbClient } from "@treksistem/db";
+import { orderReports } from "@treksistem/db";
 import { describe, it, expect, beforeEach, vitest } from "vitest";
-import { drizzle } from "drizzle-orm/d1";
-import {
-  users,
-  mitras,
-  drivers,
-  vehicles,
-  services,
-  orders,
-  orderReports,
-} from "@treksistem/db";
 
 import { LogbookService } from "./logbook.service";
 
@@ -20,7 +12,7 @@ const mockDb = {
   leftJoin: vitest.fn(),
   where: vitest.fn(),
   orderBy: vitest.fn(),
-} as any;
+} as DbClient;
 
 const mockChain = {
   select: vitest.fn().mockReturnThis(),
@@ -56,7 +48,7 @@ describe("LogbookService", () => {
         timestamp: new Date("2024-01-15T11:00:00Z"),
         stage: "dropoff",
         notes: "Delivered to customer",
-        driverName: "John Driver", 
+        driverName: "John Driver",
         vehicleLicensePlate: "B1234XYZ",
         orderPublicId: "ORD-123",
       },
@@ -80,7 +72,7 @@ describe("LogbookService", () => {
         event: "Drop-off reported",
         address: "Delivered to customer",
         driverName: "John Driver",
-        vehicleLicensePlate: "B1234XYZ", 
+        vehicleLicensePlate: "B1234XYZ",
         orderPublicId: "ORD-123",
       },
     ]);

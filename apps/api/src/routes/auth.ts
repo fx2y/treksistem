@@ -1,16 +1,11 @@
 import { createAuthServices, type AuthEnvironment } from "@treksistem/auth";
-import {
-  createDbClient,
-  type User,
-  type NewUser,
-  users,
-  refreshTokens,
-} from "@treksistem/db";
+import { type User, type NewUser, users, refreshTokens } from "@treksistem/db";
 import { generateState, generateCodeVerifier } from "arctic";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { setCookie, getCookie } from "hono/cookie";
-import { nanoid } from "nanoid";
+
+import type { ServiceContainer } from "../services/factory";
 
 // Utility function to generate PKCE code challenge
 async function generateCodeChallenge(verifier: string): Promise<string> {
@@ -22,6 +17,9 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
 
 const auth = new Hono<{
   Bindings: AuthEnvironment;
+  Variables: {
+    services: ServiceContainer;
+  };
 }>();
 
 auth.get("/login/google", async c => {
@@ -58,7 +56,7 @@ auth.get("/login/google", async c => {
 });
 
 auth.get("/callback/google", async c => {
-  const { googleProvider, jwtService, refreshTokenService, auditService } =
+  const { googleProvider, jwtService, refreshTokenService } =
     createAuthServices(c.env);
 
   const code = c.req.query("code");
@@ -103,7 +101,7 @@ auth.get("/callback/google", async c => {
       picture?: string;
     };
 
-    const db = createDbClient(c.env.DB);
+    const { db } = c.get("services");
 
     // JIT user provisioning within transaction
     const user = await db.transaction(async tx => {
@@ -113,7 +111,6 @@ auth.get("/callback/google", async c => {
 
       if (!existingUser) {
         const newUser: NewUser = {
-          id: nanoid(),
           email: googleUser.email,
           name: googleUser.name,
           avatarUrl: googleUser.picture || null,
@@ -137,7 +134,6 @@ auth.get("/callback/google", async c => {
 
     // Store refresh token in database
     await db.insert(refreshTokens).values({
-      id: nanoid(),
       userId: user.id,
       hashedToken,
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
@@ -165,8 +161,11 @@ auth.get("/callback/google", async c => {
     setCookie(c, "google_oauth_code_verifier", "", { maxAge: 0 });
 
     // Log successful login
-    await auditService.logEvent({
+    const { auditService } = c.get("services");
+    await auditService.log({
       actorId: user.id,
+      entityType: "USER",
+      entityId: user.id,
       eventType: "USER_LOGIN",
       details: { method: "google_oauth" },
     });
@@ -201,12 +200,10 @@ auth.get("/me", async c => {
 });
 
 auth.post("/logout", async c => {
-  const { auditService } = createAuthServices(c.env);
+  const { db, auditService } = c.get("services");
   const refreshToken = getCookie(c, "refresh_token");
 
   if (refreshToken) {
-    const db = createDbClient(c.env.DB);
-
     // Find and delete refresh token from database
     const existingToken = await db.query.refreshTokens.findFirst({
       where: (tokens, { eq }) => eq(tokens.hashedToken, refreshToken),
@@ -218,8 +215,10 @@ auth.post("/logout", async c => {
         .where(eq(refreshTokens.id, existingToken.id));
 
       // Log logout event
-      await auditService.logEvent({
+      await auditService.log({
         actorId: existingToken.userId,
+        entityType: "USER",
+        entityId: existingToken.userId,
         eventType: "USER_LOGOUT",
         details: { method: "manual" },
       });
@@ -247,21 +246,18 @@ auth.post("/logout", async c => {
 });
 
 auth.post("/refresh", async c => {
-  const { jwtService, refreshTokenService, auditService } = createAuthServices(
-    c.env
-  );
+  const { jwtService, refreshTokenService } = createAuthServices(c.env);
+  const { db } = c.get("services");
   const refreshToken = getCookie(c, "refresh_token");
 
   if (!refreshToken) {
     return c.json({ error: "No refresh token provided" }, 401);
   }
 
-  const db = createDbClient(c.env.DB);
-
   try {
     // Find refresh token in database
     const storedToken = await db.query.refreshTokens.findFirst({
-      where: (tokens, { eq }) => eq(tokens.hashedToken, refreshToken),
+      where: (tokens: any, { eq }: any) => eq(tokens.hashedToken, refreshToken),
     });
 
     if (!storedToken || storedToken.expiresAt < new Date()) {
@@ -292,9 +288,12 @@ auth.post("/refresh", async c => {
     });
 
     // Log token refresh
-    await auditService.logEvent({
+    const { auditService } = c.get("services");
+    await auditService.log({
       actorId: storedToken.userId,
-      eventType: "TOKEN_REFRESH",
+      entityType: "USER",
+      entityId: storedToken.userId,
+      eventType: "USER_LOGIN",
       details: { method: "refresh_token" },
     });
 

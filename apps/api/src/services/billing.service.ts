@@ -1,7 +1,6 @@
 import { invoices, mitras } from "@treksistem/db";
+import type { DbClient } from "@treksistem/db";
 import { eq, and, gte, lt } from "drizzle-orm";
-import { DrizzleD1Database } from "drizzle-orm/d1";
-import { nanoid } from "nanoid";
 
 import { generateQRIS } from "../lib/qris";
 
@@ -32,13 +31,12 @@ export interface ConfirmPaymentData {
 }
 
 export class BillingService {
-  constructor(private db: DrizzleD1Database<any>) {}
+  constructor(private db: DbClient) {}
 
   async createInvoice(data: CreateInvoiceData) {
     const invoice = await this.db
       .insert(invoices)
       .values({
-        publicId: nanoid(),
         mitraId: data.mitraId,
         type: data.type,
         amount: data.amount,
@@ -46,7 +44,6 @@ export class BillingService {
         dueDate: data.dueDate,
         qrisPayload: generateQRIS({
           amount: data.amount,
-          invoiceId: nanoid(),
           description: data.description || "Payment",
         }),
         createdAt: new Date(),
@@ -57,37 +54,39 @@ export class BillingService {
   }
 
   async getInvoicesByMitra(mitraId: string, status?: string, limit = 20) {
-    let query = this.db
-      .select()
-      .from(invoices)
-      .where(eq(invoices.mitraId, mitraId))
-      .limit(limit);
+    const conditions = [eq(invoices.mitraId, mitraId)];
 
     if (status && status !== "all") {
-      query = query.where(
-        and(eq(invoices.mitraId, mitraId), eq(invoices.status, status as any))
-      );
+      conditions.push(eq(invoices.status, status as any));
     }
 
-    return await query;
+    return await this.db
+      .select()
+      .from(invoices)
+      .where(and(...conditions))
+      .limit(limit);
   }
 
   async getInvoiceByPublicId(publicId: string, mitraId?: string) {
-    let whereClause = eq(invoices.publicId, publicId);
+    const conditions = [eq(invoices.publicId, publicId)];
 
     if (mitraId) {
-      whereClause = and(
-        eq(invoices.publicId, publicId),
-        eq(invoices.mitraId, mitraId)
-      );
+      conditions.push(eq(invoices.mitraId, mitraId));
     }
 
-    const result = await this.db.select().from(invoices).where(whereClause);
+    const result = await this.db
+      .select()
+      .from(invoices)
+      .where(and(...conditions));
 
     return result[0];
   }
 
-  async confirmPayment({ invoiceId, paymentDate, _notes }: ConfirmPaymentData) {
+  async confirmPayment({
+    invoiceId,
+    paymentDate,
+    notes: _notes,
+  }: ConfirmPaymentData) {
     const invoice = await this.getInvoiceByPublicId(invoiceId);
 
     if (!invoice) {
@@ -243,21 +242,21 @@ export class BillingService {
   ) {
     const { status = "all", limit = 20, offset = 0 } = filters;
 
-    let query = this.db.select().from(invoices).limit(limit).offset(offset);
+    const conditions = [];
 
     if (ownerType === "mitra") {
-      query = query.where(eq(invoices.mitraId, ownerId));
+      conditions.push(eq(invoices.mitraId, ownerId));
     }
 
     if (status && status !== "all") {
-      const currentWhere =
-        ownerType === "mitra" ? eq(invoices.mitraId, ownerId) : undefined;
-      const statusWhere = eq(invoices.status, status);
-      query = query.where(
-        currentWhere ? and(currentWhere, statusWhere) : statusWhere
-      );
+      conditions.push(eq(invoices.status, status));
     }
 
-    return await query;
+    return await this.db
+      .select()
+      .from(invoices)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .limit(limit)
+      .offset(offset);
   }
 }

@@ -1,6 +1,6 @@
 import { mitras } from "@treksistem/db";
+import type { DbClient } from "@treksistem/db";
 import { eq } from "drizzle-orm";
-import type { drizzle } from "drizzle-orm/d1";
 
 export interface MitraProfileDTO {
   id: string;
@@ -17,7 +17,7 @@ export interface UpdateMitraProfileData {
 }
 
 export class MitraProfileService {
-  constructor(private db: ReturnType<typeof drizzle>) {}
+  constructor(private db: DbClient) {}
 
   async getProfile(mitraId: string): Promise<MitraProfileDTO | null> {
     const [mitra] = await this.db

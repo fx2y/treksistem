@@ -1,6 +1,6 @@
 import { vehicles, orders } from "@treksistem/db";
+import type { DbClient } from "@treksistem/db";
 import { eq, and, gt, asc } from "drizzle-orm";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
 
 import { AuditService } from "./audit.service";
 
@@ -35,7 +35,7 @@ export interface UpdateVehicleRequest {
 
 export class VehicleService {
   constructor(
-    private db: DrizzleD1Database,
+    private db: DbClient,
     private auditService?: AuditService
   ) {}
 

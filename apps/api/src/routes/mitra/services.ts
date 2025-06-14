@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { MitraService } from "../../services/mitra.service";
+import type { ServiceContainer } from "../../services/factory";
 
 const createServiceSchema = z.object({
   name: z.string().min(1).max(100),
@@ -10,7 +10,7 @@ const createServiceSchema = z.object({
   maxRangeKm: z.number().positive().nullable(),
   supportedVehicleTypeIds: z.array(z.string()),
   supportedPayloadTypeIds: z.array(z.string()),
-  availableFacilityIds: z.array(z.string()).nullable().optional(),
+  availableFacilityIds: z.array(z.string()).nullable(),
   rate: z.object({
     baseFee: z.number().int().min(0),
     feePerKm: z.number().int().min(0),
@@ -32,13 +32,18 @@ const updateServiceSchema = z.object({
     .optional(),
 });
 
-const app = new Hono();
+const app = new Hono<{
+  Variables: {
+    services: ServiceContainer;
+    mitraId: string;
+  };
+}>();
 
 // Create a new service
 app.post("/", zValidator("json", createServiceSchema), async c => {
   const mitraId = c.get("mitraId");
   const data = c.req.valid("json");
-  const mitraService = new MitraService(c.get("db"));
+  const { mitraService } = c.get("services");
 
   try {
     const service = await mitraService.createService(mitraId, data);
@@ -52,7 +57,7 @@ app.post("/", zValidator("json", createServiceSchema), async c => {
 // Get all services for the authenticated mitra
 app.get("/", async c => {
   const mitraId = c.get("mitraId");
-  const mitraService = new MitraService(c.get("db"));
+  const { mitraService } = c.get("services");
 
   try {
     const services = await mitraService.getServices(mitraId);
@@ -67,7 +72,7 @@ app.get("/", async c => {
 app.get("/:serviceId", async c => {
   const mitraId = c.get("mitraId");
   const serviceId = c.req.param("serviceId");
-  const mitraService = new MitraService(c.get("db"));
+  const { mitraService } = c.get("services");
 
   try {
     const service = await mitraService.getServiceById(mitraId, serviceId);
@@ -86,14 +91,17 @@ app.put("/:serviceId", zValidator("json", updateServiceSchema), async c => {
   const mitraId = c.get("mitraId");
   const serviceId = c.req.param("serviceId");
   const data = c.req.valid("json");
-  const mitraService = new MitraService(c.get("db"));
+  const { mitraService } = c.get("services");
 
   try {
     const service = await mitraService.updateService(mitraId, serviceId, data);
     return c.json(service);
   } catch (error) {
     console.error("Error updating service:", error);
-    if (error.message === "Service not found after update") {
+    if (
+      error instanceof Error &&
+      error.message === "Service not found after update"
+    ) {
       return c.json({ error: "Service not found" }, 404);
     }
     return c.json({ error: "Failed to update service" }, 500);
