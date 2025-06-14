@@ -1,12 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
 import type { createAuthServices } from "@treksistem/auth";
-import { NotificationService } from "@treksistem/notifications";
 import type { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { MitraMonitoringService } from "../../services/mitra-monitoring.service";
-import { MitraOrderService } from "../../services/mitra-order.service";
+import type { ServiceContainer } from "../../services/factory";
 
 const StopInputSchema = z.object({
   address: z.string().min(1, "Address is required"),
@@ -61,6 +59,7 @@ const orders = new Hono<{
   };
   Variables: {
     authServices: ReturnType<typeof createAuthServices>;
+    services: ServiceContainer;
     db: ReturnType<typeof drizzle>;
     mitraId: string;
     userId: string;
@@ -70,12 +69,11 @@ const orders = new Hono<{
 // GET /api/mitra/orders - Get paginated and filtered orders for dashboard
 orders.get("/", zValidator("query", GetMitraOrdersQuerySchema), async c => {
   try {
-    const db = c.get("db");
+    const { mitraMonitoringService } = c.get("services");
     const mitraId = c.get("mitraId");
     const query = c.req.valid("query");
 
-    const monitoringService = new MitraMonitoringService(db);
-    const result = await monitoringService.getOrders(mitraId, query);
+    const result = await mitraMonitoringService.getOrders(mitraId, query);
 
     return c.json(result, 200);
   } catch (error) {
@@ -87,13 +85,10 @@ orders.get("/", zValidator("query", GetMitraOrdersQuerySchema), async c => {
 // POST /api/mitra/orders - Create manual order
 orders.post("/", zValidator("json", CreateManualOrderSchema), async c => {
   try {
-    const db = c.get("db");
+    const { mitraOrderService } = c.get("services");
     const mitraId = c.get("mitraId");
     const userId = c.get("userId");
     const input = c.req.valid("json");
-
-    const notificationService = new NotificationService(db);
-    const mitraOrderService = new MitraOrderService(db, notificationService);
 
     const result = await mitraOrderService.createManualOrder(
       mitraId,
@@ -130,7 +125,6 @@ orders.post(
   zValidator("json", AssignOrderSchema),
   async c => {
     try {
-      const db = c.get("db");
       const mitraId = c.get("mitraId");
       const userId = c.get("userId");
       const orderId = c.req.param("orderId");
@@ -140,8 +134,7 @@ orders.post(
         return c.json({ error: "Order ID is required" }, 400);
       }
 
-      const notificationService = new NotificationService(db);
-      const mitraOrderService = new MitraOrderService(db, notificationService);
+      const { mitraOrderService } = c.get("services");
 
       const result = await mitraOrderService.assignOrder(
         mitraId,

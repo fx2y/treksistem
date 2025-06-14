@@ -10,14 +10,14 @@ command = ""
 [vars]
 # Auth configuration
 GOOGLE_REDIRECT_URI = "http://localhost:8787/api/auth/callback/google"
-# Test values for verification (replace with real values in production)
-GOOGLE_CLIENT_ID = "test-client-id.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "test-client-secret"
-JWT_SECRET = "test-jwt-secret-32-characters-long-string-for-verification"
 R2_PUBLIC_URL = "https://pub-your-r2-public-url.r2.dev"
 UPLOAD_URL_EXPIRES_IN_SECONDS = "300"
 
 [secrets]
+# Auth secrets - configure via wrangler secret put or .dev.vars for local dev
+# GOOGLE_CLIENT_ID = ""
+# GOOGLE_CLIENT_SECRET = ""
+# JWT_SECRET = ""
 R2_ACCOUNT_ID = ""
 R2_ACCESS_KEY_ID = ""
 R2_SECRET_ACCESS_KEY = ""

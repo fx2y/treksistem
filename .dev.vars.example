@@ -1,0 +1,14 @@
+# Local development environment variables
+# Copy this file to .dev.vars and fill in your actual values
+
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# JWT Secret (32+ character string)
+JWT_SECRET=your-jwt-secret-32-characters-minimum
+
+# R2 Storage Configuration
+R2_ACCOUNT_ID=your-r2-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret-access-key

@@ -11,6 +11,7 @@ dist
 
 # Local Environment
 .env
+.dev.vars
 .wrangler/
 
 # Turbo
