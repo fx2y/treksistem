@@ -9,7 +9,7 @@
 
 	onMount(async () => {
 		await AuthService.initializeAuth();
-		
+
 		if (!$user) {
 			await goto('/login');
 		}
@@ -31,7 +31,7 @@
 		{ name: 'Drivers', href: '/drivers', icon: Users },
 		{ name: 'Vehicles', href: '/vehicles', icon: Truck },
 		{ name: 'Logbook', href: '/logbook', icon: BookOpen },
-		{ name: 'Billing', href: '/billing', icon: CreditCard },
+		{ name: 'Billing', href: '/billing', icon: CreditCard }
 	];
 </script>
 
@@ -39,7 +39,14 @@
 	<!-- Mobile sidebar -->
 	{#if sidebarOpen}
 		<div class="fixed inset-0 z-40 lg:hidden">
-			<div class="fixed inset-0 bg-gray-600 bg-opacity-75" on:click={toggleSidebar}></div>
+			<div
+				class="fixed inset-0 bg-gray-600 bg-opacity-75"
+				on:click={toggleSidebar}
+				on:keydown={toggleSidebar}
+				role="button"
+				tabindex="0"
+				aria-label="Close sidebar"
+			></div>
 			<div class="fixed inset-y-0 left-0 flex w-64 flex-col bg-white shadow-xl">
 				<div class="flex h-16 flex-shrink-0 items-center justify-between px-4 border-b">
 					<h1 class="text-xl font-semibold">Mitra Portal</h1>
@@ -51,7 +58,8 @@
 					{#each navigationItems as item}
 						<a
 							href={item.href}
-							class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {currentPath === item.href
+							class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {currentPath ===
+							item.href
 								? 'bg-blue-100 text-blue-900'
 								: 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}"
 						>
@@ -74,7 +82,8 @@
 				{#each navigationItems as item}
 					<a
 						href={item.href}
-						class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {currentPath === item.href
+						class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {currentPath ===
+						item.href
 							? 'bg-blue-100 text-blue-900'
 							: 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}"
 					>

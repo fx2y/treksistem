@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "/opt/homebrew/bin/wrangler dev src/index.ts",
-    "deploy": "/opt/homebrew/bin/wrangler deploy",
+    "deploy": "wrangler deploy",
     "build": "echo 'Build step handled by wrangler deploy'",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

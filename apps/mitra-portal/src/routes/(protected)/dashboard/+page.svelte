@@ -15,7 +15,10 @@
 	async function loadOrders() {
 		try {
 			loading = true;
-			const response = await apiClient.get<{ orders: Order[] }>('/mitra/orders', new URLSearchParams({ limit: '10' }));
+			const response = await apiClient.get<{ orders: Order[] }>(
+				'/mitra/orders',
+				new URLSearchParams({ limit: '10' })
+			);
 			orders = response.orders;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load orders';
@@ -59,9 +62,9 @@
 		}
 	}
 
-	$: activeOrders = orders.filter(order => !['delivered', 'cancelled'].includes(order.status));
-	$: completedOrders = orders.filter(order => order.status === 'delivered');
-	$: cancelledOrders = orders.filter(order => order.status === 'cancelled');
+	$: activeOrders = orders.filter((order) => !['delivered', 'cancelled'].includes(order.status));
+	$: completedOrders = orders.filter((order) => order.status === 'delivered');
+	$: cancelledOrders = orders.filter((order) => order.status === 'cancelled');
 </script>
 
 <div class="space-y-6">
@@ -155,7 +158,10 @@
 						<div class="flex items-center justify-between">
 							<div class="flex items-center">
 								<div class="flex-shrink-0">
-									<svelte:component this={getStatusIcon(order.status)} class="h-5 w-5 text-gray-400" />
+									<svelte:component
+										this={getStatusIcon(order.status)}
+										class="h-5 w-5 text-gray-400"
+									/>
 								</div>
 								<div class="ml-4">
 									<div class="text-sm font-medium text-gray-900">
@@ -183,7 +189,11 @@
 										</div>
 									{/if}
 								</div>
-								<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getStatusColor(order.status)}">
+								<span
+									class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getStatusColor(
+										order.status
+									)}"
+								>
 									{order.status.replace('_', ' ')}
 								</span>
 							</div>

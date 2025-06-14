@@ -30,7 +30,7 @@
 	async function loadLogbook() {
 		try {
 			loading = true;
-			
+
 			const params = new URLSearchParams();
 			if (selectedDate) params.append('date', selectedDate);
 			if (selectedVehicleId) params.append('vehicleId', selectedVehicleId);
@@ -64,19 +64,24 @@
 	}
 
 	function getVehicleName(licensePlate: string) {
-		const vehicle = vehicles.find(v => v.licensePlate === licensePlate);
-		return vehicle ? `${vehicle.licensePlate}${vehicle.description ? ` (${vehicle.description})` : ''}` : licensePlate;
+		const vehicle = vehicles.find((v) => v.licensePlate === licensePlate);
+		return vehicle
+			? `${vehicle.licensePlate}${vehicle.description ? ` (${vehicle.description})` : ''}`
+			: licensePlate;
 	}
 
 	// Group entries by date
-	$: groupedEntries = logbookEntries.reduce((groups, entry) => {
-		const date = entry.timestamp.split('T')[0];
-		if (!groups[date]) {
-			groups[date] = [];
-		}
-		groups[date].push(entry);
-		return groups;
-	}, {} as Record<string, LogbookEntry[]>);
+	$: groupedEntries = logbookEntries.reduce(
+		(groups, entry) => {
+			const date = entry.timestamp.split('T')[0];
+			if (!groups[date]) {
+				groups[date] = [];
+			}
+			groups[date].push(entry);
+			return groups;
+		},
+		{} as Record<string, LogbookEntry[]>
+	);
 
 	$: sortedDates = Object.keys(groupedEntries).sort().reverse(); // Most recent first
 </script>
@@ -92,7 +97,7 @@
 		<div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
 			<button
 				type="button"
-				on:click={() => showFilters = !showFilters}
+				on:click={() => (showFilters = !showFilters)}
 				class="inline-flex items-center justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
 			>
 				<Filter class="h-4 w-4 mr-2" />
@@ -108,9 +113,7 @@
 				<h3 class="text-lg leading-6 font-medium text-gray-900">Filter Logbook</h3>
 				<div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div>
-						<label for="date" class="block text-sm font-medium text-gray-700">
-							Date
-						</label>
+						<label for="date" class="block text-sm font-medium text-gray-700"> Date </label>
 						<div class="mt-1 relative">
 							<input
 								type="date"
@@ -119,14 +122,14 @@
 								on:change={handleFilterChange}
 								class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
 							/>
-							<Calendar class="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+							<Calendar
+								class="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none"
+							/>
 						</div>
 					</div>
 
 					<div>
-						<label for="vehicle" class="block text-sm font-medium text-gray-700">
-							Vehicle
-						</label>
+						<label for="vehicle" class="block text-sm font-medium text-gray-700"> Vehicle </label>
 						<div class="mt-1">
 							<select
 								id="vehicle"
@@ -170,7 +173,7 @@
 			<div class="text-gray-500">
 				<p class="text-lg font-medium">No logbook entries found</p>
 				<p class="mt-1 text-sm">
-					{selectedDate || selectedVehicleId 
+					{selectedDate || selectedVehicleId
 						? 'Try adjusting your filters to see more entries'
 						: 'Entries will appear here as drivers complete deliveries'}
 				</p>
@@ -191,7 +194,11 @@
 					<div class="border-t border-gray-200">
 						<dl>
 							{#each groupedEntries[date] as entry, index}
-								<div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 {index % 2 === 1 ? 'bg-gray-50' : ''}">
+								<div
+									class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 {index % 2 === 1
+										? 'bg-gray-50'
+										: ''}"
+								>
 									<dt class="text-sm font-medium text-gray-500 flex items-center">
 										<Clock class="h-4 w-4 mr-2" />
 										{formatTime(entry.timestamp)}

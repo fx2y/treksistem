@@ -42,6 +42,10 @@
         "*.{js,ts,tsx,json,md,css,html}"
       ],
       "cache": false
+    },
+    "deploy": {
+      "dependsOn": ["build"],
+      "cache": false
     }
   }
 }

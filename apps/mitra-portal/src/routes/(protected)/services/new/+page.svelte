@@ -119,9 +119,7 @@
 				<div class="md:grid md:grid-cols-3 md:gap-6">
 					<div class="md:col-span-1">
 						<h3 class="text-lg font-medium leading-6 text-gray-900">Basic Information</h3>
-						<p class="mt-1 text-sm text-gray-500">
-							Service name, visibility, and coverage area
-						</p>
+						<p class="mt-1 text-sm text-gray-500">Service name, visibility, and coverage area</p>
 					</div>
 					<div class="mt-5 md:mt-0 md:col-span-2">
 						<div class="grid grid-cols-6 gap-6">
@@ -153,9 +151,7 @@
 										<label for="isPublic" class="font-medium text-gray-700">
 											Make service public
 										</label>
-										<p class="text-gray-500">
-											Public services can be booked by customers directly
-										</p>
+										<p class="text-gray-500">Public services can be booked by customers directly</p>
 									</div>
 								</div>
 							</div>
@@ -182,9 +178,7 @@
 				<div class="md:grid md:grid-cols-3 md:gap-6">
 					<div class="md:col-span-1">
 						<h3 class="text-lg font-medium leading-6 text-gray-900">Pricing</h3>
-						<p class="mt-1 text-sm text-gray-500">
-							Set base fee and per-kilometer rate
-						</p>
+						<p class="mt-1 text-sm text-gray-500">Set base fee and per-kilometer rate</p>
 					</div>
 					<div class="mt-5 md:mt-0 md:col-span-2">
 						<div class="grid grid-cols-6 gap-6">
@@ -252,9 +246,7 @@
 				<div class="md:grid md:grid-cols-3 md:gap-6">
 					<div class="md:col-span-1">
 						<h3 class="text-lg font-medium leading-6 text-gray-900">Payload Types</h3>
-						<p class="mt-1 text-sm text-gray-500">
-							Select what types of items can be delivered
-						</p>
+						<p class="mt-1 text-sm text-gray-500">Select what types of items can be delivered</p>
 					</div>
 					<div class="mt-5 md:mt-0 md:col-span-2">
 						<div class="grid grid-cols-2 gap-4">
