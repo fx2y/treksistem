@@ -12,6 +12,7 @@
     "test": "turbo run test",
     "format": "turbo run format",
     "format:all": "prettier --write \"**/*.{js,ts,tsx,json,md,css,html}\" --cache",
+    "db:seed": "node scripts/seed-db.js",
     "prepare": "husky"
   },
   "devDependencies": {

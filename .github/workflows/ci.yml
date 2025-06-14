@@ -1,0 +1,45 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    branches: ["main", "master"]
+  push:
+    branches: ["develop", "staging"]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.1.4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure Turborepo remote caching
+        run: |
+          npx turbo login --api="${{ secrets.TURBO_TOKEN }}" --team="${{ secrets.TURBO_TEAM }}"
+        continue-on-error: true
+
+      - name: Run linter
+        run: turbo run lint
+
+      - name: Run type checker
+        run: turbo run typecheck
+
+      - name: Run tests
+        run: turbo run test
+
+      - name: Build packages
+        run: turbo run build

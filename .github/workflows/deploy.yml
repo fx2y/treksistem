@@ -2,41 +2,10 @@ name: Deploy Treksistem Platform
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "master"]
 
 jobs:
-  lint_and_test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9.1.4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Configure Turborepo remote caching
-        run: |
-          npx turbo login --api="${{ secrets.TURBO_TOKEN }}" --team="${{ secrets.TURBO_TEAM }}"
-
-      - name: Run lint
-        run: turbo run lint
-
-      - name: Run tests
-        run: turbo run test
-
   deploy:
-    needs: lint_and_test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
