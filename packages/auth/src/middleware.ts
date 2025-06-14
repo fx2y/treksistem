@@ -133,6 +133,14 @@ export function createAuthMiddleware(jwtService: JwtService, db: any) {
         })),
         isAdmin: user.role === "admin",
       },
+      mitra: mitra
+        ? {
+            id: mitra.id,
+            businessName: mitra.businessName,
+            hasCompletedOnboarding: mitra.hasCompletedOnboarding,
+            activeDriverLimit: mitra.activeDriverLimit,
+          }
+        : undefined,
     };
   }
 

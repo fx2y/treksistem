@@ -51,14 +51,14 @@
 
 <div class="space-y-6">
 	<div class="flex items-center space-x-4">
-		<div class="inline-flex items-center p-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white">
+		<div
+			class="inline-flex items-center p-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white"
+		>
 			<User class="h-4 w-4" />
 		</div>
 		<div>
 			<h1 class="text-2xl font-bold text-gray-900">Profile Settings</h1>
-			<p class="mt-1 text-sm text-gray-500">
-				Manage your business profile information
-			</p>
+			<p class="mt-1 text-sm text-gray-500">Manage your business profile information</p>
 		</div>
 	</div>
 
@@ -89,9 +89,7 @@
 						</div>
 
 						<div class="col-span-6">
-							<label for="address" class="block text-sm font-medium text-gray-700">
-								Address
-							</label>
+							<label for="address" class="block text-sm font-medium text-gray-700"> Address </label>
 							<textarea
 								id="address"
 								bind:value={formData.address}

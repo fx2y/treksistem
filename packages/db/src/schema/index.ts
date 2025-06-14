@@ -59,6 +59,11 @@ export const mitras = sqliteTable("mitras", {
     .notNull()
     .default("free_tier"),
   activeDriverLimit: integer("active_driver_limit").notNull().default(2),
+  hasCompletedOnboarding: integer("has_completed_onboarding", {
+    mode: "boolean",
+  })
+    .notNull()
+    .default(false),
 });
 
 // Drivers table - many-to-many relationship between users and mitras

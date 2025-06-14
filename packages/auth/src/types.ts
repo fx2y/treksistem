@@ -22,4 +22,10 @@ export interface AuthenticatedUserProfile {
     }>;
     isAdmin: boolean;
   };
+  mitra?: {
+    id: string;
+    businessName: string;
+    hasCompletedOnboarding: boolean;
+    activeDriverLimit: number;
+  };
 }

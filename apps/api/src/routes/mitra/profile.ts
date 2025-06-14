@@ -69,4 +69,23 @@ profile.put("/", zValidator("json", UpdateMitraProfileSchema), async c => {
   }
 });
 
+profile.put("/complete-onboarding", async c => {
+  try {
+    const db = c.get("db");
+    const mitraId = c.get("mitraId");
+
+    const profileService = new MitraProfileService(db);
+    const updatedProfile = await profileService.completeOnboarding(mitraId);
+
+    if (!updatedProfile) {
+      return c.json({ error: "Profile not found" }, 404);
+    }
+
+    return c.json(updatedProfile, 200);
+  } catch (error) {
+    console.error("Failed to complete onboarding:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
 export default profile;

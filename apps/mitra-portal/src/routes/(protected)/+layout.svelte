@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { AuthService, user } from '$lib/services/authService';
 	import { Menu, X, Truck, Users, Settings, BookOpen, CreditCard, LogOut } from 'lucide-svelte';
+	import OnboardingWizard from '$lib/components/onboarding/OnboardingWizard.svelte';
 
 	let sidebarOpen = false;
 
@@ -110,8 +111,12 @@
 						{#if $user}
 							<div class="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200"></div>
 							<div class="flex items-center gap-x-2">
-								<img class="h-8 w-8 rounded-full" src={$user.avatarUrl} alt={$user.name} />
-								<span class="hidden lg:block text-sm font-medium">{$user.name}</span>
+								<img
+									class="h-8 w-8 rounded-full"
+									src={$user.user.avatarUrl || '/default-avatar.png'}
+									alt={$user.user.name}
+								/>
+								<span class="hidden lg:block text-sm font-medium">{$user.user.name}</span>
 								<button
 									type="button"
 									on:click={handleLogout}
@@ -135,3 +140,14 @@
 		</main>
 	</div>
 </div>
+
+<!-- Onboarding Wizard -->
+{#if $user && $user.roles.isMitra}
+	<OnboardingWizard
+		userProfile={$user}
+		on:complete={() => {
+			// Refresh user data to get updated onboarding status
+			AuthService.initializeAuth();
+		}}
+	/>
+{/if}
