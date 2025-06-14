@@ -1,13 +1,9 @@
 import { Context, Next } from "hono";
 
-interface RateLimitStore {
-  [key: string]: {
-    count: number;
-    resetTime: number;
-  };
+interface RateLimitData {
+  count: number;
+  resetTime: number;
 }
-
-const store: RateLimitStore = {};
 
 export interface RateLimitOptions {
   windowMs: number; // Time window in milliseconds
@@ -23,40 +19,51 @@ export function rateLimit(options: RateLimitOptions) {
   } = options;
 
   return async (c: Context, next: Next) => {
-    const key = keyGenerator(c);
+    const kv = c.env.RATE_LIMIT_KV as KVNamespace;
+    if (!kv) {
+      console.warn("RATE_LIMIT_KV not configured, skipping rate limiting");
+      await next();
+      return;
+    }
+
+    const key = `rate_limit:${keyGenerator(c)}`;
     const now = Date.now();
 
-    // Clean up expired entries
-    if (store[key] && now > store[key].resetTime) {
-      delete store[key];
+    // Get current rate limit data
+    const existing = (await kv.get(key, "json")) as RateLimitData | null;
+
+    // Check if window has expired
+    if (existing && now > existing.resetTime) {
+      await kv.delete(key);
     }
 
-    // Initialize or get current count
-    if (!store[key]) {
-      store[key] = {
-        count: 0,
-        resetTime: now + windowMs,
-      };
-    }
+    // Get fresh data or initialize
+    const data =
+      existing && now <= existing.resetTime
+        ? existing
+        : { count: 0, resetTime: now + windowMs };
 
     // Check if limit exceeded
-    if (store[key].count >= max) {
+    if (data.count >= max) {
       return c.json(
         {
           error: "Too many requests",
-          retryAfter: Math.ceil((store[key].resetTime - now) / 1000),
+          retryAfter: Math.ceil((data.resetTime - now) / 1000),
         },
         429
       );
     }
 
-    // Increment counter
-    store[key].count++;
+    // Increment counter and store
+    data.count++;
+    await kv.put(key, JSON.stringify(data), {
+      expirationTtl: Math.ceil(windowMs / 1000),
+    });
 
     // Set headers
     c.header("X-RateLimit-Limit", max.toString());
-    c.header("X-RateLimit-Remaining", (max - store[key].count).toString());
-    c.header("X-RateLimit-Reset", new Date(store[key].resetTime).toISOString());
+    c.header("X-RateLimit-Remaining", (max - data.count).toString());
+    c.header("X-RateLimit-Reset", new Date(data.resetTime).toISOString());
 
     await next();
   };

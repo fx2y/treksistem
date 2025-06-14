@@ -41,10 +41,9 @@ describe("MitraMonitoringService", () => {
       });
 
       // Mock services query
-      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
-        { id: "service-1" },
-        { id: "service-2" },
-      ]);
+      mockDb.query.services.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: "service-1" }, { id: "service-2" }]);
 
       // Mock orders query
       mockDb.query.orders.findMany = vi.fn().mockResolvedValue([
@@ -99,9 +98,9 @@ describe("MitraMonitoringService", () => {
       });
 
       // Mock services query
-      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
-        { id: "service-1" },
-      ]);
+      mockDb.query.services.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: "service-1" }]);
 
       const mockOrders = [
         {
@@ -142,9 +141,9 @@ describe("MitraMonitoringService", () => {
       });
 
       // Mock services query
-      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
-        { id: "service-1" },
-      ]);
+      mockDb.query.services.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: "service-1" }]);
 
       mockDb.query.orders.findMany = vi.fn().mockResolvedValue([]);
 
@@ -172,9 +171,9 @@ describe("MitraMonitoringService", () => {
       });
 
       // Mock services query
-      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
-        { id: "service-1" },
-      ]);
+      mockDb.query.services.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: "service-1" }]);
 
       mockDb.query.orders.findMany = vi.fn().mockResolvedValue([]);
 
@@ -199,9 +198,9 @@ describe("MitraMonitoringService", () => {
       });
 
       // Mock services query
-      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
-        { id: "service-1" },
-      ]);
+      mockDb.query.services.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: "service-1" }]);
 
       mockDb.query.orders.findMany = vi.fn().mockResolvedValue([]);
 
@@ -236,9 +235,9 @@ describe("MitraMonitoringService", () => {
       });
 
       // Mock services query
-      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
-        { id: "service-1" },
-      ]);
+      mockDb.query.services.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: "service-1" }]);
 
       mockDb.query.orders.findMany = vi.fn().mockResolvedValue([]);
 
@@ -265,10 +264,9 @@ describe("MitraMonitoringService", () => {
       });
 
       // Mock services query - only return services for mitra-1
-      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
-        { id: "service-1" },
-        { id: "service-2" },
-      ]);
+      mockDb.query.services.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: "service-1" }, { id: "service-2" }]);
 
       const mockOrders = [
         {
@@ -319,9 +317,9 @@ describe("MitraMonitoringService", () => {
       });
 
       // Mock services query
-      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
-        { id: "service-1" },
-      ]);
+      mockDb.query.services.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: "service-1" }]);
 
       mockDb.query.orders.findMany = vi.fn().mockResolvedValue([]);
 

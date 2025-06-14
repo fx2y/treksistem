@@ -29,24 +29,26 @@ describe("MitraOrderService", () => {
         values: vi.fn(),
         returning: vi.fn(),
       };
-      
+
       // First call - for order insertion
       const orderInsertMock = {
         values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([{ id: "test-id", publicId: "test-public-id" }]),
+          returning: vi
+            .fn()
+            .mockResolvedValue([{ id: "test-id", publicId: "test-public-id" }]),
         }),
       };
-      
+
       // Subsequent calls - for order stops insertions
       const stopsInsertMock = {
         values: vi.fn().mockResolvedValue(undefined),
       };
-      
+
       // Configure the insert method to return different mocks
       mockTx.insert
         .mockReturnValueOnce(orderInsertMock)
         .mockReturnValue(stopsInsertMock);
-      
+
       return await callback(mockTx);
     });
   };
@@ -121,7 +123,7 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup
       mockDb.limit.mockResolvedValueOnce([{ baseFee: 5000, feePerKm: 2000 }]);
-      
+
       // Mock transaction
       mockDb.transaction = createMockTransaction();
 
@@ -178,7 +180,7 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup
       mockDb.limit.mockResolvedValueOnce([{ baseFee: 5000, feePerKm: 2000 }]);
-      
+
       // Mock transaction
       mockDb.transaction = createMockTransaction();
 
@@ -217,7 +219,7 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup
       mockDb.limit.mockResolvedValueOnce([{ baseFee: 5000, feePerKm: 2000 }]);
-      
+
       // Mock transaction
       mockDb.transaction = createMockTransaction();
 
@@ -242,7 +244,7 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup - no rates found
       mockDb.limit.mockResolvedValueOnce([]);
-      
+
       // Mock transaction
       mockDb.transaction = createMockTransaction();
 
@@ -253,6 +255,90 @@ describe("MitraOrderService", () => {
       );
 
       expect(result.estimatedCost).toBe(10000); // Default minimum fee
+    });
+
+    it("should rollback transaction when order creation fails", async () => {
+      // Mock service lookup
+      mockDb.limit.mockResolvedValueOnce([
+        { id: "service-1", mitraId: "mitra-1" },
+      ]);
+      // Mock service rates lookup
+      mockDb.limit.mockResolvedValueOnce([{ baseFee: 5000, feePerKm: 2000 }]);
+
+      // Mock transaction that fails during order insertion
+      const mockTx = {
+        insert: vi.fn(),
+      };
+
+      // First call (order insertion) should fail
+      mockTx.insert.mockReturnValueOnce({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockRejectedValue(new Error("DB constraint violation")),
+        }),
+      });
+
+      mockDb.transaction = vi.fn().mockImplementation(async (callback: any) => {
+        try {
+          return await callback(mockTx);
+        } catch (error) {
+          // Simulate rollback behavior
+          throw error;
+        }
+      });
+
+      await expect(
+        service.createManualOrder("mitra-1", "actor-1", validInput)
+      ).rejects.toThrow("DB constraint violation");
+
+      // Verify transaction was called
+      expect(mockDb.transaction).toHaveBeenCalled();
+      // Verify order insertion was attempted
+      expect(mockTx.insert).toHaveBeenCalledWith(expect.anything());
+    });
+
+    it("should rollback transaction when stop insertion fails", async () => {
+      // Mock service lookup
+      mockDb.limit.mockResolvedValueOnce([
+        { id: "service-1", mitraId: "mitra-1" },
+      ]);
+      // Mock service rates lookup
+      mockDb.limit.mockResolvedValueOnce([{ baseFee: 5000, feePerKm: 2000 }]);
+
+      const mockTx = {
+        insert: vi.fn(),
+      };
+
+      // Order insertion succeeds
+      mockTx.insert.mockReturnValueOnce({
+        values: vi.fn().mockReturnValue({
+          returning: vi
+            .fn()
+            .mockResolvedValue([{ id: "test-id", publicId: "test-public-id" }]),
+        }),
+      });
+
+      // Stop insertion fails
+      mockTx.insert.mockReturnValueOnce({
+        values: vi.fn().mockRejectedValue(new Error("Stop insertion failed")),
+      });
+
+      mockDb.transaction = vi.fn().mockImplementation(async (callback: any) => {
+        try {
+          return await callback(mockTx);
+        } catch (error) {
+          // Simulate rollback behavior - order should not exist
+          throw error;
+        }
+      });
+
+      await expect(
+        service.createManualOrder("mitra-1", "actor-1", validInput)
+      ).rejects.toThrow("Stop insertion failed");
+
+      // Verify transaction was called
+      expect(mockDb.transaction).toHaveBeenCalled();
+      // Verify both order and stop insertions were attempted
+      expect(mockTx.insert).toHaveBeenCalledTimes(2);
     });
   });
 

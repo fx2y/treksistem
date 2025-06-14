@@ -6,7 +6,11 @@ import { z } from "zod";
 import { DriverManagementService } from "../../services/driver-management.service";
 
 const InviteDriverRequest = z.object({
-  email: z.string().email(),
+  email: z.string().email().max(254).trim(),
+});
+
+const DriverParamsSchema = z.object({
+  driverId: z.string().min(1).max(50),
 });
 
 const app = new Hono<{
@@ -52,10 +56,10 @@ app.get("/", async c => {
   }
 });
 
-app.delete("/:driverId", async c => {
+app.delete("/:driverId", zValidator("param", DriverParamsSchema), async c => {
   try {
     const mitraId = c.get("mitraId");
-    const driverId = c.req.param("driverId");
+    const { driverId } = c.req.valid("param");
     const db = c.get("db");
     const driverService = new DriverManagementService(db);
 

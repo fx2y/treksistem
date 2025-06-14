@@ -68,7 +68,7 @@ export class MitraServiceManagementService {
     mitraId: string,
     data: CreateServiceRequest
   ): Promise<ServiceResponse> {
-    return await this.db.transaction(async (tx) => {
+    return await this.db.transaction(async tx => {
       const [insertedService] = await tx
         .insert(services)
         .values({
@@ -325,10 +325,11 @@ export class MitraServiceManagementService {
     serviceId: string,
     data: UpdateServiceRequest
   ): Promise<ServiceResponse> {
-    return await this.db.transaction(async (tx) => {
+    return await this.db.transaction(async tx => {
       const serviceUpdateData: any = {};
       if (data.name !== undefined) serviceUpdateData.name = data.name;
-      if (data.isPublic !== undefined) serviceUpdateData.isPublic = data.isPublic;
+      if (data.isPublic !== undefined)
+        serviceUpdateData.isPublic = data.isPublic;
       if (data.maxRangeKm !== undefined)
         serviceUpdateData.maxRangeKm = data.maxRangeKm;
 
@@ -336,7 +337,9 @@ export class MitraServiceManagementService {
         await tx
           .update(services)
           .set(serviceUpdateData)
-          .where(and(eq(services.id, serviceId), eq(services.mitraId, mitraId)));
+          .where(
+            and(eq(services.id, serviceId), eq(services.mitraId, mitraId))
+          );
       }
 
       if (data.rate) {

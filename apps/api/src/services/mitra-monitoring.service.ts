@@ -94,9 +94,9 @@ export class MitraMonitoringService {
       where: eq(services.mitraId, mitraId),
       columns: { id: true },
     });
-    
+
     const serviceIds = mitraServices.map(s => s.id);
-    
+
     if (serviceIds.length === 0) {
       return {
         data: [],
@@ -112,7 +112,7 @@ export class MitraMonitoringService {
     // Build where conditions including service filter
     const allWhereConditions = [
       ...orderWhereConditions,
-      serviceIds.length === 1 
+      serviceIds.length === 1
         ? eq(orders.serviceId, serviceIds[0])
         : inArray(orders.serviceId, serviceIds),
     ];

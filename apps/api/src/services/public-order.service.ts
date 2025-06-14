@@ -184,7 +184,7 @@ export class PublicOrderService {
     });
 
     // Use transaction for atomic order creation
-    const result = await this.db.transaction(async (tx) => {
+    const result = await this.db.transaction(async tx => {
       const [orderResult] = await tx
         .insert(schema.orders)
         .values({

@@ -29,7 +29,7 @@ export class AuthService {
 		}
 
 		if (token) {
-			apiClient.setAuthToken(token);
+			apiClient.setToken(token);
 
 			try {
 				const userData = await this.getAuthUser();
@@ -49,7 +49,7 @@ export class AuthService {
 	}
 
 	static async logout(): Promise<void> {
-		apiClient.setAuthToken(null);
+		apiClient.setToken(null);
 		user.set(null);
 		if (browser) {
 			await goto('/login');
@@ -61,13 +61,13 @@ export class AuthService {
 
 		const token = localStorage.getItem('auth_token');
 		if (token) {
-			apiClient.setAuthToken(token);
+			apiClient.setToken(token);
 			try {
 				const userData = await this.getAuthUser();
 				user.set(userData);
 			} catch (err) {
 				console.error('Failed to restore authentication:', err);
-				apiClient.setAuthToken(null);
+				apiClient.setToken(null);
 			}
 		}
 	}

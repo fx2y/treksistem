@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { setCookie, getCookie } from "hono/cookie";
 
+import { rateLimit } from "../middleware/rate-limiter";
 import type { ServiceContainer } from "../services/factory";
 
 // Utility function to generate PKCE code challenge
@@ -21,6 +22,15 @@ const auth = new Hono<{
     services: ServiceContainer;
   };
 }>();
+
+// Rate limiting for auth endpoints - 10 requests per 60 seconds
+const authRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 60 seconds
+  max: 10, // 10 requests per window
+});
+
+// Apply rate limiting to all auth endpoints
+auth.use("*", authRateLimit);
 
 auth.get("/login/google", async c => {
   const { googleProvider } = createAuthServices(c.env);
@@ -41,15 +51,17 @@ auth.get("/login/google", async c => {
   setCookie(c, "google_oauth_state", state, {
     httpOnly: true,
     secure: true,
-    sameSite: "Lax",
+    sameSite: "Strict",
     maxAge: 600, // 10 minutes
+    path: "/",
   });
 
   setCookie(c, "google_oauth_code_verifier", codeVerifier, {
     httpOnly: true,
     secure: true,
-    sameSite: "Lax",
+    sameSite: "Strict",
     maxAge: 600, // 10 minutes
+    path: "/",
   });
 
   return c.redirect(url.toString());
@@ -143,7 +155,7 @@ auth.get("/callback/google", async c => {
     setCookie(c, "access_token", accessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "Lax",
+      sameSite: "Strict",
       maxAge: 60 * 15, // 15 minutes
       path: "/",
     });
@@ -151,7 +163,7 @@ auth.get("/callback/google", async c => {
     setCookie(c, "refresh_token", refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "Lax",
+      sameSite: "Strict",
       maxAge: 60 * 60 * 24 * 30, // 30 days
       path: "/",
     });
@@ -229,7 +241,7 @@ auth.post("/logout", async c => {
   setCookie(c, "access_token", "", {
     httpOnly: true,
     secure: true,
-    sameSite: "Lax",
+    sameSite: "Strict",
     maxAge: 0,
     path: "/",
   });
@@ -237,7 +249,7 @@ auth.post("/logout", async c => {
   setCookie(c, "refresh_token", "", {
     httpOnly: true,
     secure: true,
-    sameSite: "Lax",
+    sameSite: "Strict",
     maxAge: 0,
     path: "/",
   });
@@ -282,7 +294,7 @@ auth.post("/refresh", async c => {
     setCookie(c, "access_token", newAccessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "Lax",
+      sameSite: "Strict",
       maxAge: 60 * 15, // 15 minutes
       path: "/",
     });

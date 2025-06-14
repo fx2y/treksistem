@@ -46,7 +46,10 @@ app.post("/", zValidator("json", createServiceSchema), async c => {
   const { mitraServiceManagementService } = c.get("services");
 
   try {
-    const service = await mitraServiceManagementService.createService(mitraId, data);
+    const service = await mitraServiceManagementService.createService(
+      mitraId,
+      data
+    );
     return c.json(service, 201);
   } catch (error) {
     console.error("Error creating service:", error);
@@ -75,7 +78,10 @@ app.get("/:serviceId", async c => {
   const { mitraServiceManagementService } = c.get("services");
 
   try {
-    const service = await mitraServiceManagementService.getServiceById(mitraId, serviceId);
+    const service = await mitraServiceManagementService.getServiceById(
+      mitraId,
+      serviceId
+    );
     if (!service) {
       return c.json({ error: "Service not found" }, 404);
     }
@@ -94,7 +100,11 @@ app.put("/:serviceId", zValidator("json", updateServiceSchema), async c => {
   const { mitraServiceManagementService } = c.get("services");
 
   try {
-    const service = await mitraServiceManagementService.updateService(mitraId, serviceId, data);
+    const service = await mitraServiceManagementService.updateService(
+      mitraId,
+      serviceId,
+      data
+    );
     return c.json(service);
   } catch (error) {
     console.error("Error updating service:", error);

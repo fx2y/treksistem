@@ -2,18 +2,18 @@
 
 // Create test data specifically for public order API verification
 async function setupPublicOrderTestData() {
-  console.log('Setting up public order verification test data...');
-  
-  const API_BASE = process.env.API_BASE || 'http://localhost:64517';
-  
+  console.log("Setting up public order verification test data...");
+
+  const API_BASE = process.env.API_BASE || "http://localhost:64517";
+
   try {
     // Create test data via direct database inserts using wrangler d1 execute
-    const { exec } = require('child_process');
-    const { promisify } = require('util');
+    const { exec } = require("child_process");
+    const { promisify } = require("util");
     const execAsync = promisify(exec);
-    
-    console.log('Inserting test data via wrangler d1...');
-    
+
+    console.log("Inserting test data via wrangler d1...");
+
     const insertSQL = `
 -- Insert test users
 INSERT OR REPLACE INTO users (id, google_id, email, name) VALUES 
@@ -47,33 +47,37 @@ INSERT OR REPLACE INTO service_rates (service_id, base_fee, fee_per_km) VALUES
 
     const command = `cd ${process.cwd()} && echo "${insertSQL}" | npx wrangler d1 execute treksistem-db-local --local --file=-`;
     await execAsync(command);
-    
-    console.log('✅ Test data inserted successfully');
-    
+
+    console.log("✅ Test data inserted successfully");
+
     // Verify data was inserted
-    console.log('Verifying test data...');
-    const testResponse = await fetch(`${API_BASE}/api/public/services?lat=-7.9797&lng=112.6304&payloadTypeId=mpt_makanan_panas`);
+    console.log("Verifying test data...");
+    const testResponse = await fetch(
+      `${API_BASE}/api/public/services?lat=-7.9797&lng=112.6304&payloadTypeId=mpt_makanan_panas`
+    );
     const services = await testResponse.json();
-    
+
     if (services.length > 0) {
-      console.log('✅ Service discovery test data verified:', services);
+      console.log("✅ Service discovery test data verified:", services);
     } else {
-      console.log('⚠️  No services found - may need to check junction table setup');
+      console.log(
+        "⚠️  No services found - may need to check junction table setup"
+      );
     }
-    
+
     return true;
   } catch (error) {
-    console.error('❌ Error setting up test data:', error.message);
+    console.error("❌ Error setting up test data:", error.message);
     return false;
   }
 }
 
 setupPublicOrderTestData().then(success => {
   if (success) {
-    console.log('\n✅ Ready for public order API verification!');
+    console.log("\n✅ Ready for public order API verification!");
     process.exit(0);
   } else {
-    console.log('\n❌ Setup failed');
+    console.log("\n❌ Setup failed");
     process.exit(1);
   }
 });

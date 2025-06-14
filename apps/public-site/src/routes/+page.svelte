@@ -2,6 +2,9 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/services/apiClient';
 	import type { ServiceDiscoveryResponse } from '$lib/types';
+	import { Svelte } from '@treksistem/ui';
+	
+	const { Button, Card, Input, Spinner } = Svelte;
 
 	let services: ServiceDiscoveryResponse[] = [];
 	let loading = true;
@@ -52,29 +55,22 @@
 		</div>
 
 		<!-- Location & Filter Section -->
-		<div class="bg-white rounded-lg shadow-md p-6 mb-8">
-			<h2 class="text-lg font-semibold mb-4">Find Services Near You</h2>
+		<Card title="Find Services Near You" class="mb-8">
 			<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">Latitude</label>
-					<input
-						type="number"
-						step="0.0001"
-						bind:value={lat}
-						on:change={handleLocationChange}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-					/>
-				</div>
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">Longitude</label>
-					<input
-						type="number"
-						step="0.0001"
-						bind:value={lng}
-						on:change={handleLocationChange}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-					/>
-				</div>
+				<Input
+					type="number"
+					step="0.0001"
+					label="Latitude"
+					bind:value={lat}
+					on:change={handleLocationChange}
+				/>
+				<Input
+					type="number"
+					step="0.0001"
+					label="Longitude"
+					bind:value={lng}
+					on:change={handleLocationChange}
+				/>
 				<div>
 					<label class="block text-sm font-medium text-gray-700 mb-2">Payload Type</label>
 					<select
@@ -89,25 +85,23 @@
 					</select>
 				</div>
 			</div>
-		</div>
+		</Card>
 
 		<!-- Services List -->
-		<div class="bg-white rounded-lg shadow-md p-6">
-			<h2 class="text-lg font-semibold mb-6">Available Services</h2>
-
+		<Card title="Available Services">
 			{#if loading}
 				<div class="flex justify-center items-center py-12">
-					<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+					<Spinner size="lg" />
 				</div>
 			{:else if error}
 				<div class="text-center py-12">
 					<div class="text-red-600 mb-4">{error}</div>
-					<button
+					<Button
 						on:click={loadServices}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+						variant="primary"
 					>
 						Retry
-					</button>
+					</Button>
 				</div>
 			{:else if services.length === 0}
 				<div class="text-center py-12 text-gray-500">
@@ -116,7 +110,7 @@
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 					{#each services as service}
-						<div class="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+						<Card class="hover:shadow-lg transition-shadow">
 							<div class="mb-4">
 								<h3 class="text-lg font-semibold text-gray-900 mb-2">
 									{service.serviceName}
@@ -132,17 +126,18 @@
 								</span>
 							</div>
 
-							<a
+							<Button
 								href="/order/{service.serviceId}"
-								class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block"
+								variant="primary"
+								class="w-full text-center block"
 							>
 								Book Now
-							</a>
-						</div>
+							</Button>
+						</Card>
 					{/each}
 				</div>
 			{/if}
-		</div>
+		</Card>
 
 		<!-- Footer -->
 		<div class="text-center mt-12 text-gray-600">

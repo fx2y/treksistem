@@ -14,20 +14,30 @@ const orders = new Hono<{
 }>();
 
 const StopInputSchema = z.object({
-  address: z.string().min(1),
+  address: z.string().min(1).max(500).trim(),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   type: z.enum(["pickup", "dropoff"]),
 });
 
 const OrderCreationRequestSchema = z.object({
-  serviceId: z.string().min(1),
-  stops: z.array(StopInputSchema).min(2),
-  ordererName: z.string().min(1),
-  ordererPhone: z.string().min(1),
-  recipientName: z.string().min(1),
-  recipientPhone: z.string().min(1),
-  notes: z.string().optional(),
+  serviceId: z.string().min(1).max(50).trim(),
+  stops: z.array(StopInputSchema).min(2).max(10),
+  ordererName: z.string().min(1).max(100).trim(),
+  ordererPhone: z
+    .string()
+    .min(8)
+    .max(20)
+    .regex(/^[0-9+\-\s()]+$/, "Invalid phone format")
+    .trim(),
+  recipientName: z.string().min(1).max(100).trim(),
+  recipientPhone: z
+    .string()
+    .min(8)
+    .max(20)
+    .regex(/^[0-9+\-\s()]+$/, "Invalid phone format")
+    .trim(),
+  notes: z.string().max(1000).trim().optional(),
 });
 
 orders.post("/", zValidator("json", OrderCreationRequestSchema), async c => {

@@ -12,11 +12,11 @@ async function testAPIs() {
       body: JSON.stringify({ email: 'test@example.com' })
     });
     console.log('Invite endpoint status:', response1.status);
-    console.log('Invite endpoint exists:', response1.status \!== 404);
+    console.log('Invite endpoint exists:', response1.status !== 404);
     
     const response2 = await fetch(`${API_BASE}/api/mitra/drivers`);
     console.log('List drivers endpoint status:', response2.status);
-    console.log('List drivers endpoint exists:', response2.status \!== 404);
+    console.log('List drivers endpoint exists:', response2.status !== 404);
     
     const response3 = await fetch(`${API_BASE}/api/public/invites/accept`, {
       method: 'POST',
@@ -24,7 +24,7 @@ async function testAPIs() {
       body: JSON.stringify({ token: 'test-token' })
     });
     console.log('Accept invite endpoint status:', response3.status);
-    console.log('Accept invite endpoint exists:', response3.status \!== 404);
+    console.log('Accept invite endpoint exists:', response3.status !== 404);
     
   } catch (error) {
     console.error('Error:', error.message);
@@ -34,4 +34,3 @@ async function testAPIs() {
 }
 
 testAPIs();
-EOF < /dev/null

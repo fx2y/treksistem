@@ -14,15 +14,15 @@ const quote = new Hono<{
 }>();
 
 const StopInputSchema = z.object({
-  address: z.string().min(1),
+  address: z.string().min(1).max(500).trim(),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   type: z.enum(["pickup", "dropoff"]),
 });
 
 const QuoteRequestSchema = z.object({
-  serviceId: z.string().min(1),
-  stops: z.array(StopInputSchema).min(2),
+  serviceId: z.string().min(1).max(50).trim(),
+  stops: z.array(StopInputSchema).min(2).max(10),
 });
 
 quote.post("/", zValidator("json", QuoteRequestSchema), async c => {

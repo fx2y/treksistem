@@ -6,6 +6,9 @@
   import OrderCard from '$lib/components/OrderCard.svelte';
   import LocationToggle from '$lib/components/LocationToggle.svelte';
   import MitraSelector from '$lib/components/MitraSelector.svelte';
+  import { Svelte } from '@treksistem/ui';
+  
+  const { Button, Card, Spinner } = Svelte;
 
   $: auth = $authStore;
   
@@ -79,15 +82,18 @@
 <div class="min-h-screen bg-gray-50">
   {#if !auth.isAuthenticated}
     <div class="flex items-center justify-center min-h-screen">
-      <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full mx-4">
-        <h1 class="text-2xl font-bold text-center mb-4">Driver Login Required</h1>
-        <p class="text-gray-600 text-center mb-6">Please log in through the authentication system to access the driver dashboard.</p>
-        <a
-          href="/api/auth/login"
-          class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block"
-        >
-          Login with Google
-        </a>
+      <div class="max-w-md w-full mx-4">
+        <Card title="Driver Login Required" padding="lg" shadow="lg">
+          <p class="text-gray-600 text-center mb-6">Please log in through the authentication system to access the driver dashboard.</p>
+          <Button 
+            href="/api/auth/login" 
+            variant="primary" 
+            size="lg" 
+            class="w-full text-center block"
+          >
+            Login with Google
+          </Button>
+        </Card>
       </div>
     </div>
   {:else}
@@ -99,12 +105,13 @@
             <h1 class="text-xl font-bold text-gray-900">Driver Dashboard</h1>
             <p class="text-sm text-gray-600">Welcome back, {auth.user?.name}</p>
           </div>
-          <button
+          <Button 
             on:click={handleLogout}
-            class="text-sm text-gray-600 hover:text-gray-800 px-3 py-1 rounded border border-gray-300 hover:bg-gray-50"
+            variant="outline"
+            size="sm"
           >
             Logout
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -123,28 +130,26 @@
       <div class="mb-6">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-semibold text-gray-900">Available Orders</h2>
-          <button
+          <Button 
             on:click={loadOrders}
             disabled={loading}
-            class="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400"
+            variant="ghost"
+            size="sm"
           >
             {loading ? 'Refreshing...' : 'Refresh'}
-          </button>
+          </Button>
         </div>
 
         {#if error}
-          <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <Card class="mb-4 bg-red-50 border-red-200">
             <p class="text-red-800">{error}</p>
-          </div>
+          </Card>
         {/if}
 
         {#if loading}
           <div class="text-center py-8">
             <div class="inline-flex items-center gap-2 text-gray-600">
-              <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <Spinner size="sm" />
               Loading orders...
             </div>
           </div>

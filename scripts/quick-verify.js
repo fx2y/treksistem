@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const API_BASE = 'http://localhost:59946';
+const API_BASE = "http://localhost:59946";
 
 // Helper function to make API requests
 async function apiRequest(endpoint, options = {}) {
@@ -8,11 +8,11 @@ async function apiRequest(endpoint, options = {}) {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      }
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
     });
-    
+
     const data = await response.text();
     let parsedData;
     try {
@@ -20,7 +20,7 @@ async function apiRequest(endpoint, options = {}) {
     } catch {
       parsedData = data;
     }
-    
+
     return { status: response.status, data: parsedData };
   } catch (error) {
     return { status: 0, error: error.message };
@@ -28,34 +28,34 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 async function testBasicEndpoints() {
-  console.log('🔍 Quick API Verification');
-  console.log('========================');
-  
+  console.log("🔍 Quick API Verification");
+  console.log("========================");
+
   // Test 1: Root endpoint
-  console.log('\n1. Testing root endpoint...');
-  const rootResult = await apiRequest('/');
+  console.log("\n1. Testing root endpoint...");
+  const rootResult = await apiRequest("/");
   if (rootResult.status === 200) {
-    console.log('✅ PASS: Root endpoint accessible');
+    console.log("✅ PASS: Root endpoint accessible");
   } else {
-    console.log('❌ FAIL: Root endpoint not accessible');
+    console.log("❌ FAIL: Root endpoint not accessible");
   }
-  
+
   // Test 2: Health check or any public endpoint
-  console.log('\n2. Testing public endpoints...');
-  const publicResult = await apiRequest('/api/public');
+  console.log("\n2. Testing public endpoints...");
+  const publicResult = await apiRequest("/api/public");
   console.log(`Status: ${publicResult.status}`);
-  
+
   // Test 3: Check if mitra endpoints require auth
-  console.log('\n3. Testing mitra endpoints (should require auth)...');
-  const mitraResult = await apiRequest('/api/mitra/drivers');
+  console.log("\n3. Testing mitra endpoints (should require auth)...");
+  const mitraResult = await apiRequest("/api/mitra/drivers");
   if (mitraResult.status === 401) {
-    console.log('✅ PASS: Mitra endpoints require authentication');
+    console.log("✅ PASS: Mitra endpoints require authentication");
   } else {
     console.log(`❌ FAIL: Expected 401, got ${mitraResult.status}`);
   }
-  
-  console.log('\n========================');
-  console.log('Quick verification complete');
+
+  console.log("\n========================");
+  console.log("Quick verification complete");
 }
 
 testBasicEndpoints().catch(console.error);

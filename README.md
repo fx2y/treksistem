@@ -189,8 +189,8 @@ pnpm dev
     ```
   - To format all files with Prettier:
     `bash
-    pnpm format
-    `
+pnpm format
+`
     _(Note: A pre-commit hook is set up with Husky to automatically lint and format staged files.)_
 
 ### Contributing

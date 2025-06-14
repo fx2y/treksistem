@@ -158,7 +158,7 @@ export class MitraOrderService {
     };
 
     // Use transaction for atomic order creation
-    const { orderId, publicId } = await this.db.transaction(async (tx) => {
+    const { orderId, publicId } = await this.db.transaction(async tx => {
       const [insertedOrder] = await tx
         .insert(orders)
         .values(orderData)
