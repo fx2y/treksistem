@@ -55,17 +55,30 @@ const ORDER_STATUS_TRANSITIONS: Record<string, string[]> = {
 export class DriverWorkflowService {
   constructor(private db: DbClient) {}
 
-  async getAssignedOrders(driverId: string): Promise<DriverOrder[]> {
+  async getAssignedOrders(
+    driverId: string,
+    mitraId?: string
+  ): Promise<DriverOrder[]> {
     const orderList = await this.db.query.orders.findMany({
       where: eq(orders.assignedDriverId, driverId),
       with: {
         stops: {
           orderBy: (stops, { asc }) => [asc(stops.sequence)],
         },
+        service: mitraId
+          ? {
+              columns: { mitraId: true },
+            }
+          : undefined,
       },
     });
 
-    return orderList.map(order => ({
+    // Filter by mitraId if provided
+    const filteredOrders = mitraId
+      ? orderList.filter(order => order.service?.mitraId === mitraId)
+      : orderList;
+
+    return filteredOrders.map(order => ({
       id: order.id,
       publicId: order.publicId,
       status: order.status,

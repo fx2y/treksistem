@@ -1,3 +1,5 @@
+import { BaseApiClient } from "@treksistem/api-client";
+
 import { PUBLIC_API_URL } from "$lib/env";
 import type {
   ServiceDiscoveryResponse,
@@ -8,44 +10,9 @@ import type {
   OrderTrackingResponse,
 } from "$lib/types";
 
-class ApiClient {
-  private baseUrl: string;
-
+class PublicApiClient extends BaseApiClient {
   constructor() {
-    this.baseUrl = PUBLIC_API_URL;
-  }
-
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
-  async get<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
-    const searchParams = params ? new URLSearchParams(params).toString() : "";
-    const url = searchParams ? `${endpoint}?${searchParams}` : endpoint;
-    return this.request<T>(url);
-  }
-
-  async post<T>(endpoint: string, body?: unknown): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: "POST",
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    super(PUBLIC_API_URL);
   }
 
   async findAvailableServices(
@@ -79,4 +46,4 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient();
+export const apiClient = new PublicApiClient();

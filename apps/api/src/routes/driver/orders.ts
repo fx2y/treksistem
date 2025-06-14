@@ -38,11 +38,12 @@ const orders = new Hono<{
 
 orders.get("/", async c => {
   const driverId = c.get("driverId");
+  const mitraId = c.req.query("mitraId");
   const db = createDbClient(c.env.DB);
   const service = new DriverWorkflowService(db);
 
   try {
-    const assignedOrders = await service.getAssignedOrders(driverId);
+    const assignedOrders = await service.getAssignedOrders(driverId, mitraId);
     return c.json(assignedOrders);
   } catch (error) {
     return c.json({ error: "Failed to fetch assigned orders" }, 500);

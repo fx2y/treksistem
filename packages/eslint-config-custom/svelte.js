@@ -27,5 +27,6 @@ module.exports = {
     "svelte/no-at-debug-tags": "warn",
     "svelte/no-reactive-functions": "error",
     "svelte/no-reactive-literals": "error",
+    "svelte/no-inner-declarations": "off",
   },
 };

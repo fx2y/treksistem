@@ -14,6 +14,11 @@
     "allowSyntheticDefaultImports": true,
     "types": ["react", "react-dom"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/index.ts",
+    "src/react-components.tsx",
+    "src/svelte/index.ts",
+    "src/svelte/*.d.ts"
+  ],
+  "exclude": ["node_modules", "dist", "src/svelte/*.svelte"]
 }
