@@ -72,8 +72,9 @@
 					on:change={handleLocationChange}
 				/>
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">Payload Type</label>
+					<label for="payload-type" class="block text-sm font-medium text-gray-700 mb-2">Payload Type</label>
 					<select
+						id="payload-type"
 						bind:value={payloadTypeId}
 						on:change={handleLocationChange}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

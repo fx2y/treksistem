@@ -19,7 +19,7 @@
 	$: serviceId = $page.params.serviceId;
 	$: formState = $orderFormStore;
 
-	let quoteTimeout: NodeJS.Timeout | null = null;
+	let quoteTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	onMount(() => {
 		resetOrderForm();
@@ -161,10 +161,11 @@
 
 								<div class="grid grid-cols-1 gap-3">
 									<div>
-										<label class="block text-sm font-medium text-gray-700 mb-1">
+										<label for="address-{index}" class="block text-sm font-medium text-gray-700 mb-1">
 											Address
 										</label>
 										<input
+											id="address-{index}"
 											type="text"
 											value={stop.address}
 											on:input={(e) => handleStopChange(index, 'address', (e.target as HTMLInputElement).value)}
@@ -176,10 +177,11 @@
 
 									<div class="grid grid-cols-2 gap-3">
 										<div>
-											<label class="block text-sm font-medium text-gray-700 mb-1">
+											<label for="lat-{index}" class="block text-sm font-medium text-gray-700 mb-1">
 												Latitude
 											</label>
 											<input
+												id="lat-{index}"
 												type="number"
 												step="0.0001"
 												value={stop.lat || ''}
@@ -190,10 +192,11 @@
 											/>
 										</div>
 										<div>
-											<label class="block text-sm font-medium text-gray-700 mb-1">
+											<label for="lng-{index}" class="block text-sm font-medium text-gray-700 mb-1">
 												Longitude
 											</label>
 											<input
+												id="lng-{index}"
 												type="number"
 												step="0.0001"
 												value={stop.lng || ''}
@@ -206,10 +209,11 @@
 									</div>
 
 									<div>
-										<label class="block text-sm font-medium text-gray-700 mb-1">
+										<label for="type-{index}" class="block text-sm font-medium text-gray-700 mb-1">
 											Type
 										</label>
 										<select
+											id="type-{index}"
 											value={stop.type}
 											on:change={(e) => handleStopChange(index, 'type', (e.target as HTMLSelectElement).value)}
 											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -248,10 +252,11 @@
 					<h2 class="text-lg font-semibold text-gray-900 mb-4">Customer Information</h2>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">
+							<label for="orderer-name" class="block text-sm font-medium text-gray-700 mb-1">
 								Orderer Name
 							</label>
 							<input
+								id="orderer-name"
 								type="text"
 								bind:value={formState.ordererName}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -260,10 +265,11 @@
 							/>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">
+							<label for="orderer-phone" class="block text-sm font-medium text-gray-700 mb-1">
 								Orderer Phone
 							</label>
 							<input
+								id="orderer-phone"
 								type="tel"
 								bind:value={formState.ordererPhone}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -272,10 +278,11 @@
 							/>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">
+							<label for="recipient-name" class="block text-sm font-medium text-gray-700 mb-1">
 								Recipient Name (optional)
 							</label>
 							<input
+								id="recipient-name"
 								type="text"
 								bind:value={formState.recipientName}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -283,10 +290,11 @@
 							/>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">
+							<label for="recipient-phone" class="block text-sm font-medium text-gray-700 mb-1">
 								Recipient Phone (optional)
 							</label>
 							<input
+								id="recipient-phone"
 								type="tel"
 								bind:value={formState.recipientPhone}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -298,10 +306,11 @@
 
 				<!-- Additional Notes -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
 						Additional Notes (optional)
 					</label>
 					<textarea
+						id="notes"
 						bind:value={formState.notes}
 						rows="3"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
