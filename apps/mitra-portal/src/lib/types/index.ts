@@ -80,4 +80,17 @@ export interface Invoice {
 	paidAt?: string; // ISO8601Timestamp
 }
 
+export interface MitraProfile {
+	id: string;
+	businessName: string;
+	address: string | null;
+	phone: string | null;
+}
+
+export interface UpdateMitraProfile {
+	businessName: string;
+	address?: string;
+	phone?: string;
+}
+
 export * from './auth';
