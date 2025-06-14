@@ -1,13 +1,24 @@
 export interface AuthUser {
-	userId: string;
-	email: string;
-	name: string;
-	avatarUrl: string;
+	user: {
+		id: string;
+		email: string;
+		name: string;
+		avatarUrl: string | null;
+	};
 	roles: {
 		isMitra: boolean;
+		mitraId: string | null;
 		isDriver: boolean;
+		driverForMitras: Array<{
+			mitraId: string;
+			businessName: string;
+		}>;
 		isAdmin: boolean;
 	};
-	mitraId?: string;
-	driverId?: string;
+	mitra?: {
+		id: string;
+		businessName: string;
+		hasCompletedOnboarding: boolean;
+		activeDriverLimit: number;
+	};
 }

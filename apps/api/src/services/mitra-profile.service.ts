@@ -7,6 +7,7 @@ export interface MitraProfileDTO {
   businessName: string;
   address: string | null;
   phone: string | null;
+  hasCompletedOnboarding: boolean;
 }
 
 export interface UpdateMitraProfileData {
@@ -25,6 +26,7 @@ export class MitraProfileService {
         businessName: mitras.businessName,
         address: mitras.address,
         phone: mitras.phone,
+        hasCompletedOnboarding: mitras.hasCompletedOnboarding,
       })
       .from(mitras)
       .where(eq(mitras.id, mitraId))
@@ -39,6 +41,7 @@ export class MitraProfileService {
       businessName: mitra.businessName,
       address: mitra.address,
       phone: mitra.phone,
+      hasCompletedOnboarding: mitra.hasCompletedOnboarding,
     };
   }
 
@@ -59,6 +62,15 @@ export class MitraProfileService {
     }
 
     await this.db.update(mitras).set(updateData).where(eq(mitras.id, mitraId));
+
+    return this.getProfile(mitraId);
+  }
+
+  async completeOnboarding(mitraId: string): Promise<MitraProfileDTO | null> {
+    await this.db
+      .update(mitras)
+      .set({ hasCompletedOnboarding: true })
+      .where(eq(mitras.id, mitraId));
 
     return this.getProfile(mitraId);
   }
