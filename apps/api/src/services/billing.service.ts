@@ -3,6 +3,7 @@ import type { DbClient } from "@treksistem/db";
 import { eq, and, gte, lt } from "drizzle-orm";
 
 import { generateQRIS } from "../lib/qris";
+import { NotFoundError, ForbiddenError } from "../lib/errors";
 
 export interface CreateInvoiceData {
   mitraId: string;
@@ -80,6 +81,36 @@ export class BillingService {
       .where(and(...conditions));
 
     return result[0];
+  }
+
+  async getPublicInvoiceDetails(publicInvoiceId: string) {
+    const invoice = await this.getInvoiceByPublicId(publicInvoiceId);
+
+    if (!invoice) {
+      throw new NotFoundError("Invoice not found");
+    }
+
+    if (invoice.type !== "CUSTOMER_PAYMENT") {
+      throw new ForbiddenError("Invoice not accessible publicly");
+    }
+
+    const mitra = await this.db
+      .select({ businessName: mitras.businessName })
+      .from(mitras)
+      .where(eq(mitras.id, invoice.mitraId))
+      .limit(1);
+
+    const businessName = mitra[0]?.businessName || "Treksistem Partner";
+
+    return {
+      businessName,
+      amount: invoice.amount,
+      currency: invoice.currency,
+      description: invoice.description,
+      qrisPayload: invoice.qrisPayload,
+      status: invoice.status,
+      dueDate: invoice.dueDate,
+    };
   }
 
   async confirmPayment({

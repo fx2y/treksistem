@@ -1,15 +1,22 @@
 import { zValidator } from "@hono/zod-validator";
-import * as schema from "@treksistem/db";
-import { NotificationService } from "@treksistem/notifications";
-import { drizzle } from "drizzle-orm/d1";
+import type { createAuthServices } from "@treksistem/auth";
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { PublicOrderService } from "../../services/public-order.service";
+import type { ServiceContainer } from "../../services/factory";
 
 const orders = new Hono<{
   Bindings: {
     DB: D1Database;
+    GOOGLE_CLIENT_ID: string;
+    GOOGLE_CLIENT_SECRET: string;
+    JWT_SECRET: string;
+    FRONTEND_URL: string;
+  };
+  Variables: {
+    authServices: ReturnType<typeof createAuthServices>;
+    services: ServiceContainer;
+    userId: string;
   };
 }>();
 
@@ -41,31 +48,11 @@ const OrderCreationRequestSchema = z.object({
 });
 
 orders.post("/", zValidator("json", OrderCreationRequestSchema), async c => {
-  const db = drizzle(c.env.DB, { schema });
-  const notificationService = new NotificationService(db);
-  const publicOrderService = new PublicOrderService(db, notificationService);
-
+  const { publicOrderService } = c.get("services");
   const request = c.req.valid("json");
 
-  try {
-    const orderResponse = await publicOrderService.createOrder(request);
-    return c.json(orderResponse, 201);
-  } catch (error) {
-    console.error("Order creation error:", error);
-    if (
-      error instanceof Error &&
-      error.message === "Service not found or not public"
-    ) {
-      return c.json({ error: "Service not found" }, 404);
-    }
-    return c.json(
-      {
-        error: "Failed to create order",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      500
-    );
-  }
+  const orderResponse = await publicOrderService.createOrder(request);
+  return c.json(orderResponse, 201);
 });
 
 export default orders;

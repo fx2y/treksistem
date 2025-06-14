@@ -73,8 +73,8 @@ describe("MitraServiceManagementService", () => {
     });
 
     it("should throw error when service creation fails", async () => {
-      // Mock getServiceById to return null
-      vi.spyOn(service, 'getServiceById').mockResolvedValue(null);
+      // Mock getServiceById to throw NotFoundError
+      vi.spyOn(service, 'getServiceById').mockRejectedValue(new Error("Service not found"));
 
       mockDb.transaction.mockImplementation(async (callback: any) => {
         const mockTx = {
@@ -333,8 +333,8 @@ describe("MitraServiceManagementService", () => {
     });
 
     it("should throw error if service not found after update", async () => {
-      // Mock getServiceById to return null
-      vi.spyOn(service, 'getServiceById').mockResolvedValue(null);
+      // Mock getServiceById to throw NotFoundError
+      vi.spyOn(service, 'getServiceById').mockRejectedValue(new Error("Service not found"));
 
       mockDb.transaction.mockImplementation(async (callback: any) => {
         const mockTx = {

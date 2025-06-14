@@ -45,16 +45,11 @@ app.post("/", zValidator("json", createServiceSchema), async c => {
   const data = c.req.valid("json");
   const { mitraServiceManagementService } = c.get("services");
 
-  try {
-    const service = await mitraServiceManagementService.createService(
-      mitraId,
-      data
-    );
-    return c.json(service, 201);
-  } catch (error) {
-    console.error("Error creating service:", error);
-    return c.json({ error: "Failed to create service" }, 500);
-  }
+  const service = await mitraServiceManagementService.createService(
+    mitraId,
+    data
+  );
+  return c.json(service, 201);
 });
 
 // Get all services for the authenticated mitra
@@ -62,13 +57,8 @@ app.get("/", async c => {
   const mitraId = c.get("mitraId");
   const { mitraServiceManagementService } = c.get("services");
 
-  try {
-    const services = await mitraServiceManagementService.getServices(mitraId);
-    return c.json(services);
-  } catch (error) {
-    console.error("Error fetching services:", error);
-    return c.json({ error: "Failed to fetch services" }, 500);
-  }
+  const services = await mitraServiceManagementService.getServices(mitraId);
+  return c.json(services);
 });
 
 // Get a specific service by ID
@@ -77,19 +67,11 @@ app.get("/:serviceId", async c => {
   const serviceId = c.req.param("serviceId");
   const { mitraServiceManagementService } = c.get("services");
 
-  try {
-    const service = await mitraServiceManagementService.getServiceById(
-      mitraId,
-      serviceId
-    );
-    if (!service) {
-      return c.json({ error: "Service not found" }, 404);
-    }
-    return c.json(service);
-  } catch (error) {
-    console.error("Error fetching service:", error);
-    return c.json({ error: "Failed to fetch service" }, 500);
-  }
+  const service = await mitraServiceManagementService.getServiceById(
+    mitraId,
+    serviceId
+  );
+  return c.json(service);
 });
 
 // Update a service
@@ -99,23 +81,12 @@ app.put("/:serviceId", zValidator("json", updateServiceSchema), async c => {
   const data = c.req.valid("json");
   const { mitraServiceManagementService } = c.get("services");
 
-  try {
-    const service = await mitraServiceManagementService.updateService(
-      mitraId,
-      serviceId,
-      data
-    );
-    return c.json(service);
-  } catch (error) {
-    console.error("Error updating service:", error);
-    if (
-      error instanceof Error &&
-      error.message === "Service not found after update"
-    ) {
-      return c.json({ error: "Service not found" }, 404);
-    }
-    return c.json({ error: "Failed to update service" }, 500);
-  }
+  const service = await mitraServiceManagementService.updateService(
+    mitraId,
+    serviceId,
+    data
+  );
+  return c.json(service);
 });
 
 export default app;

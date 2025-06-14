@@ -29,18 +29,8 @@ quote.post("/", zValidator("json", QuoteRequestSchema), async c => {
   const { publicOrderService } = c.get("services");
   const request = c.req.valid("json");
 
-  try {
-    const quoteResponse = await publicOrderService.calculateQuote(request);
-    return c.json(quoteResponse);
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message === "Service not found or not public"
-    ) {
-      return c.json({ error: "Service not found" }, 404);
-    }
-    return c.json({ error: "Failed to calculate quote" }, 500);
-  }
+  const quoteResponse = await publicOrderService.calculateQuote(request);
+  return c.json(quoteResponse);
 });
 
 export default quote;

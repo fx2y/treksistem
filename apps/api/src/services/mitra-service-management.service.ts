@@ -11,6 +11,8 @@ import {
 } from "@treksistem/db";
 import { eq, and, inArray } from "drizzle-orm";
 
+import { NotFoundError } from "../lib/errors";
+
 export interface CreateServiceRequest {
   name: string;
   isPublic: boolean;
@@ -240,7 +242,7 @@ export class MitraServiceManagementService {
   async getServiceById(
     mitraId: string,
     serviceId: string
-  ): Promise<ServiceResponse | null> {
+  ): Promise<ServiceResponse> {
     const result = await this.db
       .select({
         service: services,
@@ -252,7 +254,7 @@ export class MitraServiceManagementService {
       .limit(1);
 
     if (result.length === 0) {
-      return null;
+      throw new NotFoundError("Service not found");
     }
 
     const row = result[0];

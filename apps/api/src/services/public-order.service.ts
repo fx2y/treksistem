@@ -7,6 +7,8 @@ import {
 } from "@treksistem/notifications";
 import { and, eq } from "drizzle-orm";
 
+import { NotFoundError } from "../lib/errors";
+
 export interface StopInput {
   address: string;
   lat: number;
@@ -129,7 +131,7 @@ export class PublicOrderService {
       .get();
 
     if (!serviceData) {
-      throw new Error("Service not found or not public");
+      throw new NotFoundError("Service not found or not public");
     }
 
     const distancePromises = [];
@@ -175,7 +177,7 @@ export class PublicOrderService {
       .get();
 
     if (!service) {
-      throw new Error("Service not found or not public");
+      throw new NotFoundError("Service not found or not public");
     }
 
     const quote = await this.calculateQuote({
@@ -354,7 +356,7 @@ export class PublicOrderService {
     });
 
     if (!order) {
-      throw new Error("Order not found");
+      throw new NotFoundError("Order not found");
     }
 
     return {
