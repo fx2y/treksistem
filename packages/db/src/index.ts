@@ -1,5 +1,5 @@
 // Database configuration and schema exports
-export * from "./schema/index";
+export * from "./schema";
 export * from "./client";
 
 // Export database type as Database for backward compatibility
@@ -8,7 +8,7 @@ export type { DbClient as Database } from "./client";
 // Inferred types for all tables
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
-import * as schema from "./schema/index";
+import * as schema from "./schema";
 
 // User types
 export type User = InferSelectModel<typeof schema.users>;

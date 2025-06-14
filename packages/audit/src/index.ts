@@ -1,5 +1,5 @@
+import { auditLogs } from "@treksistem/db";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
-import { nanoid } from "nanoid";
 
 export interface AuditLogEvent {
   actorId: string;
@@ -13,86 +13,36 @@ export interface AdminAuditLogOptions {
   impersonatedMitraId?: string;
   targetEntity: string;
   targetId: string;
-  action:
-    | "CREATE"
-    | "UPDATE"
-    | "DELETE"
-    | "ASSIGN"
-    | "INVITE"
-    | "DRIVER_AVAILABILITY_CHANGED"
-    | "ORDER_STATUS_UPDATED"
-    | "ORDER_STOP_COMPLETED"
-    | "REPORT_SUBMITTED"
-    | "MITRA_MANUAL_ORDER_CREATED"
-    | "MITRA_ORDER_ASSIGNED";
+  action: string;
   payload: Record<string, unknown>;
 }
 
-export interface AuditLogsTable {
-  id: string;
-  actorId: string;
-  impersonatorId: string | null;
-  targetEntity: string;
-  targetId: string;
-  action:
-    | "CREATE"
-    | "UPDATE"
-    | "DELETE"
-    | "ASSIGN"
-    | "INVITE"
-    | "DRIVER_AVAILABILITY_CHANGED"
-    | "ORDER_STATUS_UPDATED"
-    | "ORDER_STOP_COMPLETED"
-    | "REPORT_SUBMITTED"
-    | "MITRA_MANUAL_ORDER_CREATED"
-    | "MITRA_ORDER_ASSIGNED";
-  payload: Record<string, unknown> | null;
-  createdAt: Date;
-}
-
 export class AuditLoggingService {
-  constructor(private db: DrizzleD1Database<any>) {}
+  constructor(private db: DrizzleD1Database) {}
 
   async logEvent(event: AuditLogEvent): Promise<void> {
-    await this.db.insert("audit_logs" as any).values({
-      id: nanoid(),
-      actorId: event.actorId,
-      impersonatorId: null,
+    await this.db.insert(auditLogs).values({
+      adminUserId: event.actorId,
+      impersonatedMitraId: null,
       targetEntity: "AUTH",
       targetId: event.targetId || event.actorId,
       action: this.mapEventTypeToAction(event.eventType),
       payload: event.details || null,
-      createdAt: new Date(),
     });
   }
 
   async logAdminAction(options: AdminAuditLogOptions): Promise<void> {
-    await this.db.insert("audit_logs" as any).values({
-      id: nanoid(),
-      actorId: options.adminUserId,
-      impersonatorId: options.adminUserId,
+    await this.db.insert(auditLogs).values({
+      adminUserId: options.adminUserId,
+      impersonatedMitraId: options.impersonatedMitraId || null,
       targetEntity: options.targetEntity,
       targetId: options.targetId,
       action: options.action,
       payload: options.payload,
-      createdAt: new Date(),
     });
   }
 
-  private mapEventTypeToAction(
-    eventType: string
-  ):
-    | "CREATE"
-    | "UPDATE"
-    | "DELETE"
-    | "ASSIGN"
-    | "INVITE"
-    | "DRIVER_AVAILABILITY_CHANGED"
-    | "ORDER_STATUS_UPDATED"
-    | "ORDER_STOP_COMPLETED"
-    | "REPORT_SUBMITTED"
-    | "MITRA_MANUAL_ORDER_CREATED"
-    | "MITRA_ORDER_ASSIGNED" {
+  private mapEventTypeToAction(eventType: string): string {
     switch (eventType.toUpperCase()) {
       case "USER_LOGIN":
       case "SESSION_CREATED":
@@ -120,8 +70,6 @@ export class AuditLoggingService {
   }
 }
 
-export function createAuditService(
-  db: DrizzleD1Database<any>
-): AuditLoggingService {
+export function createAuditService(db: DrizzleD1Database): AuditLoggingService {
   return new AuditLoggingService(db);
 }

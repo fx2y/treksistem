@@ -1,6 +1,5 @@
 import { auditLogs } from "@treksistem/db";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
-import { nanoid } from "nanoid";
 
 export type AuditEventType =
   | "ORDER_CREATED"
@@ -23,19 +22,17 @@ export interface AuditLogOptions {
 }
 
 export class AuditService {
-  constructor(private db: DrizzleD1Database<any>) {}
+  constructor(private db: DrizzleD1Database) {}
 
   async log(options: AuditLogOptions): Promise<void> {
     try {
       await this.db.insert(auditLogs).values({
-        id: nanoid(),
-        actorId: options.actorId,
+        adminUserId: options.actorId,
         impersonatedMitraId: options.mitraId || null,
         targetEntity: options.entityType.toLowerCase(),
         targetId: options.entityId,
-        eventType: options.eventType,
+        action: options.eventType,
         payload: options.details || null,
-        timestamp: new Date(),
       });
     } catch (error) {
       // Audit logging MUST NOT fail the primary business operation
@@ -55,7 +52,7 @@ export interface AdminAuditLogOptions {
 }
 
 export async function logAdminAction(
-  db: DrizzleD1Database<any>,
+  db: DrizzleD1Database,
   options: AdminAuditLogOptions
 ): Promise<void> {
   const auditService = new AuditService(db);

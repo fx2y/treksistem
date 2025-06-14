@@ -3,7 +3,6 @@ import { getDistance } from "@treksistem/geo";
 import { NotificationService } from "@treksistem/notifications";
 import { and, eq } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
-import { nanoid } from "nanoid";
 
 export interface StopInput {
   address: string;
@@ -145,7 +144,7 @@ export class PublicOrderService {
 
     const distances = await Promise.all(distancePromises);
     const totalDistanceKm = distances.reduce(
-      (sum: number, dist: any) => sum + dist.distanceKm,
+      (sum: number, dist: { distanceKm: number }) => sum + dist.distanceKm,
       0
     );
 
@@ -181,14 +180,11 @@ export class PublicOrderService {
       stops: request.stops,
     });
 
-    const publicId = nanoid();
-
     // Validate stops before creating order to ensure atomicity
 
     const orderInsert = this.db
       .insert(schema.orders)
       .values({
-        publicId,
         serviceId: service.id,
         ordererName: request.ordererName,
         ordererPhone: request.ordererPhone,
@@ -315,7 +311,8 @@ export class PublicOrderService {
                 orderPublicId: publicId,
                 mitraName: mitra?.businessName || "Unknown",
                 pickupAddress: pickupStop?.address || "Unknown pickup",
-                destinationAddress: dropoffStop?.address || "Unknown destination",
+                destinationAddress:
+                  dropoffStop?.address || "Unknown destination",
               },
             },
             {
@@ -323,7 +320,10 @@ export class PublicOrderService {
             }
           );
         } catch (notificationError) {
-          console.error(`Failed to notify driver ${driver.driverId}:`, notificationError);
+          console.error(
+            `Failed to notify driver ${driver.driverId}:`,
+            notificationError
+          );
         }
       }
     } catch (error) {

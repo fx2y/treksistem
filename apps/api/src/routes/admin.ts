@@ -44,29 +44,6 @@ admin.use("*", async (c, next) => {
   return authMiddleware.requireAdminRole(c, next);
 });
 
-// Use centralized audit service
-async function logAdminAction(
-  auditService: any,
-  adminUserId: string,
-  targetEntity: string,
-  targetId: string,
-  action: "CREATE" | "UPDATE" | "DELETE" | "ASSIGN" | "INVITE",
-  payload: Record<string, unknown>
-) {
-  try {
-    await auditService.logAdminAction({
-      adminUserId,
-      targetEntity,
-      targetId,
-      action,
-      payload,
-    });
-  } catch (error) {
-    console.error("Audit logging failed:", error);
-    // Continue with the request even if audit logging fails
-  }
-}
-
 // Get all mitras
 admin.get("/mitras", async c => {
   const db = createDbClient(c.env.DB);
@@ -148,17 +125,16 @@ admin.post("/master-data/:category", async c => {
 
   const created = result[0];
   const { auditService } = c.get("authServices");
-  await logAdminAction(
-    auditService,
-    payload.userId,
-    category,
-    created.id,
-    "CREATE",
-    {
+  await auditService.logAdminAction({
+    adminUserId: payload.userId,
+    targetEntity: category,
+    targetId: created.id,
+    action: "CREATE",
+    payload: {
       name,
       icon,
-    }
-  );
+    },
+  });
 
   return c.json(created, 201);
 });
@@ -208,17 +184,16 @@ admin.put("/master-data/:category/:itemId", async c => {
   }
 
   const { auditService } = c.get("authServices");
-  await logAdminAction(
-    auditService,
-    payload.userId,
-    category,
-    itemId,
-    "UPDATE",
-    {
+  await auditService.logAdminAction({
+    adminUserId: payload.userId,
+    targetEntity: category,
+    targetId: itemId,
+    action: "UPDATE",
+    payload: {
       name,
       icon,
-    }
-  );
+    },
+  });
 
   return c.json(result[0]);
 });
@@ -260,16 +235,15 @@ admin.delete("/master-data/:category/:itemId", async c => {
   }
 
   const { auditService } = c.get("authServices");
-  await logAdminAction(
-    auditService,
-    payload.userId,
-    category,
-    itemId,
-    "DELETE",
-    {
+  await auditService.logAdminAction({
+    adminUserId: payload.userId,
+    targetEntity: category,
+    targetId: itemId,
+    action: "DELETE",
+    payload: {
       deletedItem: result[0],
-    }
-  );
+    },
+  });
 
   return c.body(null, 204);
 });
@@ -302,17 +276,16 @@ admin.post("/mitras/:mitraId/services", async c => {
   const created = result[0];
 
   const { auditService } = c.get("authServices");
-  await logAdminAction(
-    auditService,
-    payload.userId,
-    "service",
-    created.id,
-    "CREATE",
-    {
+  await auditService.logAdminAction({
+    adminUserId: payload.userId,
+    targetEntity: "service",
+    targetId: created.id,
+    action: "CREATE",
+    payload: {
       mitraId,
       ...serviceData,
-    }
-  );
+    },
+  });
 
   return c.json(created, 201);
 });
@@ -354,14 +327,13 @@ admin.post("/mitras/:mitraId/drivers/invite", async c => {
   const created = result[0];
 
   const { auditService } = c.get("authServices");
-  await logAdminAction(
-    auditService,
-    payload.userId,
-    "driver_invite",
-    created.id,
-    "INVITE",
-    { mitraId, email }
-  );
+  await auditService.logAdminAction({
+    adminUserId: payload.userId,
+    targetEntity: "driver_invite",
+    targetId: created.id,
+    action: "INVITE",
+    payload: { mitraId, email },
+  });
 
   // Generate invite link
   const inviteLink = `${c.env.FRONTEND_URL}/join?token=${inviteToken}`;
