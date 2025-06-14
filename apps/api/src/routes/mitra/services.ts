@@ -43,10 +43,10 @@ const app = new Hono<{
 app.post("/", zValidator("json", createServiceSchema), async c => {
   const mitraId = c.get("mitraId");
   const data = c.req.valid("json");
-  const { mitraService } = c.get("services");
+  const { mitraServiceManagementService } = c.get("services");
 
   try {
-    const service = await mitraService.createService(mitraId, data);
+    const service = await mitraServiceManagementService.createService(mitraId, data);
     return c.json(service, 201);
   } catch (error) {
     console.error("Error creating service:", error);
@@ -57,10 +57,10 @@ app.post("/", zValidator("json", createServiceSchema), async c => {
 // Get all services for the authenticated mitra
 app.get("/", async c => {
   const mitraId = c.get("mitraId");
-  const { mitraService } = c.get("services");
+  const { mitraServiceManagementService } = c.get("services");
 
   try {
-    const services = await mitraService.getServices(mitraId);
+    const services = await mitraServiceManagementService.getServices(mitraId);
     return c.json(services);
   } catch (error) {
     console.error("Error fetching services:", error);
@@ -72,10 +72,10 @@ app.get("/", async c => {
 app.get("/:serviceId", async c => {
   const mitraId = c.get("mitraId");
   const serviceId = c.req.param("serviceId");
-  const { mitraService } = c.get("services");
+  const { mitraServiceManagementService } = c.get("services");
 
   try {
-    const service = await mitraService.getServiceById(mitraId, serviceId);
+    const service = await mitraServiceManagementService.getServiceById(mitraId, serviceId);
     if (!service) {
       return c.json({ error: "Service not found" }, 404);
     }
@@ -91,10 +91,10 @@ app.put("/:serviceId", zValidator("json", updateServiceSchema), async c => {
   const mitraId = c.get("mitraId");
   const serviceId = c.req.param("serviceId");
   const data = c.req.valid("json");
-  const { mitraService } = c.get("services");
+  const { mitraServiceManagementService } = c.get("services");
 
   try {
-    const service = await mitraService.updateService(mitraId, serviceId, data);
+    const service = await mitraServiceManagementService.updateService(mitraId, serviceId, data);
     return c.json(service);
   } catch (error) {
     console.error("Error updating service:", error);

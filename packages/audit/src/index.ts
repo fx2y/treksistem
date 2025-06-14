@@ -1,5 +1,4 @@
-import { auditLogs } from "@treksistem/db";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
+import { auditLogs, type DbClient } from "@treksistem/db";
 
 export interface AuditLogEvent {
   actorId: string;
@@ -18,7 +17,7 @@ export interface AdminAuditLogOptions {
 }
 
 export class AuditLoggingService {
-  constructor(private db: DrizzleD1Database) {}
+  constructor(private db: DbClient) {}
 
   async logEvent(event: AuditLogEvent): Promise<void> {
     await this.db.insert(auditLogs).values({
@@ -70,6 +69,6 @@ export class AuditLoggingService {
   }
 }
 
-export function createAuditService(db: DrizzleD1Database): AuditLoggingService {
+export function createAuditService(db: DbClient): AuditLoggingService {
   return new AuditLoggingService(db);
 }

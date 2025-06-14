@@ -1,5 +1,4 @@
 import type { DbClient } from "@treksistem/db";
-import { orders, orderStops } from "@treksistem/db";
 import type { NotificationService } from "@treksistem/notifications";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -22,6 +21,36 @@ describe("MitraOrderService", () => {
   let mockDb: any;
   let mockNotificationService: any;
 
+  // Helper function to create a mock transaction
+  const createMockTransaction = () => {
+    return vi.fn().mockImplementation(async (callback: any) => {
+      const mockTx = {
+        insert: vi.fn(),
+        values: vi.fn(),
+        returning: vi.fn(),
+      };
+      
+      // First call - for order insertion
+      const orderInsertMock = {
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: "test-id", publicId: "test-public-id" }]),
+        }),
+      };
+      
+      // Subsequent calls - for order stops insertions
+      const stopsInsertMock = {
+        values: vi.fn().mockResolvedValue(undefined),
+      };
+      
+      // Configure the insert method to return different mocks
+      mockTx.insert
+        .mockReturnValueOnce(orderInsertMock)
+        .mockReturnValue(stopsInsertMock);
+      
+      return await callback(mockTx);
+    });
+  };
+
   beforeEach(() => {
     mockDb = {
       select: vi.fn().mockReturnThis(),
@@ -34,7 +63,7 @@ describe("MitraOrderService", () => {
       set: vi.fn().mockReturnThis(),
       values: vi.fn().mockReturnThis(),
       returning: vi.fn().mockReturnThis(),
-      batch: vi.fn().mockResolvedValue([]),
+      transaction: vi.fn(),
     };
 
     mockNotificationService = {
@@ -92,10 +121,9 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup
       mockDb.limit.mockResolvedValueOnce([{ baseFee: 5000, feePerKm: 2000 }]);
-      // Mock order insertion
-      mockDb.returning.mockResolvedValueOnce([
-        { id: "test-id", publicId: "test-public-id" },
-      ]);
+      
+      // Mock transaction
+      mockDb.transaction = createMockTransaction();
 
       const result = await service.createManualOrder(
         "mitra-1",
@@ -115,8 +143,7 @@ describe("MitraOrderService", () => {
         },
       });
 
-      expect(mockDb.insert).toHaveBeenCalledWith(orders);
-      expect(mockDb.insert).toHaveBeenCalledWith(orderStops);
+      expect(mockDb.transaction).toHaveBeenCalled();
     });
 
     it("should throw error if service not found", async () => {
@@ -151,10 +178,9 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup
       mockDb.limit.mockResolvedValueOnce([{ baseFee: 5000, feePerKm: 2000 }]);
-      // Mock order insertion
-      mockDb.returning.mockResolvedValueOnce([
-        { id: "test-id", publicId: "test-public-id" },
-      ]);
+      
+      // Mock transaction
+      mockDb.transaction = createMockTransaction();
 
       const result = await service.createManualOrder(
         "mitra-1",
@@ -163,8 +189,7 @@ describe("MitraOrderService", () => {
       );
 
       expect(result.orderId).toBe("test-id");
-      expect(mockDb.insert).toHaveBeenCalledWith(orders);
-      expect(mockDb.insert).toHaveBeenCalledWith(orderStops);
+      expect(mockDb.transaction).toHaveBeenCalled();
     });
 
     it("should throw error if assigned driver not owned by mitra", async () => {
@@ -192,10 +217,9 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup
       mockDb.limit.mockResolvedValueOnce([{ baseFee: 5000, feePerKm: 2000 }]);
-      // Mock order insertion
-      mockDb.returning.mockResolvedValueOnce([
-        { id: "test-id", publicId: "test-public-id" },
-      ]);
+      
+      // Mock transaction
+      mockDb.transaction = createMockTransaction();
 
       mockNotificationService.generate.mockRejectedValueOnce(
         new Error("Notification failed")
@@ -218,10 +242,9 @@ describe("MitraOrderService", () => {
       ]);
       // Mock service rates lookup - no rates found
       mockDb.limit.mockResolvedValueOnce([]);
-      // Mock order insertion
-      mockDb.returning.mockResolvedValueOnce([
-        { id: "test-id", publicId: "test-public-id" },
-      ]);
+      
+      // Mock transaction
+      mockDb.transaction = createMockTransaction();
 
       const result = await service.createManualOrder(
         "mitra-1",

@@ -10,10 +10,10 @@ const app = new Hono<{
 
 // Get all master data for service creation forms
 app.get("/", async c => {
-  const { mitraService } = c.get("services");
+  const { masterDataService } = c.get("services");
 
   try {
-    const masterData = await mitraService.getMasterData();
+    const masterData = await masterDataService.getMasterData();
     return c.json(masterData);
   } catch (error) {
     console.error("Error fetching master data:", error);

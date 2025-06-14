@@ -1,4 +1,4 @@
-import { auditLogs, orderReports, drivers, orders } from "@treksistem/db";
+import { auditLogs, orderReports, drivers, orders, orderStops } from "@treksistem/db";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { DriverWorkflowService } from "./driver-workflow.service";
@@ -7,7 +7,11 @@ const mockDb = {
   select: vi.fn(),
   insert: vi.fn(),
   update: vi.fn(),
-  batch: vi.fn(),
+  query: {
+    orders: {
+      findMany: vi.fn(),
+    },
+  },
 };
 
 const mockOrder = {
@@ -65,16 +69,12 @@ describe("DriverWorkflowService", () => {
 
   describe("getAssignedOrders", () => {
     it("should return orders assigned to the driver with stops", async () => {
-      mockDb.select.mockReturnValueOnce({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([mockOrder]),
-      });
+      const mockOrderWithStops = {
+        ...mockOrder,
+        stops: [mockStop],
+      };
 
-      mockDb.select.mockReturnValueOnce({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        orderBy: vi.fn().mockResolvedValue([mockStop]),
-      });
+      mockDb.query.orders.findMany.mockResolvedValue([mockOrderWithStops]);
 
       const result = await service.getAssignedOrders("driver-1");
 
@@ -100,10 +100,7 @@ describe("DriverWorkflowService", () => {
     });
 
     it("should return empty array when no orders assigned", async () => {
-      mockDb.select.mockReturnValueOnce({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([]),
-      });
+      mockDb.query.orders.findMany.mockResolvedValue([]);
 
       const result = await service.getAssignedOrders("driver-1");
 
@@ -113,15 +110,14 @@ describe("DriverWorkflowService", () => {
 
   describe("updateDriverAvailability", () => {
     it("should update driver status and create audit log", async () => {
-      const insertMock = { values: vi.fn().mockReturnValue("audit-insert") };
+      const insertMock = { values: vi.fn().mockResolvedValue({}) };
       const updateMock = {
         set: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnValue("driver-update"),
+        where: vi.fn().mockResolvedValue({}),
       };
 
       mockDb.insert.mockReturnValue(insertMock);
       mockDb.update.mockReturnValue(updateMock);
-      mockDb.batch.mockResolvedValue([]);
 
       await service.updateDriverAvailability("driver-1", "active");
 
@@ -136,10 +132,6 @@ describe("DriverWorkflowService", () => {
 
       expect(mockDb.update).toHaveBeenCalledWith(drivers);
       expect(updateMock.set).toHaveBeenCalledWith({ status: "active" });
-      expect(mockDb.batch).toHaveBeenCalledWith([
-        "audit-insert",
-        "driver-update",
-      ]);
     });
   });
 
@@ -151,22 +143,19 @@ describe("DriverWorkflowService", () => {
         get: vi.fn().mockResolvedValue({ ...mockOrder, status: "accepted" }),
       });
 
-      const insertMock = { values: vi.fn().mockReturnValue("audit-insert") };
+      const insertMock = { values: vi.fn().mockResolvedValue({}) };
       const updateMock = {
         set: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnValue("order-update"),
+        where: vi.fn().mockResolvedValue({}),
       };
 
       mockDb.insert.mockReturnValue(insertMock);
       mockDb.update.mockReturnValue(updateMock);
-      mockDb.batch.mockResolvedValue([]);
 
       await service.updateOrderStatus("driver-1", "order-1", "pickup");
 
-      expect(mockDb.batch).toHaveBeenCalledWith([
-        "audit-insert",
-        "order-update",
-      ]);
+      expect(mockDb.insert).toHaveBeenCalledWith(auditLogs);
+      expect(mockDb.update).toHaveBeenCalledWith(orders);
     });
 
     it("should throw error when order not found or not assigned to driver", async () => {
@@ -208,22 +197,19 @@ describe("DriverWorkflowService", () => {
           get: vi.fn().mockResolvedValue(mockStop),
         });
 
-      const insertMock = { values: vi.fn().mockReturnValue("audit-insert") };
+      const insertMock = { values: vi.fn().mockResolvedValue({}) };
       const updateMock = {
         set: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnValue("stop-update"),
+        where: vi.fn().mockResolvedValue({}),
       };
 
       mockDb.insert.mockReturnValue(insertMock);
       mockDb.update.mockReturnValue(updateMock);
-      mockDb.batch.mockResolvedValue([]);
 
       await service.completeOrderStop("driver-1", "order-1", "stop-1");
 
-      expect(mockDb.batch).toHaveBeenCalledWith([
-        "audit-insert",
-        "stop-update",
-      ]);
+      expect(mockDb.insert).toHaveBeenCalledWith(auditLogs);
+      expect(mockDb.update).toHaveBeenCalledWith(orderStops);
     });
 
     it("should throw error when stop not found", async () => {
@@ -253,9 +239,8 @@ describe("DriverWorkflowService", () => {
         get: vi.fn().mockResolvedValue(mockOrder),
       });
 
-      const insertMock = { values: vi.fn().mockReturnValue("insert-mock") };
+      const insertMock = { values: vi.fn().mockResolvedValue({}) };
       mockDb.insert.mockReturnValue(insertMock);
-      mockDb.batch.mockResolvedValue([]);
 
       const reportData = {
         stage: "pickup" as const,
@@ -267,7 +252,6 @@ describe("DriverWorkflowService", () => {
 
       expect(mockDb.insert).toHaveBeenCalledWith(orderReports);
       expect(mockDb.insert).toHaveBeenCalledWith(auditLogs);
-      expect(mockDb.batch).toHaveBeenCalledWith(["insert-mock", "insert-mock"]);
     });
 
     it("should update order status to delivered when stage is dropoff", async () => {
@@ -277,15 +261,14 @@ describe("DriverWorkflowService", () => {
         get: vi.fn().mockResolvedValue(mockOrder),
       });
 
-      const insertMock = { values: vi.fn().mockReturnValue("insert-mock") };
+      const insertMock = { values: vi.fn().mockResolvedValue({}) };
       const updateMock = {
         set: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnValue("update-mock"),
+        where: vi.fn().mockResolvedValue({}),
       };
 
       mockDb.insert.mockReturnValue(insertMock);
       mockDb.update.mockReturnValue(updateMock);
-      mockDb.batch.mockResolvedValue([]);
 
       const reportData = {
         stage: "dropoff" as const,
@@ -294,11 +277,9 @@ describe("DriverWorkflowService", () => {
 
       await service.submitReport("driver-1", "order-1", reportData);
 
-      expect(mockDb.batch).toHaveBeenCalledWith([
-        "insert-mock",
-        "insert-mock",
-        "update-mock",
-      ]);
+      expect(mockDb.insert).toHaveBeenCalledWith(orderReports);
+      expect(mockDb.insert).toHaveBeenCalledWith(auditLogs);
+      expect(mockDb.update).toHaveBeenCalledWith(orders);
     });
 
     it("should throw error when order not found", async () => {

@@ -1,5 +1,5 @@
 import type { DbClient } from "@treksistem/db";
-import { orderReports } from "@treksistem/db";
+import { orderReports, users, vehicles, orders } from "@treksistem/db";
 import { describe, it, expect, beforeEach, vitest } from "vitest";
 
 import { LogbookService } from "./logbook.service";
@@ -12,7 +12,7 @@ const mockDb = {
   leftJoin: vitest.fn(),
   where: vitest.fn(),
   orderBy: vitest.fn(),
-} as DbClient;
+} as any as DbClient;
 
 const mockChain = {
   select: vitest.fn().mockReturnThis(),
@@ -23,7 +23,7 @@ const mockChain = {
   orderBy: vitest.fn().mockReturnValue([]),
 };
 
-mockDb.select.mockReturnValue(mockChain);
+(mockDb.select as any).mockReturnValue(mockChain);
 
 describe("LogbookService", () => {
   let logbookService: LogbookService;

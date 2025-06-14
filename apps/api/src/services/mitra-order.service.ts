@@ -157,25 +157,29 @@ export class MitraOrderService {
       notes: input.notes || null,
     };
 
-    // Insert order first to get auto-generated ID
-    const [insertedOrder] = await this.db
-      .insert(orders)
-      .values(orderData)
-      .returning({ id: orders.id, publicId: orders.publicId });
-    const { id: orderId, publicId } = insertedOrder;
+    // Use transaction for atomic order creation
+    const { orderId, publicId } = await this.db.transaction(async (tx) => {
+      const [insertedOrder] = await tx
+        .insert(orders)
+        .values(orderData)
+        .returning({ id: orders.id, publicId: orders.publicId });
+      const { id: orderId, publicId } = insertedOrder;
 
-    // Insert stops with the order ID - sequential inserts for proper relationship handling
-    for (const [index, stop] of input.stops.entries()) {
-      await this.db.insert(orderStops).values({
-        orderId,
-        sequence: index + 1,
-        type: stop.type,
-        address: stop.address,
-        lat: stop.lat,
-        lng: stop.lng,
-        status: "pending" as const,
-      });
-    }
+      // Insert stops with the order ID - sequential inserts for proper relationship handling
+      for (const [index, stop] of input.stops.entries()) {
+        await tx.insert(orderStops).values({
+          orderId,
+          sequence: index + 1,
+          type: stop.type,
+          address: stop.address,
+          lat: stop.lat,
+          lng: stop.lng,
+          status: "pending" as const,
+        });
+      }
+
+      return { orderId, publicId };
+    });
 
     // Log audit event
     await this.auditService.log({

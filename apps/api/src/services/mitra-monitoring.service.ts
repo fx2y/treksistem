@@ -1,6 +1,6 @@
 import { orders, services } from "@treksistem/db";
 import type { DbClient } from "@treksistem/db";
-import { eq, and, gte, lte, desc, count } from "drizzle-orm";
+import { eq, and, gte, lte, desc, count, inArray } from "drizzle-orm";
 
 const MAX_LIMIT = 100;
 
@@ -89,24 +89,62 @@ export class MitraMonitoringService {
     const totalItems = totalResult.count;
     const totalPages = Math.ceil(totalItems / safeLimit);
 
-    // Get paginated orders with basic joins
-    const orderResults = await this.db
-      .select({
-        id: orders.id,
-        publicId: orders.publicId,
-        status: orders.status,
-        createdAt: orders.createdAt,
-        estimatedCost: orders.estimatedCost,
-        recipientName: orders.recipientName,
-        serviceId: orders.serviceId,
-        assignedDriverId: orders.assignedDriverId,
-      })
-      .from(orders)
-      .innerJoin(services, eq(orders.serviceId, services.id))
-      .where(and(eq(services.mitraId, mitraId), ...orderWhereConditions))
-      .orderBy(desc(orders.createdAt))
-      .limit(safeLimit)
-      .offset(offset);
+    // First get service IDs for this mitra
+    const mitraServices = await this.db.query.services.findMany({
+      where: eq(services.mitraId, mitraId),
+      columns: { id: true },
+    });
+    
+    const serviceIds = mitraServices.map(s => s.id);
+    
+    if (serviceIds.length === 0) {
+      return {
+        data: [],
+        meta: {
+          totalItems: 0,
+          totalPages: 0,
+          currentPage: query.page,
+          itemsPerPage: safeLimit,
+        },
+      };
+    }
+
+    // Build where conditions including service filter
+    const allWhereConditions = [
+      ...orderWhereConditions,
+      serviceIds.length === 1 
+        ? eq(orders.serviceId, serviceIds[0])
+        : inArray(orders.serviceId, serviceIds),
+    ];
+
+    // Get paginated orders with relations using Drizzle query API
+    const orderResults = await this.db.query.orders.findMany({
+      where: and(...allWhereConditions),
+      with: {
+        service: true,
+        assignedDriver: {
+          with: {
+            user: {
+              columns: {
+                name: true,
+              },
+            },
+          },
+        },
+        stops: {
+          orderBy: (stops, { asc }) => [asc(stops.sequence)],
+          columns: {
+            sequence: true,
+            type: true,
+            address: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: desc(orders.createdAt),
+      limit: safeLimit,
+      offset,
+    });
 
     // Transform to DTOs
     const data: OrderSummaryDTO[] = orderResults.map(order => ({
@@ -116,8 +154,13 @@ export class MitraMonitoringService {
       createdAt: order.createdAt.toISOString(),
       estimatedCost: order.estimatedCost,
       recipientName: order.recipientName,
-      driverName: null, // Will be filled later if needed
-      stops: [], // Will be filled later if needed
+      driverName: order.assignedDriver?.user?.name || null,
+      stops: order.stops.map(stop => ({
+        sequence: stop.sequence,
+        type: stop.type,
+        address: stop.address,
+        status: stop.status,
+      })),
     }));
 
     return {

@@ -183,37 +183,56 @@ export class PublicOrderService {
       stops: request.stops,
     });
 
-    // Validate stops before creating order to ensure atomicity
+    // Use transaction for atomic order creation
+    const result = await this.db.transaction(async (tx) => {
+      const [orderResult] = await tx
+        .insert(schema.orders)
+        .values({
+          serviceId: service.id,
+          ordererName: request.ordererName,
+          ordererPhone: request.ordererPhone,
+          recipientName: request.recipientName,
+          recipientPhone: request.recipientPhone,
+          notes: request.notes,
+          estimatedCost: quote.estimatedCost,
+          status: "pending_dispatch" as const,
+        })
+        .returning({ id: schema.orders.id, publicId: schema.orders.publicId });
 
-    const orderInsert = this.db
-      .insert(schema.orders)
-      .values({
-        serviceId: service.id,
-        ordererName: request.ordererName,
-        ordererPhone: request.ordererPhone,
-        recipientName: request.recipientName,
-        recipientPhone: request.recipientPhone,
-        notes: request.notes,
-        estimatedCost: quote.estimatedCost,
-        status: "pending_dispatch" as const,
-      })
-      .returning({ id: schema.orders.id, publicId: schema.orders.publicId });
+      const { id: orderId, publicId } = orderResult;
 
-    const [orderResult] = await orderInsert;
-    const { id: orderId, publicId } = orderResult;
+      // Insert stops sequentially within transaction
+      for (const [index, stop] of request.stops.entries()) {
+        await tx.insert(schema.orderStops).values({
+          orderId,
+          sequence: index + 1,
+          type: stop.type,
+          address: stop.address,
+          lat: stop.lat,
+          lng: stop.lng,
+          status: "pending" as const,
+        });
+      }
 
-    // Insert stops sequentially
-    for (const [index, stop] of request.stops.entries()) {
-      await this.db.insert(schema.orderStops).values({
+      // Generate notification log within transaction
+      const [notificationLog] = await tx
+        .insert(schema.notificationLogs)
+        .values({
+          orderId: orderId,
+          recipientPhone: request.ordererPhone,
+          type: "TRACKING_LINK_FOR_CUSTOMER",
+          status: "generated",
+        })
+        .returning({ id: schema.notificationLogs.id });
+
+      return {
         orderId,
-        sequence: index + 1,
-        type: stop.type,
-        address: stop.address,
-        lat: stop.lat,
-        lng: stop.lng,
-        status: "pending" as const,
-      });
-    }
+        publicId,
+        notificationLogId: notificationLog.id,
+      };
+    });
+
+    const { orderId, publicId, notificationLogId } = result;
 
     // Create audit log separately to avoid transaction failure
     try {
@@ -236,25 +255,6 @@ export class PublicOrderService {
     } catch (error) {
       console.error("Failed to create audit log:", error);
       // Continue execution even if audit log fails
-    }
-
-    // Generate notification log for customer tracking
-    let notificationLogId = "temp_notification_id";
-    try {
-      const notificationLog = await this.db
-        .insert(schema.notificationLogs)
-        .values({
-          orderId: orderId,
-          recipientPhone: request.ordererPhone,
-          type: "TRACKING_LINK_FOR_CUSTOMER",
-          status: "generated",
-        })
-        .returning({ id: schema.notificationLogs.id });
-
-      notificationLogId = notificationLog[0].id;
-    } catch (error) {
-      console.error("Failed to create notification log:", error);
-      // Use fallback ID
     }
 
     // Broadcast NEW_ORDER_AVAILABLE notifications to all active drivers for this mitra
@@ -329,49 +329,45 @@ export class PublicOrderService {
   }
 
   async getOrderStatus(publicId: string): Promise<OrderTrackingResponse> {
-    const order = await this.db
-      .select()
-      .from(schema.orders)
-      .where(eq(schema.orders.publicId, publicId))
-      .get();
+    const order = await this.db.query.orders.findFirst({
+      where: eq(schema.orders.publicId, publicId),
+      with: {
+        stops: {
+          orderBy: (stops, { asc }) => [asc(stops.sequence)],
+          columns: {
+            sequence: true,
+            type: true,
+            address: true,
+            status: true,
+          },
+        },
+        reports: {
+          orderBy: (reports, { asc }) => [asc(reports.timestamp)],
+          columns: {
+            stage: true,
+            notes: true,
+            photoUrl: true,
+            timestamp: true,
+          },
+        },
+      },
+    });
 
     if (!order) {
       throw new Error("Order not found");
     }
 
-    const stops = await this.db
-      .select({
-        sequence: schema.orderStops.sequence,
-        type: schema.orderStops.type,
-        address: schema.orderStops.address,
-        status: schema.orderStops.status,
-      })
-      .from(schema.orderStops)
-      .where(eq(schema.orderStops.orderId, order.id))
-      .orderBy(schema.orderStops.sequence);
-
-    const reports = await this.db
-      .select({
-        stage: schema.orderReports.stage,
-        notes: schema.orderReports.notes,
-        photoUrl: schema.orderReports.photoUrl,
-        timestamp: schema.orderReports.timestamp,
-      })
-      .from(schema.orderReports)
-      .where(eq(schema.orderReports.orderId, order.id))
-      .orderBy(schema.orderReports.timestamp);
-
     return {
       publicId: order.publicId,
       status: order.status,
       estimatedCost: order.estimatedCost,
-      stops: stops.map(stop => ({
+      stops: order.stops.map(stop => ({
         sequence: stop.sequence,
         type: stop.type,
         address: stop.address,
         status: stop.status,
       })),
-      reports: reports.map(report => ({
+      reports: order.reports.map(report => ({
         stage: report.stage,
         notes: report.notes || undefined,
         photoUrl: report.photoUrl || undefined,

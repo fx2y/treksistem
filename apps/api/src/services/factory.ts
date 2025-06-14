@@ -11,7 +11,8 @@ import { LogbookService } from "./logbook.service";
 import { MitraMonitoringService } from "./mitra-monitoring.service";
 import { MitraOrderService } from "./mitra-order.service";
 import { MitraProfileService } from "./mitra-profile.service";
-import { MitraService } from "./mitra.service";
+import { MitraServiceManagementService } from "./mitra-service-management.service";
+import { MasterDataService } from "./master-data.service";
 import { PublicOrderService } from "./public-order.service";
 import { VehicleService } from "./vehicle.service";
 
@@ -26,7 +27,8 @@ export interface ServiceContainer {
   mitraMonitoringService: MitraMonitoringService;
   mitraOrderService: MitraOrderService;
   mitraProfileService: MitraProfileService;
-  mitraService: MitraService;
+  mitraServiceManagementService: MitraServiceManagementService;
+  masterDataService: MasterDataService;
   publicOrderService: PublicOrderService;
   vehicleService: VehicleService;
 }
@@ -47,7 +49,8 @@ export function createServices(env: Bindings): ServiceContainer {
     auditService
   );
   const mitraProfileService = new MitraProfileService(db);
-  const mitraService = new MitraService(db);
+  const mitraServiceManagementService = new MitraServiceManagementService(db);
+  const masterDataService = new MasterDataService(db);
   const publicOrderService = new PublicOrderService(db, notificationService);
   const vehicleService = new VehicleService(db, auditService);
 
@@ -62,7 +65,8 @@ export function createServices(env: Bindings): ServiceContainer {
     mitraMonitoringService,
     mitraOrderService,
     mitraProfileService,
-    mitraService,
+    mitraServiceManagementService,
+    masterDataService,
     publicOrderService,
     vehicleService,
   };

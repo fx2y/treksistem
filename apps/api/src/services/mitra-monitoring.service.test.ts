@@ -17,11 +17,14 @@ describe("MitraMonitoringService", () => {
       limit: vi.fn().mockReturnThis(),
       offset: vi.fn().mockReturnThis(),
       query: {
+        services: {
+          findMany: vi.fn(),
+        } as any,
         orders: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-      },
-    };
+          findMany: vi.fn(),
+        } as any,
+      } as any,
+    } as any;
 
     service = new MitraMonitoringService(mockDb as any);
   });
@@ -37,8 +40,14 @@ describe("MitraMonitoringService", () => {
         }),
       });
 
-      // Mock main orders query
-      mockDb.offset.mockResolvedValueOnce([
+      // Mock services query
+      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
+        { id: "service-1" },
+        { id: "service-2" },
+      ]);
+
+      // Mock orders query
+      mockDb.query.orders.findMany = vi.fn().mockResolvedValue([
         {
           id: "order-1",
           publicId: "pub-1",
@@ -46,8 +55,9 @@ describe("MitraMonitoringService", () => {
           createdAt: new Date("2024-01-01T10:00:00Z"),
           estimatedCost: 25000,
           recipientName: "John Doe",
-          serviceId: "service-1",
-          assignedDriverId: null,
+          assignedDriver: null,
+          service: { id: "service-1" },
+          stops: [],
         },
       ]);
 
@@ -67,15 +77,13 @@ describe("MitraMonitoringService", () => {
             recipientName: "John Doe",
             driverName: null,
             stops: [],
-            stopCount: 0,
           },
         ],
-        pagination: {
+        meta: {
           totalItems: 5,
           totalPages: 1,
           currentPage: 1,
-          limit: 20,
-          offset: 0,
+          itemsPerPage: 20,
         },
       });
     });
@@ -90,6 +98,11 @@ describe("MitraMonitoringService", () => {
         }),
       });
 
+      // Mock services query
+      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
+        { id: "service-1" },
+      ]);
+
       const mockOrders = [
         {
           id: "order-1",
@@ -103,7 +116,7 @@ describe("MitraMonitoringService", () => {
               name: "Driver One",
             },
           },
-          service: { mitraId: "mitra-1" },
+          service: { id: "service-1" },
           stops: [],
         },
       ];
@@ -127,6 +140,11 @@ describe("MitraMonitoringService", () => {
           }),
         }),
       });
+
+      // Mock services query
+      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
+        { id: "service-1" },
+      ]);
 
       mockDb.query.orders.findMany = vi.fn().mockResolvedValue([]);
 
@@ -153,6 +171,11 @@ describe("MitraMonitoringService", () => {
         }),
       });
 
+      // Mock services query
+      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
+        { id: "service-1" },
+      ]);
+
       mockDb.query.orders.findMany = vi.fn().mockResolvedValue([]);
 
       await service.getOrders("mitra-1", {
@@ -174,6 +197,11 @@ describe("MitraMonitoringService", () => {
           }),
         }),
       });
+
+      // Mock services query
+      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
+        { id: "service-1" },
+      ]);
 
       mockDb.query.orders.findMany = vi.fn().mockResolvedValue([]);
 
@@ -207,6 +235,11 @@ describe("MitraMonitoringService", () => {
         }),
       });
 
+      // Mock services query
+      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
+        { id: "service-1" },
+      ]);
+
       mockDb.query.orders.findMany = vi.fn().mockResolvedValue([]);
 
       await service.getOrders("mitra-1", {
@@ -221,15 +254,21 @@ describe("MitraMonitoringService", () => {
       );
     });
 
-    it("should filter out orders not belonging to the mitra", async () => {
+    it("should only query orders for mitra's services", async () => {
       // Mock count query
       mockDb.select = vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           innerJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([{ count: 2 }]),
+            where: vi.fn().mockResolvedValue([{ count: 1 }]),
           }),
         }),
       });
+
+      // Mock services query - only return services for mitra-1
+      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
+        { id: "service-1" },
+        { id: "service-2" },
+      ]);
 
       const mockOrders = [
         {
@@ -240,18 +279,7 @@ describe("MitraMonitoringService", () => {
           estimatedCost: 25000,
           recipientName: "John Doe",
           assignedDriver: null,
-          service: { mitraId: "mitra-1" }, // Belongs to mitra-1
-          stops: [],
-        },
-        {
-          id: "order-2",
-          publicId: "pub-2",
-          status: "accepted",
-          createdAt: new Date("2024-01-01T11:00:00Z"),
-          estimatedCost: 30000,
-          recipientName: "Jane Doe",
-          assignedDriver: null,
-          service: { mitraId: "mitra-2" }, // Does not belong to mitra-1
+          service: { id: "service-1" },
           stops: [],
         },
       ];
@@ -263,7 +291,19 @@ describe("MitraMonitoringService", () => {
         limit: 20,
       });
 
-      // Should only return orders belonging to mitra-1
+      // Verify services query was called with correct mitra ID
+      expect(mockDb.query.services.findMany).toHaveBeenCalledWith({
+        where: expect.anything(),
+        columns: { id: true },
+      });
+
+      // Verify orders query was called with service IDs filter
+      expect(mockDb.query.orders.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.anything(),
+        })
+      );
+
       expect(result.data).toHaveLength(1);
       expect(result.data[0].orderId).toBe("order-1");
     });
@@ -278,6 +318,11 @@ describe("MitraMonitoringService", () => {
         }),
       });
 
+      // Mock services query
+      mockDb.query.services.findMany = vi.fn().mockResolvedValue([
+        { id: "service-1" },
+      ]);
+
       mockDb.query.orders.findMany = vi.fn().mockResolvedValue([]);
 
       const result = await service.getOrders("mitra-1", {
@@ -285,6 +330,37 @@ describe("MitraMonitoringService", () => {
         limit: 20,
       });
 
+      expect(result).toEqual({
+        data: [],
+        meta: {
+          totalItems: 0,
+          totalPages: 0,
+          currentPage: 1,
+          itemsPerPage: 20,
+        },
+      });
+    });
+
+    it("should handle mitra with no services", async () => {
+      // Mock count query
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([{ count: 0 }]),
+          }),
+        }),
+      });
+
+      // Mock services query returning empty array
+      mockDb.query.services.findMany = vi.fn().mockResolvedValue([]);
+
+      const result = await service.getOrders("mitra-1", {
+        page: 1,
+        limit: 20,
+      });
+
+      // Should return empty result without calling orders query
+      expect(mockDb.query.orders.findMany).not.toHaveBeenCalled();
       expect(result).toEqual({
         data: [],
         meta: {

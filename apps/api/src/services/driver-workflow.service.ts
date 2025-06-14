@@ -56,53 +56,31 @@ export class DriverWorkflowService {
   constructor(private db: DbClient) {}
 
   async getAssignedOrders(driverId: string): Promise<DriverOrder[]> {
-    const orderList = await this.db
-      .select({
-        id: orders.id,
-        publicId: orders.publicId,
-        status: orders.status,
-        ordererName: orders.ordererName,
-        recipientName: orders.recipientName,
-      })
-      .from(orders)
-      .where(eq(orders.assignedDriverId, driverId));
+    const orderList = await this.db.query.orders.findMany({
+      where: eq(orders.assignedDriverId, driverId),
+      with: {
+        stops: {
+          orderBy: (stops, { asc }) => [asc(stops.sequence)],
+        },
+      },
+    });
 
-    const ordersWithStops: DriverOrder[] = [];
-
-    for (const order of orderList) {
-      const stops = await this.db
-        .select({
-          id: orderStops.id,
-          sequence: orderStops.sequence,
-          type: orderStops.type,
-          address: orderStops.address,
-          lat: orderStops.lat,
-          lng: orderStops.lng,
-          status: orderStops.status,
-        })
-        .from(orderStops)
-        .where(eq(orderStops.orderId, order.id))
-        .orderBy(orderStops.sequence);
-
-      ordersWithStops.push({
-        id: order.id,
-        publicId: order.publicId,
-        status: order.status,
-        ordererName: order.ordererName,
-        recipientName: order.recipientName,
-        stops: stops.map((stop: any) => ({
-          id: stop.id,
-          sequence: stop.sequence,
-          type: stop.type as "pickup" | "dropoff",
-          address: stop.address,
-          lat: stop.lat,
-          lng: stop.lng,
-          status: stop.status as "pending" | "completed",
-        })),
-      });
-    }
-
-    return ordersWithStops;
+    return orderList.map(order => ({
+      id: order.id,
+      publicId: order.publicId,
+      status: order.status,
+      ordererName: order.ordererName,
+      recipientName: order.recipientName,
+      stops: order.stops.map(stop => ({
+        id: stop.id,
+        sequence: stop.sequence,
+        type: stop.type as "pickup" | "dropoff",
+        address: stop.address,
+        lat: stop.lat,
+        lng: stop.lng,
+        status: stop.status as "pending" | "completed",
+      })),
+    }));
   }
 
   async updateDriverAvailability(

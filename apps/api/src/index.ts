@@ -1,6 +1,8 @@
 import { createAuthServices, type AuthEnvironment } from "@treksistem/auth";
 import { Hono } from "hono";
 
+import { BaseError } from "./lib/errors";
+
 import admin from "./routes/admin";
 import auth from "./routes/auth";
 import driver from "./routes/driver";
@@ -57,6 +59,29 @@ app.route("/api/public", pub);
 app.route("/api/test", test);
 app.route("/api/uploads", uploads);
 app.route("/pay", payment);
+
+app.onError((err, c) => {
+  console.error("Unhandled error:", err);
+
+  if (err instanceof BaseError) {
+    return c.json(
+      {
+        error: err.message,
+        code: err.code,
+        ...(err.details && { details: err.details }),
+      },
+      err.statusCode as any
+    );
+  }
+
+  return c.json(
+    {
+      error: "Internal server error",
+      code: "INTERNAL_SERVER_ERROR",
+    },
+    500
+  );
+});
 
 export default {
   fetch: app.fetch,
