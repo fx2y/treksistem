@@ -75,8 +75,9 @@ export class MitraServiceManagementService {
     mitraId: string,
     data: CreateServiceRequest
   ): Promise<ServiceResponse> {
-    return await this.db.transaction(async tx => {
-      const [insertedService] = await tx
+    try {
+      // Use db.batch() for atomic multi-statement operations in D1
+      const serviceInsert = this.db
         .insert(services)
         .values({
           mitraId,
@@ -85,69 +86,70 @@ export class MitraServiceManagementService {
           maxRangeKm: data.maxRangeKm,
         })
         .returning({ id: services.id });
+
+      // Execute the service insert first to get the ID
+      const [insertedService] = await serviceInsert;
       const serviceId = insertedService.id;
 
-      await tx.insert(serviceRates).values({
-        serviceId,
-        baseFee: data.rate.baseFee,
-        feePerKm: data.rate.feePerKm,
-      });
+      // Build batch operations for atomic execution
+      const batchOperations = [
+        this.db.insert(serviceRates).values({
+          serviceId,
+          baseFee: data.rate.baseFee,
+          feePerKm: data.rate.feePerKm,
+        }),
+      ];
 
+      // Add vehicle type associations
       if (data.supportedVehicleTypeIds.length > 0) {
-        await tx.insert(servicesToVehicleTypes).values(
-          data.supportedVehicleTypeIds.map(vehicleTypeId => ({
-            serviceId,
-            vehicleTypeId,
-          }))
+        batchOperations.push(
+          this.db.insert(servicesToVehicleTypes).values(
+            data.supportedVehicleTypeIds.map(vehicleTypeId => ({
+              serviceId,
+              vehicleTypeId,
+            }))
+          )
         );
       }
 
+      // Add payload type associations
       if (data.supportedPayloadTypeIds.length > 0) {
-        await tx.insert(servicesToPayloadTypes).values(
-          data.supportedPayloadTypeIds.map(payloadTypeId => ({
-            serviceId,
-            payloadTypeId,
-          }))
+        batchOperations.push(
+          this.db.insert(servicesToPayloadTypes).values(
+            data.supportedPayloadTypeIds.map(payloadTypeId => ({
+              serviceId,
+              payloadTypeId,
+            }))
+          )
         );
       }
 
+      // Add facility associations
       if (data.availableFacilityIds && data.availableFacilityIds.length > 0) {
-        await tx.insert(servicesToFacilities).values(
-          data.availableFacilityIds.map(facilityId => ({
-            serviceId,
-            facilityId,
-          }))
+        batchOperations.push(
+          this.db.insert(servicesToFacilities).values(
+            data.availableFacilityIds.map(facilityId => ({
+              serviceId,
+              facilityId,
+            }))
+          )
         );
       }
 
+      // Execute all operations atomically
+      await this.db.batch(batchOperations);
+
+      // Retrieve and return the created service
       const createdService = await this.getServiceById(mitraId, serviceId);
       if (!createdService) {
         throw new Error("Failed to retrieve created service");
       }
 
-      // Audit log the service creation
-      if (this.auditService) {
-        await this.auditService.log({
-          actorId: mitraId,
-          mitraId,
-          entityType: "SERVICE",
-          entityId: serviceId,
-          eventType: "SERVICE_CREATED",
-          details: {
-            name: data.name,
-            isPublic: data.isPublic,
-            maxRangeKm: data.maxRangeKm,
-            baseFee: data.rate.baseFee,
-            feePerKm: data.rate.feePerKm,
-            supportedVehicleTypes: data.supportedVehicleTypeIds.length,
-            supportedPayloadTypes: data.supportedPayloadTypeIds.length,
-            availableFacilities: data.availableFacilityIds?.length || 0,
-          },
-        });
-      }
-
       return createdService;
-    });
+    } catch (error) {
+      console.error("Service creation error:", error);
+      throw error;
+    }
   }
 
   async getServices(mitraId: string): Promise<ServiceResponse[]> {
@@ -354,7 +356,7 @@ export class MitraServiceManagementService {
     serviceId: string,
     data: UpdateServiceRequest
   ): Promise<ServiceResponse> {
-    return await this.db.transaction(async tx => {
+    try {
       const serviceUpdateData: any = {};
       if (data.name !== undefined) serviceUpdateData.name = data.name;
       if (data.isPublic !== undefined)
@@ -363,7 +365,7 @@ export class MitraServiceManagementService {
         serviceUpdateData.maxRangeKm = data.maxRangeKm;
 
       if (Object.keys(serviceUpdateData).length > 0) {
-        await tx
+        await this.db
           .update(services)
           .set(serviceUpdateData)
           .where(
@@ -372,7 +374,7 @@ export class MitraServiceManagementService {
       }
 
       if (data.rate) {
-        await tx
+        await this.db
           .update(serviceRates)
           .set({
             baseFee: data.rate.baseFee,
@@ -382,12 +384,12 @@ export class MitraServiceManagementService {
       }
 
       if (data.supportedVehicleTypeIds !== undefined) {
-        await tx
+        await this.db
           .delete(servicesToVehicleTypes)
           .where(eq(servicesToVehicleTypes.serviceId, serviceId));
 
         if (data.supportedVehicleTypeIds.length > 0) {
-          await tx.insert(servicesToVehicleTypes).values(
+          await this.db.insert(servicesToVehicleTypes).values(
             data.supportedVehicleTypeIds.map(vehicleTypeId => ({
               serviceId,
               vehicleTypeId,
@@ -397,12 +399,12 @@ export class MitraServiceManagementService {
       }
 
       if (data.supportedPayloadTypeIds !== undefined) {
-        await tx
+        await this.db
           .delete(servicesToPayloadTypes)
           .where(eq(servicesToPayloadTypes.serviceId, serviceId));
 
         if (data.supportedPayloadTypeIds.length > 0) {
-          await tx.insert(servicesToPayloadTypes).values(
+          await this.db.insert(servicesToPayloadTypes).values(
             data.supportedPayloadTypeIds.map(payloadTypeId => ({
               serviceId,
               payloadTypeId,
@@ -412,12 +414,12 @@ export class MitraServiceManagementService {
       }
 
       if (data.availableFacilityIds !== undefined) {
-        await tx
+        await this.db
           .delete(servicesToFacilities)
           .where(eq(servicesToFacilities.serviceId, serviceId));
 
         if (data.availableFacilityIds && data.availableFacilityIds.length > 0) {
-          await tx.insert(servicesToFacilities).values(
+          await this.db.insert(servicesToFacilities).values(
             data.availableFacilityIds.map(facilityId => ({
               serviceId,
               facilityId,
@@ -447,6 +449,9 @@ export class MitraServiceManagementService {
       }
 
       return updatedService;
-    });
+    } catch (error) {
+      console.error("Service update error:", error);
+      throw error;
+    }
   }
 }

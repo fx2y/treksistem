@@ -12,8 +12,9 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "../packages/db/src/schema.ts";
 import { nanoid } from "nanoid";
 
-const DATABASE_URL =
-  "./.wrangler/state/v3/d1/miniflare-D1DatabaseObject/fc8ace76-5e4f-4bbe-8186-7d4198559f4d.sqlite";
+const DATABASE_URL = process.env.REMOTE_SEED
+  ? "remote" // Signal to use remote API-based seeding
+  : "./.wrangler/state/v3/d1/miniflare-D1DatabaseObject/fc8ace76-5e4f-4bbe-8186-7d4198559f4d.sqlite";
 
 class ShowcaseDataSeeder {
   constructor() {

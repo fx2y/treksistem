@@ -151,7 +151,9 @@ export class MitraMonitoringService {
       orderId: order.id,
       publicId: order.publicId,
       status: order.status,
-      createdAt: order.createdAt.toISOString(),
+      createdAt: order.createdAt
+        ? new Date(order.createdAt * 1000).toISOString()
+        : new Date().toISOString(),
       estimatedCost: order.estimatedCost,
       recipientName: order.recipientName,
       driverName: order.assignedDriver?.user?.name || null,

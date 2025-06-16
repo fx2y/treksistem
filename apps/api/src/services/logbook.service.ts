@@ -77,7 +77,9 @@ export class LogbookService {
 
     // Transform results into LogbookEntry format
     return results.map(row => ({
-      timestamp: row.timestamp?.toISOString() || "",
+      timestamp: row.timestamp
+        ? new Date(row.timestamp * 1000).toISOString()
+        : "",
       event:
         row.stage === "pickup"
           ? "Pickup reported"

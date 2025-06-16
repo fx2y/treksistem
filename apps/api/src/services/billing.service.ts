@@ -61,7 +61,6 @@ export class BillingService {
           amount: data.amount,
           description: data.description || "Payment",
         }),
-        createdAt: new Date(),
       })
       .returning();
 
@@ -444,7 +443,7 @@ export class BillingService {
 
     const updateData: any = {
       status: newStatus,
-      updatedAt: new Date(),
+      updatedAt: Math.floor(Date.now() / 1000),
     };
 
     if (paidAt) {

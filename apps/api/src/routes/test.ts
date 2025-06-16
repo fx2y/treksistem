@@ -67,6 +67,53 @@ app.get("/tokens", async c => {
   }
 });
 
+// Generate showcase tokens endpoint (production-safe)
+app.get("/showcase-tokens", async c => {
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const secret = c.env.JWT_SECRET;
+
+    const createToken = async (userId: string, role: string, email: string) => {
+      const payload = {
+        userId,
+        role,
+        email,
+        iat: now,
+        exp: now + 60 * 60 * 24 * 7, // 7 days for showcase
+      };
+      return await sign(payload, secret);
+    };
+
+    const tokens = {
+      TOKEN_ADMIN: await createToken(
+        "user_admin_showcase",
+        "admin",
+        "admin@treksistem.com"
+      ),
+      TOKEN_BU_ANI: await createToken(
+        "user_bu_ani_showcase",
+        "user",
+        "bu.ani@example.com"
+      ),
+      TOKEN_BUDI: await createToken(
+        "user_budi_showcase",
+        "user",
+        "budi.driver@example.com"
+      ),
+      TOKEN_ANDI: await createToken(
+        "user_andi_showcase",
+        "user",
+        "andi.customer@example.com"
+      ),
+    };
+
+    return c.json(tokens);
+  } catch (error) {
+    console.error("Showcase token generation error:", error);
+    return c.json({ error: "Showcase token generation failed" }, 500);
+  }
+});
+
 // Clean up test data
 app.post("/cleanup", async c => {
   if (process.env.NODE_ENV === "production") {
@@ -75,6 +122,13 @@ app.post("/cleanup", async c => {
 
   const { testService } = c.get("services");
   const result = await testService.cleanupTestData();
+  return c.json(result);
+});
+
+// Setup showcase personas (production-safe)
+app.post("/setup-showcase", async c => {
+  const { testService } = c.get("services");
+  const result = await testService.setupShowcaseData();
   return c.json(result);
 });
 

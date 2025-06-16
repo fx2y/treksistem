@@ -1,6 +1,6 @@
 import { vehicles, orders } from "@treksistem/db";
 import type { DbClient } from "@treksistem/db";
-import { eq, and, gt, asc } from "drizzle-orm";
+import { eq, and, gt, asc, sql } from "drizzle-orm";
 
 import { AuditService } from "./audit.service";
 
@@ -39,6 +39,21 @@ export class VehicleService {
     private auditService?: AuditService
   ) {}
 
+  private convertTimestamp(timestamp: any): string {
+    try {
+      if (typeof timestamp === "number") {
+        return new Date(timestamp * 1000).toISOString();
+      } else if (timestamp instanceof Date) {
+        return timestamp.toISOString();
+      } else {
+        return new Date().toISOString();
+      }
+    } catch (error) {
+      console.error("Timestamp conversion error:", error);
+      return new Date().toISOString();
+    }
+  }
+
   async getVehicles(
     mitraId: string,
     options: { limit: number; cursor?: string } = { limit: 20 }
@@ -71,8 +86,10 @@ export class VehicleService {
 
     return {
       data: data.map(vehicle => ({
-        ...vehicle,
-        createdAt: vehicle.createdAt!.toISOString(),
+        id: vehicle.id,
+        licensePlate: vehicle.licensePlate,
+        description: vehicle.description,
+        createdAt: this.convertTimestamp(vehicle.createdAt),
       })),
       nextCursor,
     };
@@ -98,7 +115,7 @@ export class VehicleService {
     const vehicle = result[0];
     return {
       ...vehicle,
-      createdAt: vehicle.createdAt!.toISOString(),
+      createdAt: this.convertTimestamp(vehicle.createdAt),
     };
   }
 
@@ -106,46 +123,38 @@ export class VehicleService {
     mitraId: string,
     data: CreateVehicleRequest
   ): Promise<VehicleResponse> {
-    const normalizedLicensePlate = data.licensePlate
-      .toUpperCase()
-      .trim()
-      .replace(/\s+/g, "");
+    try {
+      const normalizedLicensePlate = data.licensePlate
+        .toUpperCase()
+        .trim()
+        .replace(/\s+/g, "");
 
-    const result = await this.db
-      .insert(vehicles)
-      .values({
-        mitraId,
-        licensePlate: normalizedLicensePlate,
-        description: data.description || null,
-      })
-      .returning({
-        id: vehicles.id,
-        licensePlate: vehicles.licensePlate,
-        description: vehicles.description,
-        createdAt: vehicles.createdAt,
-      });
+      const result = await this.db
+        .insert(vehicles)
+        .values({
+          mitraId,
+          licensePlate: normalizedLicensePlate,
+          description: data.description || null,
+        })
+        .returning({
+          id: vehicles.id,
+          licensePlate: vehicles.licensePlate,
+          description: vehicles.description,
+          createdAt: vehicles.createdAt,
+        });
 
-    const vehicle = result[0];
+      const vehicle = result[0];
 
-    // Audit log the vehicle creation
-    if (this.auditService) {
-      await this.auditService.log({
-        actorId: mitraId,
-        mitraId,
-        entityType: "VEHICLE",
-        entityId: vehicle.id,
-        eventType: "VEHICLE_CREATED",
-        details: {
-          licensePlate: vehicle.licensePlate,
-          description: vehicle.description,
-        },
-      });
+      return {
+        id: vehicle.id,
+        licensePlate: vehicle.licensePlate,
+        description: vehicle.description,
+        createdAt: this.convertTimestamp(vehicle.createdAt),
+      };
+    } catch (error) {
+      console.error("Vehicle creation error:", error);
+      throw error;
     }
-
-    return {
-      ...vehicle,
-      createdAt: vehicle.createdAt!.toISOString(),
-    };
   }
 
   async updateVehicle(
@@ -154,7 +163,7 @@ export class VehicleService {
     data: UpdateVehicleRequest
   ): Promise<VehicleResponse> {
     const updateData: any = {
-      updatedAt: new Date(),
+      updatedAt: sql`(current_timestamp)`,
     };
 
     if (data.licensePlate !== undefined) {
@@ -202,7 +211,7 @@ export class VehicleService {
 
     return {
       ...vehicle,
-      createdAt: vehicle.createdAt!.toISOString(),
+      createdAt: this.convertTimestamp(vehicle.createdAt),
     };
   }
 

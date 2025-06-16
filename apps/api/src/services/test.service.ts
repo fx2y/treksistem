@@ -116,7 +116,7 @@ export class TestService {
 
     // Create service for Mitra 1
     await this.directDb.exec(
-      `INSERT INTO services (id, mitra_id, service_name, description, is_active) VALUES ('service_1', 'mitra_1', 'Food Delivery Service', 'Fast food delivery', 1)`
+      `INSERT INTO services (id, mitra_id, name, is_public) VALUES ('service_1', 'mitra_1', 'Food Delivery Service', 1)`
     );
 
     // Create orders with timestamps
@@ -128,10 +128,10 @@ export class TestService {
     const order2PublicId = nanoid(12);
 
     await this.directDb.exec(
-      `INSERT INTO orders (id, public_id, service_id, assigned_driver_id, assigned_vehicle_id, status, created_at) VALUES ('order_1', '${order1PublicId}', 'service_1', 'driver_a1', 'vehicle_v1', 'delivered', ${Math.floor(yesterday.getTime() / 1000)})`
+      `INSERT INTO orders (id, public_id, service_id, assigned_driver_id, assigned_vehicle_id, status, orderer_name, orderer_phone, recipient_name, recipient_phone, estimated_cost, created_at) VALUES ('order_1', '${order1PublicId}', 'service_1', 'driver_a1', 'vehicle_v1', 'delivered', 'Customer A', '+628123456789', 'Recipient A', '+628123456789', 15000, ${Math.floor(yesterday.getTime() / 1000)})`
     );
     await this.directDb.exec(
-      `INSERT INTO orders (id, public_id, service_id, assigned_driver_id, assigned_vehicle_id, status, created_at) VALUES ('order_2', '${order2PublicId}', 'service_1', 'driver_a1', 'vehicle_v2', 'delivered', ${Math.floor(today.getTime() / 1000)})`
+      `INSERT INTO orders (id, public_id, service_id, assigned_driver_id, assigned_vehicle_id, status, orderer_name, orderer_phone, recipient_name, recipient_phone, estimated_cost, created_at) VALUES ('order_2', '${order2PublicId}', 'service_1', 'driver_a1', 'vehicle_v2', 'delivered', 'Customer B', '+628987654321', 'Recipient B', '+628987654321', 20000, ${Math.floor(today.getTime() / 1000)})`
     );
 
     // Create order stops
@@ -159,12 +159,19 @@ export class TestService {
     const todayDropoff = new Date(today);
     todayDropoff.setHours(15, 30, 0, 0);
 
-    await this.directDb
-      .exec(`INSERT INTO order_reports (id, order_id, driver_id, stage, notes, timestamp) VALUES 
-      ('report_1_pickup', 'order_1', 'driver_a1', 'pickup', 'Jl. Merdeka No. 5', '${yesterdayPickup.toISOString()}'),
-      ('report_1_dropoff', 'order_1', 'driver_a1', 'dropoff', 'Jl. Sudirman No. 10', '${yesterdayDropoff.toISOString()}'),
-      ('report_2_pickup', 'order_2', 'driver_a1', 'pickup', 'Jl. Pahlawan No. 1', '${todayPickup.toISOString()}'),
-      ('report_2_dropoff', 'order_2', 'driver_a1', 'dropoff', 'Jl. Veteran No. 2', '${todayDropoff.toISOString()}')`);
+    // Create order reports with proper timestamps
+    await this.directDb.exec(
+      `INSERT INTO order_reports (id, order_id, driver_id, stage, notes, timestamp) VALUES ('report_1_pickup', 'order_1', 'driver_a1', 'pickup', 'Jl. Merdeka No. 5', '${yesterdayPickup.toISOString()}')`
+    );
+    await this.directDb.exec(
+      `INSERT INTO order_reports (id, order_id, driver_id, stage, notes, timestamp) VALUES ('report_1_dropoff', 'order_1', 'driver_a1', 'dropoff', 'Jl. Sudirman No. 10', '${yesterdayDropoff.toISOString()}')`
+    );
+    await this.directDb.exec(
+      `INSERT INTO order_reports (id, order_id, driver_id, stage, notes, timestamp) VALUES ('report_2_pickup', 'order_2', 'driver_a1', 'pickup', 'Jl. Pahlawan No. 1', '${todayPickup.toISOString()}')`
+    );
+    await this.directDb.exec(
+      `INSERT INTO order_reports (id, order_id, driver_id, stage, notes, timestamp) VALUES ('report_2_dropoff', 'order_2', 'driver_a1', 'dropoff', 'Jl. Veteran No. 2', '${todayDropoff.toISOString()}')`
+    );
 
     return {
       message: "Logbook test data setup complete",
@@ -193,5 +200,46 @@ export class TestService {
     await this.db.delete(users).where(eq(users.id, "user_driver_1"));
 
     return { message: "Test data cleanup complete" };
+  }
+
+  async setupShowcaseData() {
+    // Create showcase personas directly in production
+
+    // Clean existing showcase data
+    await this.directDb.exec(
+      `DELETE FROM users WHERE id IN ('user_admin_showcase', 'user_bu_ani_showcase', 'user_budi_showcase', 'user_andi_showcase')`
+    );
+    await this.directDb.exec(
+      `DELETE FROM mitras WHERE id = 'mitra_katering_bu_ani'`
+    );
+
+    // Create showcase users
+    await this.directDb.exec(
+      `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_admin_showcase', 'google_admin_showcase', 'admin@treksistem.com', 'Master Admin', 'admin')`
+    );
+    await this.directDb.exec(
+      `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_bu_ani_showcase', 'google_bu_ani_showcase', 'bu.ani@example.com', 'Bu Ani', 'user')`
+    );
+    await this.directDb.exec(
+      `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_budi_showcase', 'google_budi_showcase', 'budi.driver@example.com', 'Budi Santoso', 'user')`
+    );
+    await this.directDb.exec(
+      `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_andi_showcase', 'google_andi_showcase', 'andi.customer@example.com', 'Andi Customer', 'user')`
+    );
+
+    // Create Katering Bu Ani mitra
+    await this.directDb.exec(
+      `INSERT INTO mitras (id, user_id, business_name, address, phone, lat, lng, subscription_status, active_driver_limit, has_completed_onboarding) VALUES ('mitra_katering_bu_ani', 'user_bu_ani_showcase', 'Katering Bu Ani', 'Jl. Raya Malang No. 123, Malang, Jawa Timur', '+628123456789', -7.9797, 112.6304, 'active', 5, 1)`
+    );
+
+    return {
+      message: "Showcase data setup complete",
+      personas: {
+        admin: "admin@treksistem.com",
+        mitra: "bu.ani@example.com",
+        driver: "budi.driver@example.com",
+        customer: "andi.customer@example.com",
+      },
+    };
   }
 }
