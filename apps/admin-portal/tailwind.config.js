@@ -4,5 +4,8 @@ export default {
   theme: {
     extend: {},
   },
-  plugins: [require("@tailwindcss/forms")],
+  plugins: [
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require("@tailwindcss/forms"),
+  ],
 };

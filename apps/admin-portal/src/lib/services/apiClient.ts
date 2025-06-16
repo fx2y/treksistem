@@ -65,14 +65,14 @@ class AdminApiClient extends BaseApiClient {
   async confirmPayment(
     invoiceId: string,
     confirmation: PaymentConfirmation
-  ): Promise<any> {
+  ): Promise<unknown> {
     return this.post(
       `/api/admin/invoices/${invoiceId}/confirm-payment`,
       confirmation
     );
   }
 
-  async getMitras(): Promise<any> {
+  async getMitras(): Promise<unknown> {
     return this.get("/api/admin/mitras");
   }
 }

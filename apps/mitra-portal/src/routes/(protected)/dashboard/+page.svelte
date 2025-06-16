@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/services/apiClient';
-	import type { Order, Driver, Vehicle } from '$lib/types';
-	import { Clock, Truck, CheckCircle, XCircle, Plus, User, Car } from 'lucide-svelte';
+	import type { Order } from '$lib/types';
+	import { Clock, Truck, CheckCircle, XCircle } from 'lucide-svelte';
 
 	let orders: Order[] = [];
 	let loading = true;
@@ -124,56 +124,15 @@
 		</div>
 	</div>
 
-	<!-- Pending Dispatch Orders -->
-	{#if pendingDispatchOrders.length > 0}
+	<!-- TODO: Pending Dispatch Orders - Implementation pending -->
+	<!-- {#if pendingDispatchOrders.length > 0}
 		<div class="bg-white shadow overflow-hidden sm:rounded-md">
 			<div class="px-4 py-5 sm:px-6">
 				<h3 class="text-lg leading-6 font-medium text-gray-900">Pending Dispatch</h3>
 				<p class="mt-1 max-w-2xl text-sm text-gray-500">Orders ready for driver assignment</p>
 			</div>
-			<ul class="divide-y divide-gray-200">
-				{#each pendingDispatchOrders as order}
-					<li class="px-4 py-4 sm:px-6 hover:bg-gray-50">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center">
-								<div class="flex-shrink-0">
-									<Clock class="h-5 w-5 text-yellow-400" />
-								</div>
-								<div class="ml-4">
-									<div class="text-sm font-medium text-gray-900">
-										Order #{order.public_id}
-									</div>
-									<div class="text-sm text-gray-500">
-										{order.ordererName} → {order.recipientName}
-									</div>
-									<div class="text-sm text-gray-500">
-										{order.stops.length} stop{order.stops.length !== 1 ? 's' : ''}
-									</div>
-								</div>
-							</div>
-							<div class="flex items-center space-x-3">
-								<div class="text-right">
-									<div class="text-sm font-medium text-gray-900">
-										Rp {order.estimatedCost.toLocaleString('id-ID')}
-									</div>
-									<div class="text-sm text-gray-500">
-										{new Date(order.createdAt).toLocaleDateString('id-ID')}
-									</div>
-								</div>
-								<button
-									on:click={() => openAssignmentModal(order)}
-									class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
-								>
-									<User class="h-4 w-4 mr-1" />
-									Assign
-								</button>
-							</div>
-						</div>
-					</li>
-				{/each}
-			</ul>
 		</div>
-	{/if}
+	{/if} -->
 
 	<!-- Recent Orders -->
 	<div class="bg-white shadow overflow-hidden sm:rounded-md">
@@ -256,68 +215,11 @@
 	</div>
 </div>
 
-<!-- Assignment Modal -->
+<!-- TODO: Assignment Modal - Implementation pending -->
+<!-- 
 {#if assignmentModal.open && assignmentModal.order}
 	<div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-		<div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-			<div class="mt-3">
-				<div class="flex items-center justify-between mb-4">
-					<h3 class="text-lg font-medium text-gray-900">
-						Assign Order #{assignmentModal.order.public_id}
-					</h3>
-					<button on:click={closeAssignmentModal} class="text-gray-400 hover:text-gray-600">
-						×
-					</button>
-				</div>
-
-				<div class="space-y-4">
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2"> Select Driver </label>
-						<div class="space-y-2 max-h-40 overflow-y-auto">
-							{#each drivers as driver}
-								<button
-									on:click={() => assignOrder(driver.id)}
-									disabled={assigning}
-									class="w-full text-left p-3 border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-								>
-									<div class="flex items-center">
-										<User class="h-4 w-4 text-gray-400 mr-2" />
-										<div>
-											<div class="text-sm font-medium text-gray-900">
-												{driver.name}
-											</div>
-											<div class="text-sm text-gray-500">
-												{driver.email}
-											</div>
-										</div>
-									</div>
-								</button>
-							{/each}
-						</div>
-					</div>
-
-					{#if drivers.length === 0}
-						<div class="text-center py-4">
-							<p class="text-sm text-gray-500">No drivers available</p>
-							<a
-								href="/drivers"
-								class="mt-2 inline-flex items-center text-sm text-blue-600 hover:text-blue-500"
-							>
-								Invite drivers
-							</a>
-						</div>
-					{/if}
-				</div>
-
-				<div class="flex justify-end mt-6">
-					<button
-						on:click={closeAssignmentModal}
-						class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-					>
-						Cancel
-					</button>
-				</div>
-			</div>
-		</div>
+		Implementation pending
 	</div>
 {/if}
+-->

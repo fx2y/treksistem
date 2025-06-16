@@ -177,7 +177,8 @@ export class PublicOrderService {
           eq(schema.services.isPublic, true)
         )
       )
-      .get();
+      .all()
+      .then(rows => rows[0]);
 
     if (!service) {
       throw new NotFoundError("Service not found or not public");

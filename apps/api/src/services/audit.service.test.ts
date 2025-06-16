@@ -21,7 +21,7 @@ describe("AuditService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new AuditService(mockDb);
+    service = new AuditService({ db: mockDb });
   });
 
   describe("log", () => {

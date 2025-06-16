@@ -53,7 +53,10 @@ export function createServices(env: Bindings): ServiceContainer {
     : createDbClient(env.DB);
 
   const notificationService = new NotificationService(db);
-  const auditService = new AuditService(db);
+  const auditService = new AuditService({
+    db,
+    auditQueue: env.AUDIT_LOG_QUEUE,
+  });
 
   // Create auth services
   const authServices = createAuthServices(env);
@@ -93,6 +96,7 @@ export function createServices(env: Bindings): ServiceContainer {
   const schemaValidationService = new SchemaValidationService({
     db,
     alertingKV: env.ALERTING_KV,
+    alertWebhookUrl: env.ALERT_WEBHOOK_URL,
   });
   const testService = new TestService(db, env.DB);
   const uploadService = new UploadService(db, env);

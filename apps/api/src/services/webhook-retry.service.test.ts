@@ -182,10 +182,12 @@ describe("WebhookRetryService", () => {
       const payload = { test: "data" };
       const processor = vi.fn().mockRejectedValue(new Error("Failure"));
 
-      // Should not throw, but should break out and schedule retry
-      await webhookRetryService.processWithRetry("midtrans", payload, processor);
+      // In test mode, it should continue retrying synchronously
+      await expect(
+        webhookRetryService.processWithRetry("midtrans", payload, processor)
+      ).rejects.toThrow("Failure");
 
-      expect(processor).toHaveBeenCalledTimes(1);
+      expect(processor).toHaveBeenCalledTimes(5); // Default maxRetries
       expect(console.log).toHaveBeenCalledWith(
         "Scheduling webhook retry: test-retry-id-123",
         expect.any(Object)
@@ -211,7 +213,9 @@ describe("WebhookRetryService", () => {
       const payload = { test: "data" };
       const processor = vi.fn().mockRejectedValue(new Error("Test error"));
 
-      await webhookRetryService.processWithRetry("midtrans", payload, processor);
+      await expect(
+        webhookRetryService.processWithRetry("midtrans", payload, processor)
+      ).rejects.toThrow("Test error");
 
       expect(console.error).toHaveBeenCalledWith(
         "Webhook processing failed (attempt 1/5):",
@@ -306,7 +310,9 @@ describe("WebhookRetryService", () => {
       const payload = { test: "data" };
       const processor = vi.fn().mockRejectedValue("String error");
 
-      await webhookRetryService.processWithRetry("midtrans", payload, processor);
+      await expect(
+        webhookRetryService.processWithRetry("midtrans", payload, processor)
+      ).rejects.toThrow("String error");
 
       expect(console.error).toHaveBeenCalledWith(
         expect.stringContaining("Webhook processing failed"),

@@ -24,6 +24,7 @@ UPLOAD_URL_EXPIRES_IN_SECONDS = "300"
 R2_ACCOUNT_ID = ""
 R2_ACCESS_KEY_ID = ""
 R2_SECRET_ACCESS_KEY = ""
+# ALERT_WEBHOOK_URL = ""  # For schema validation alerts (e.g., Healthchecks.io, Slack webhook)
 
 # D1 Database binding for local development and remote deployment
 [[d1_databases]]
@@ -36,6 +37,28 @@ migrations_dir = "packages/db/migrations"
 binding = "R2_BUCKET"
 bucket_name = "treksistem-prod-report-photos"
 preview_bucket_name = "treksistem-dev-report-photos"
+
+# KV namespace for distributed rate limiting
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "your-rate-limit-kv-namespace-id"
+preview_id = "your-preview-rate-limit-kv-namespace-id"
+
+# KV namespace for alerting/monitoring
+[[kv_namespaces]]
+binding = "ALERTING_KV"
+id = "your-alerting-kv-namespace-id"
+preview_id = "your-preview-alerting-kv-namespace-id"
+
+# Queues for asynchronous processing
+[[queues]]
+binding = "AUDIT_LOG_QUEUE"
+queue_name = "audit-log-queue"
+
+[[queues.consumers]]
+queue = "audit-log-queue"
+max_batch_size = 10
+max_batch_timeout = 5
 
 # Cron triggers
 [triggers]

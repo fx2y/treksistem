@@ -31,7 +31,7 @@ export class AdminAuthService {
       try {
         await adminApiClient.getMitras();
         return true;
-      } catch (error) {
+      } catch {
         // Token might be expired, try to refresh
         if (refreshToken) {
           try {

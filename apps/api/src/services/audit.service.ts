@@ -44,23 +44,46 @@ export interface AuditLogOptions {
   details?: Record<string, unknown>;
 }
 
+export interface AuditServiceDependencies {
+  db: DbClient;
+  auditQueue?: Queue;
+}
+
 export class AuditService {
-  constructor(private db: DbClient) {}
+  constructor(private deps: AuditServiceDependencies) {}
 
   async log(options: AuditLogOptions): Promise<void> {
     try {
-      await this.db.insert(auditLogs).values({
-        adminUserId: options.actorId,
-        impersonatedMitraId: options.mitraId || null,
-        targetEntity: options.entityType.toLowerCase(),
-        targetId: options.entityId,
-        action: options.eventType,
-        payload: options.details || {},
-      });
+      if (this.deps.auditQueue) {
+        // Asynchronous processing via queue
+        await this.deps.auditQueue.send({
+          timestamp: new Date().toISOString(),
+          adminUserId: options.actorId,
+          impersonatedMitraId: options.mitraId || null,
+          targetEntity: options.entityType.toLowerCase(),
+          targetId: options.entityId,
+          action: options.eventType,
+          payload: options.details || {},
+        });
+      } else {
+        // Fallback to direct database write
+        await this.writeToDatabase(options);
+      }
     } catch (error) {
       // Audit logging MUST NOT fail the primary business operation
       console.error("Audit logging failed:", error);
     }
+  }
+
+  private async writeToDatabase(options: AuditLogOptions): Promise<void> {
+    await this.deps.db.insert(auditLogs).values({
+      adminUserId: options.actorId,
+      impersonatedMitraId: options.mitraId || null,
+      targetEntity: options.entityType.toLowerCase(),
+      targetId: options.entityId,
+      action: options.eventType,
+      payload: options.details || {},
+    });
   }
 
   withAuditing<T extends any[], R>(
@@ -107,7 +130,7 @@ export async function logAdminAction(
   db: DbClient,
   options: AdminAuditLogOptions
 ): Promise<void> {
-  const auditService = new AuditService(db);
+  const auditService = new AuditService({ db });
   await auditService.log({
     actorId: options.adminUserId,
     mitraId: options.impersonatedMitraId,

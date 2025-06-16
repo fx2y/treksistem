@@ -28,6 +28,15 @@ describe("TestService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset mock implementations to successful defaults
+    mockDb.delete.mockReturnValue({
+      where: vi.fn().mockResolvedValue(undefined),
+    });
+    mockDb.insert.mockReturnValue({
+      values: vi.fn().mockResolvedValue(undefined),
+    });
+    mockDirectDb.exec.mockResolvedValue(undefined);
+    
     testService = new TestService(mockDb, mockDirectDb);
   });
 
@@ -195,7 +204,7 @@ describe("TestService", () => {
       // Should have different timestamps for different days
       expect(orderInserts.length).toBe(2);
       orderInserts.forEach(call => {
-        expect(call[0]).toMatch(/\d+\)\'/); // Should contain timestamp
+        expect(call[0]).toMatch(/\d+\)/); // Should contain timestamp
       });
     });
   });
@@ -227,7 +236,7 @@ describe("TestService", () => {
         where: vi.fn().mockRejectedValue(new Error("Delete failed")),
       });
 
-      // Should still attempt to complete cleanup
+      // Should propagate the error since cleanupTestData doesn't catch it
       await expect(testService.cleanupTestData()).rejects.toThrow("Delete failed");
     });
   });

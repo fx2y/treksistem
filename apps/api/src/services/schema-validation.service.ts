@@ -5,6 +5,7 @@ import { BadRequestError } from "../lib/errors";
 export interface SchemaValidationServiceDependencies {
   db: DbClient;
   alertingKV?: KVNamespace; // Optional KV store for alerting state
+  alertWebhookUrl?: string; // Optional webhook URL for external alerts
 }
 
 export interface SchemaValidationResult {
@@ -68,8 +69,13 @@ export class SchemaValidationService {
           `);
           actualTables = result.map((row: any) => row.name);
         } catch (error) {
-          // Fallback if all method fails
-          actualTables = this.expectedTables;
+          // If database query fails, this is a validation failure
+          return {
+            isValid: false,
+            errors: [
+              `Schema validation failed: ${error instanceof Error ? error.message : "Database query failed"}`,
+            ],
+          };
         }
       } else {
         // In test environment, assume all expected tables exist
@@ -341,28 +347,19 @@ export class SchemaValidationService {
     // 3. Post to Slack/Discord/Teams
     // 4. Trigger PagerDuty incident
 
-    // Example webhook call (commented out):
-    /*
-    try {
-      await fetch("https://hooks.slack.com/your-webhook-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: `🚨 Database Schema Validation Failed (${metrics.consecutiveFailures} consecutive failures)`,
-          attachments: [{
-            color: "danger",
-            fields: [
-              { title: "Errors", value: result.errors?.join("\n") || "None", short: false },
-              { title: "Missing Tables", value: result.missingTables?.join(", ") || "None", short: true },
-              { title: "Extra Tables", value: result.extraTables?.join(", ") || "None", short: true }
-            ]
-          }]
-        })
-      });
-    } catch (error) {
-      console.error("Failed to send alert webhook:", error);
+    // Send webhook alert if configured
+    if (this.deps.alertWebhookUrl) {
+      try {
+        await fetch(this.deps.alertWebhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(alertMessage)
+        });
+        console.log("Alert webhook sent successfully");
+      } catch (error) {
+        console.error("Failed to send alert webhook:", error);
+      }
     }
-    */
   }
 
   async getMonitoringMetrics(): Promise<{
