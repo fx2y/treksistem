@@ -63,11 +63,11 @@
 
 	async function requestQuote() {
 		if (!formData.serviceId || formData.stops.length < 2) return;
-		
-		const validStops = formData.stops.filter(stop => 
-			stop.address.trim() && stop.lat !== 0 && stop.lng !== 0
+
+		const validStops = formData.stops.filter(
+			(stop) => stop.address.trim() && stop.lat !== 0 && stop.lng !== 0
 		);
-		
+
 		if (validStops.length < 2) return;
 
 		try {
@@ -86,12 +86,15 @@
 	}
 
 	function addStop() {
-		formData.stops = [...formData.stops, { 
-			address: '', 
-			lat: 0, 
-			lng: 0, 
-			type: 'dropoff' as const 
-		}];
+		formData.stops = [
+			...formData.stops,
+			{
+				address: '',
+				lat: 0,
+				lng: 0,
+				type: 'dropoff' as const
+			}
+		];
 	}
 
 	function removeStop(index: number) {
@@ -103,7 +106,7 @@
 	function moveStop(index: number, direction: 'up' | 'down') {
 		const newStops = [...formData.stops];
 		const newIndex = direction === 'up' ? index - 1 : index + 1;
-		
+
 		if (newIndex >= 0 && newIndex < newStops.length) {
 			[newStops[index], newStops[newIndex]] = [newStops[newIndex], newStops[index]];
 			formData.stops = newStops;
@@ -125,8 +128,8 @@
 			return;
 		}
 
-		const validStops = formData.stops.filter(stop => 
-			stop.address.trim() && stop.lat !== 0 && stop.lng !== 0
+		const validStops = formData.stops.filter(
+			(stop) => stop.address.trim() && stop.lat !== 0 && stop.lng !== 0
 		);
 
 		if (validStops.length < 2) {
@@ -218,7 +221,9 @@
 							<option value="">Select a service</option>
 							{#each services as service}
 								<option value={service.id}>
-									{service.name} - Rp {service.rate.baseFee.toLocaleString('id-ID')} + Rp {service.rate.feePerKm.toLocaleString('id-ID')}/km
+									{service.name} - Rp {service.rate.baseFee.toLocaleString('id-ID')} + Rp {service.rate.feePerKm.toLocaleString(
+										'id-ID'
+									)}/km
 								</option>
 							{/each}
 						</select>
@@ -465,9 +470,7 @@
 										<label for="sendNotifications" class="font-medium text-gray-700">
 											Send notifications
 										</label>
-										<p class="text-gray-500">
-											Generate WhatsApp link for customer notifications
-										</p>
+										<p class="text-gray-500">Generate WhatsApp link for customer notifications</p>
 									</div>
 								</div>
 							</div>

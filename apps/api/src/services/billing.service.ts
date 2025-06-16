@@ -382,8 +382,8 @@ export class BillingService {
       .where(eq(drivers.mitraId, mitraId));
 
     return {
-      canInviteDrivers: 
-        mitra.subscriptionStatus === "active" && 
+      canInviteDrivers:
+        mitra.subscriptionStatus === "active" &&
         currentDriverCount.length < mitra.activeDriverLimit,
       currentDriverCount: currentDriverCount.length,
       driverLimit: mitra.activeDriverLimit,

@@ -50,8 +50,13 @@ export class UploadService {
 
     const mitraId = userProfile.roles.driverForMitras[0].mitraId;
 
-    if (!this.env.R2_BUCKET || !this.env.R2_ACCOUNT_ID || !this.env.R2_ACCESS_KEY_ID || 
-        !this.env.R2_SECRET_ACCESS_KEY || !this.env.R2_PUBLIC_URL) {
+    if (
+      !this.env.R2_BUCKET ||
+      !this.env.R2_ACCOUNT_ID ||
+      !this.env.R2_ACCESS_KEY_ID ||
+      !this.env.R2_SECRET_ACCESS_KEY ||
+      !this.env.R2_PUBLIC_URL
+    ) {
       throw new Error("R2 configuration is incomplete");
     }
 
@@ -65,8 +70,10 @@ export class UploadService {
 
     const key = `reports/${mitraId}/${request.orderId}/${nanoid()}-${request.fileName}`;
 
-    const expiresInSeconds =
-      parseInt(this.env.UPLOAD_URL_EXPIRES_IN_SECONDS || "300", 10);
+    const expiresInSeconds = parseInt(
+      this.env.UPLOAD_URL_EXPIRES_IN_SECONDS || "300",
+      10
+    );
 
     const { signedUrl, publicUrl } = await r2Service.generateUploadUrl({
       key,

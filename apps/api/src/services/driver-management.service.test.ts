@@ -1,9 +1,4 @@
-import {
-  driverInvites,
-  drivers,
-  users,
-  mitras,
-} from "@treksistem/db";
+import { driverInvites, drivers, users, mitras } from "@treksistem/db";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { DriverManagementService } from "./driver-management.service";
@@ -61,44 +56,51 @@ describe("DriverManagementService", () => {
     it("should successfully create and persist driver invitation", async () => {
       // Mock mitra lookup
       mockDb.select.mockReturnValueOnce(createMockSelectChain(mockMitra));
-      
+
       // Mock current driver count check - return empty array
       const driversCountChain = createMockSelectChain([]);
       driversCountChain.length = 0; // Explicitly set length property
       mockDb.select.mockReturnValueOnce(driversCountChain);
-      
+
       // Mock existing driver check
       mockDb.select.mockReturnValueOnce(createMockSelectChain(null));
-      
+
       // Mock existing invite check
       mockDb.select.mockReturnValueOnce(createMockSelectChain(null));
 
       // Mock successful insert with returning
-      mockDb.insert.mockReturnValue(createMockInsertChain([{ id: "invite-123" }]));
+      mockDb.insert.mockReturnValue(
+        createMockInsertChain([{ id: "invite-123" }])
+      );
 
-      const result = await service.inviteDriver("mitra-1", "newdriver@example.com");
+      const result = await service.inviteDriver(
+        "mitra-1",
+        "newdriver@example.com"
+      );
 
       // Verify the insert was called
       expect(mockDb.insert).toHaveBeenCalledWith(driverInvites);
 
       // Verify the result
       expect(result).toEqual({
-        inviteLink: expect.stringContaining("https://treksistem.app/join?token="),
+        inviteLink: expect.stringContaining(
+          "https://treksistem.app/join?token="
+        ),
       });
     });
 
     it("should throw error when database insert fails (persistence issue)", async () => {
       // Mock mitra lookup
       mockDb.select.mockReturnValueOnce(createMockSelectChain(mockMitra));
-      
+
       // Mock current driver count check - return empty array
       const driversCountChain = createMockSelectChain([]);
       driversCountChain.length = 0;
       mockDb.select.mockReturnValueOnce(driversCountChain);
-      
+
       // Mock existing driver check
       mockDb.select.mockReturnValueOnce(createMockSelectChain(null));
-      
+
       // Mock existing invite check
       mockDb.select.mockReturnValueOnce(createMockSelectChain(null));
 
@@ -107,7 +109,9 @@ describe("DriverManagementService", () => {
 
       await expect(
         service.inviteDriver("mitra-1", "newdriver@example.com")
-      ).rejects.toThrow("Failed to create driver invitation - database insert failed");
+      ).rejects.toThrow(
+        "Failed to create driver invitation - database insert failed"
+      );
     });
 
     it("should reject invitation when mitra not found", async () => {
@@ -129,9 +133,9 @@ describe("DriverManagementService", () => {
 
     it("should reject invitation when driver limit reached", async () => {
       const limitedMitra = { ...mockMitra, activeDriverLimit: 1 };
-      
+
       mockDb.select.mockReturnValueOnce(createMockSelectChain(limitedMitra));
-      
+
       // Mock driver count to return 2 drivers (exceeds limit of 1)
       const driversCountChain = createMockSelectChain([{}, {}]); // 2 drivers
       driversCountChain.length = 2;
@@ -144,12 +148,14 @@ describe("DriverManagementService", () => {
 
     it("should reject invitation when driver already exists", async () => {
       mockDb.select.mockReturnValueOnce(createMockSelectChain(mockMitra));
-      
+
       const driversCountChain = createMockSelectChain([]);
       driversCountChain.length = 0;
       mockDb.select.mockReturnValueOnce(driversCountChain);
-      
-      mockDb.select.mockReturnValueOnce(createMockSelectChain({ existing: "driver" }));
+
+      mockDb.select.mockReturnValueOnce(
+        createMockSelectChain({ existing: "driver" })
+      );
 
       await expect(
         service.inviteDriver("mitra-1", "existing@example.com")
@@ -158,13 +164,15 @@ describe("DriverManagementService", () => {
 
     it("should reject invitation when pending invite already exists", async () => {
       mockDb.select.mockReturnValueOnce(createMockSelectChain(mockMitra));
-      
+
       const driversCountChain = createMockSelectChain([]);
       driversCountChain.length = 0;
       mockDb.select.mockReturnValueOnce(driversCountChain);
-      
+
       mockDb.select.mockReturnValueOnce(createMockSelectChain(null));
-      mockDb.select.mockReturnValueOnce(createMockSelectChain({ existing: "invite" }));
+      mockDb.select.mockReturnValueOnce(
+        createMockSelectChain({ existing: "invite" })
+      );
 
       await expect(
         service.inviteDriver("mitra-1", "pending@example.com")

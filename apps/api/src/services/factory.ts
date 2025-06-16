@@ -47,7 +47,10 @@ export interface ServiceContainer {
 }
 
 export function createServices(env: Bindings): ServiceContainer {
-  const db = createDbClient(env.DB);
+  // Use testDb if in test environment
+  const db = process.env.NODE_ENV === "test" && (global as any).testDb 
+    ? (global as any).testDb 
+    : createDbClient(env.DB);
 
   const notificationService = new NotificationService(db);
   const auditService = new AuditService(db);

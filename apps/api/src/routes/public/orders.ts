@@ -48,12 +48,13 @@ const OrderCreationRequestSchema = z.object({
   notes: z.string().max(1000).trim().optional(),
 });
 
-orders.post("/", 
+orders.post(
+  "/",
   async (c, next) => {
     const { rateLimitService } = c.get("services");
     return rateLimitByIP(rateLimitService, "order:create")(c, next);
   },
-  zValidator("json", OrderCreationRequestSchema), 
+  zValidator("json", OrderCreationRequestSchema),
   async c => {
     const { publicOrderService } = c.get("services");
     const request = c.req.valid("json");

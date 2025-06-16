@@ -58,24 +58,28 @@ The tests use the following test data patterns:
 ## Test Scenarios Covered
 
 ### Authentication Tests
+
 - Google OAuth login flow
 - JWT token validation and refresh
 - Rate limiting on auth endpoints
 - Session management
 
 ### Order Management Tests
+
 - Public order creation with validation
 - Order tracking by public ID
 - Service quotes and pricing
 - Rate limiting on order creation
 
 ### Mitra Management Tests
+
 - Service creation and management
 - Driver invitation and management
 - Order assignment workflows
 - Profile management
 
 ### Admin Tests
+
 - Health check endpoints
 - Schema validation
 - System monitoring
@@ -84,16 +88,19 @@ The tests use the following test data patterns:
 ## Best Practices
 
 ### Test Isolation
+
 - Each test should be independent and not rely on other tests
 - Use proper setup and teardown to ensure clean state
 - Use transactions or database cleaning between tests
 
 ### Error Handling
+
 - Test both success and failure scenarios
 - Verify proper error codes and messages
 - Test rate limiting and validation errors
 
 ### Performance
+
 - Integration tests have longer timeouts (30 seconds)
 - Tests run in separate processes for better isolation
 - Use efficient database operations
@@ -101,21 +108,25 @@ The tests use the following test data patterns:
 ## Future Improvements
 
 ### Database Testing
+
 - Implement proper test database setup with migrations
 - Add database transaction rollback for faster test isolation
 - Use test-specific data seeding
 
 ### Mock Services
+
 - Implement comprehensive mocking for external services
 - Add webhook testing for payment callbacks
 - Mock geolocation services for routing tests
 
 ### Test Coverage
+
 - Add tests for driver workflows
 - Add tests for notification systems
 - Add tests for billing and subscription management
 
 ### CI/CD Integration
+
 - Add integration test runs to CI pipeline
 - Set up test database for CI environment
 - Add test result reporting and coverage tracking

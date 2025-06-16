@@ -5,10 +5,14 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createServices } from "../../services/factory";
 
 import { testDbHelpers } from "./setup";
-import { createTestClient, createMockEnv } from "./test-client";
+import {
+  createTestClient,
+  createMockEnv,
+  createTestServices,
+} from "./test-client";
 
 describe("Webhook Integration Tests", () => {
-  let services: ReturnType<typeof createServices>;
+  let services: ReturnType<typeof createTestServices>;
   let client: ReturnType<typeof createTestClient>;
   let mockEnv: ReturnType<typeof createMockEnv>;
 
@@ -18,7 +22,7 @@ describe("Webhook Integration Tests", () => {
     mockEnv = createMockEnv();
 
     // Setup services with mock environment
-    services = createServices(mockEnv);
+    services = createTestServices(mockEnv);
 
     // Setup test data
     await services.testService.setupBaseTestData();
@@ -100,11 +104,11 @@ describe("Webhook Integration Tests", () => {
 
     it("should handle pending payment webhook", async () => {
       // Create test invoice
-      const testUser = await testDbHelpers.createTestUser({ 
+      const testUser = await testDbHelpers.createTestUser({
         googleId: "webhook-pending-google-id",
         email: "webhook-pending@example.com",
         name: "Webhook Pending User",
-        role: "mitra" 
+        role: "mitra",
       });
       const testMitra = await testDbHelpers.createTestMitra({
         userId: testUser.id,
@@ -152,11 +156,11 @@ describe("Webhook Integration Tests", () => {
 
     it("should handle cancelled payment webhook", async () => {
       // Create test invoice
-      const testUser = await testDbHelpers.createTestUser({ 
+      const testUser = await testDbHelpers.createTestUser({
         googleId: "webhook-cancelled-google-id",
         email: "webhook-cancelled@example.com",
         name: "Webhook Cancelled User",
-        role: "mitra" 
+        role: "mitra",
       });
       const testMitra = await testDbHelpers.createTestMitra({
         userId: testUser.id,
@@ -259,11 +263,11 @@ describe("Webhook Integration Tests", () => {
 
     it("should handle fraud detected in webhook", async () => {
       // Create test invoice
-      const testUser = await testDbHelpers.createTestUser({ 
+      const testUser = await testDbHelpers.createTestUser({
         googleId: "webhook-fraud-google-id",
         email: "webhook-fraud@example.com",
         name: "Webhook Fraud User",
-        role: "mitra" 
+        role: "mitra",
       });
       const testMitra = await testDbHelpers.createTestMitra({
         userId: testUser.id,
@@ -312,11 +316,11 @@ describe("Webhook Integration Tests", () => {
 
     it("should update subscription status for platform subscription payments", async () => {
       // Create test mitra with past_due subscription
-      const testUser = await testDbHelpers.createTestUser({ 
+      const testUser = await testDbHelpers.createTestUser({
         googleId: "webhook-subscription-google-id",
         email: "webhook-subscription@example.com",
         name: "Webhook Subscription User",
-        role: "mitra" 
+        role: "mitra",
       });
       const testMitra = await testDbHelpers.createTestMitra({
         userId: testUser.id,

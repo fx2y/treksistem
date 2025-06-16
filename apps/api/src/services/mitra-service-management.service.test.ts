@@ -43,7 +43,7 @@ describe("MitraServiceManagementService", () => {
 
     it("should create service successfully", async () => {
       // Mock getServiceById method
-      vi.spyOn(service, 'getServiceById').mockResolvedValue({
+      vi.spyOn(service, "getServiceById").mockResolvedValue({
         id: "service-1",
         mitraId: "mitra-1",
         name: "Food Delivery",
@@ -74,7 +74,9 @@ describe("MitraServiceManagementService", () => {
 
     it("should throw error when service creation fails", async () => {
       // Mock getServiceById to throw NotFoundError
-      vi.spyOn(service, 'getServiceById').mockRejectedValue(new Error("Service not found"));
+      vi.spyOn(service, "getServiceById").mockRejectedValue(
+        new Error("Service not found")
+      );
 
       mockDb.transaction.mockImplementation(async (callback: any) => {
         const mockTx = {
@@ -101,7 +103,9 @@ describe("MitraServiceManagementService", () => {
       // Service insertion fails
       mockTx.insert.mockReturnValueOnce({
         values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockRejectedValue(new Error("Service creation failed")),
+          returning: vi
+            .fn()
+            .mockRejectedValue(new Error("Service creation failed")),
         }),
       });
 
@@ -132,14 +136,16 @@ describe("MitraServiceManagementService", () => {
         }),
       });
 
-      // Rate insertion succeeds  
+      // Rate insertion succeeds
       mockTx.insert.mockReturnValueOnce({
         values: vi.fn().mockResolvedValue(undefined),
       });
 
       // Vehicle type linking fails
       mockTx.insert.mockReturnValueOnce({
-        values: vi.fn().mockRejectedValue(new Error("Vehicle type linking failed")),
+        values: vi
+          .fn()
+          .mockRejectedValue(new Error("Vehicle type linking failed")),
       });
 
       mockDb.transaction = vi.fn().mockImplementation(async (callback: any) => {
@@ -186,9 +192,10 @@ describe("MitraServiceManagementService", () => {
       mockDb.select.mockReturnThis();
       mockDb.from.mockReturnThis();
       mockDb.innerJoin.mockReturnThis();
-      mockDb.where.mockResolvedValueOnce([])  // vehicleTypeLinks
-                   .mockResolvedValueOnce([])  // payloadTypeLinks  
-                   .mockResolvedValueOnce([]); // facilityLinks
+      mockDb.where
+        .mockResolvedValueOnce([]) // vehicleTypeLinks
+        .mockResolvedValueOnce([]) // payloadTypeLinks
+        .mockResolvedValueOnce([]); // facilityLinks
 
       const result = await service.getServices("mitra-1");
 
@@ -238,7 +245,7 @@ describe("MitraServiceManagementService", () => {
       // Create a separate mock for Promise.all queries
       [
         { where: vi.fn().mockResolvedValue([]) }, // vehicleTypeLinks
-        { where: vi.fn().mockResolvedValue([]) }, // payloadTypeLinks  
+        { where: vi.fn().mockResolvedValue([]) }, // payloadTypeLinks
         { where: vi.fn().mockResolvedValue([]) }, // facilityLinks
       ];
 
@@ -286,7 +293,7 @@ describe("MitraServiceManagementService", () => {
 
     it("should update service successfully", async () => {
       // Mock getServiceById method
-      vi.spyOn(service, 'getServiceById').mockResolvedValue({
+      vi.spyOn(service, "getServiceById").mockResolvedValue({
         id: "service-1",
         mitraId: "mitra-1",
         name: "Updated Food Delivery",
@@ -324,7 +331,9 @@ describe("MitraServiceManagementService", () => {
 
     it("should throw error if service not found after update", async () => {
       // Mock getServiceById to throw NotFoundError
-      vi.spyOn(service, 'getServiceById').mockRejectedValue(new Error("Service not found"));
+      vi.spyOn(service, "getServiceById").mockRejectedValue(
+        new Error("Service not found")
+      );
 
       mockDb.transaction.mockImplementation(async (callback: any) => {
         const mockTx = {

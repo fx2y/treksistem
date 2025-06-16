@@ -1,7 +1,27 @@
 import fs from "fs";
 import path from "path";
 
-import * as schema from "@treksistem/db/schema";
+import { 
+  users, 
+  mitras, 
+  services, 
+  serviceRates, 
+  orders, 
+  orderStops, 
+  orderReports, 
+  notificationLogs, 
+  auditLogs, 
+  invoices, 
+  servicesToFacilities, 
+  servicesToPayloadTypes, 
+  servicesToVehicleTypes, 
+  driverInvites, 
+  driverLocations, 
+  drivers, 
+  vehicles, 
+  refreshTokens, 
+  oauthSessions 
+} from "@treksistem/db";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { sql } from "drizzle-orm";
@@ -17,6 +37,27 @@ beforeAll(async () => {
 
   // 1. Create a separate in-memory test database
   sqliteDb = new Database(":memory:");
+  const schema = { 
+    users, 
+    mitras, 
+    services, 
+    serviceRates, 
+    orders, 
+    orderStops, 
+    orderReports, 
+    notificationLogs, 
+    auditLogs, 
+    invoices, 
+    servicesToFacilities, 
+    servicesToPayloadTypes, 
+    servicesToVehicleTypes, 
+    driverInvites, 
+    driverLocations, 
+    drivers, 
+    vehicles, 
+    refreshTokens, 
+    oauthSessions 
+  };
   testDb = drizzle(sqliteDb, { schema });
 
   // 2. Run migrations (with statement breakpoint cleanup)
@@ -26,73 +67,80 @@ beforeAll(async () => {
   );
   if (fs.existsSync(migrationsPath)) {
     // Clean migration files by removing statement breakpoints
-    const migrationFiles = fs.readdirSync(migrationsPath).filter(file => file.endsWith('.sql'));
-    const tempMigrationsPath = path.join(process.cwd(), 'temp_migrations');
-    
+    const migrationFiles = fs
+      .readdirSync(migrationsPath)
+      .filter(file => file.endsWith(".sql"));
+    const tempMigrationsPath = path.join(process.cwd(), "temp_migrations");
+
     // Create temporary migrations directory
     if (!fs.existsSync(tempMigrationsPath)) {
       fs.mkdirSync(tempMigrationsPath);
     }
-    
+
     // Copy and clean each migration file
     migrationFiles.forEach(file => {
       const originalPath = path.join(migrationsPath, file);
       const tempPath = path.join(tempMigrationsPath, file);
-      
-      let content = fs.readFileSync(originalPath, 'utf8');
-      
+
+      let content = fs.readFileSync(originalPath, "utf8");
+
       // Remove statement breakpoints and split into individual statements
       content = content
-        .split('\n')
-        .filter(line => !line.includes('--> statement-breakpoint'))
-        .join('\n')
-        .split(';')
+        .split("\n")
+        .filter(line => !line.includes("--> statement-breakpoint"))
+        .join("\n")
+        .split(";")
         .map(stmt => stmt.trim())
         .filter(stmt => stmt.length > 0)
-        .map(stmt => stmt + ';')
-        .join('\n');
-      
+        .map(stmt => stmt + ";")
+        .join("\n");
+
       fs.writeFileSync(tempPath, content);
     });
-    
+
     // Copy meta directory if it exists
-    const metaPath = path.join(migrationsPath, 'meta');
-    const tempMetaPath = path.join(tempMigrationsPath, 'meta');
+    const metaPath = path.join(migrationsPath, "meta");
+    const tempMetaPath = path.join(tempMigrationsPath, "meta");
     if (fs.existsSync(metaPath)) {
       fs.mkdirSync(tempMetaPath, { recursive: true });
       const metaFiles = fs.readdirSync(metaPath);
       metaFiles.forEach(file => {
-        fs.copyFileSync(path.join(metaPath, file), path.join(tempMetaPath, file));
+        fs.copyFileSync(
+          path.join(metaPath, file),
+          path.join(tempMetaPath, file)
+        );
       });
     }
-    
+
     // Execute migration statements manually
     const sortedMigrationFiles = migrationFiles.sort();
     for (const file of sortedMigrationFiles) {
       const tempPath = path.join(tempMigrationsPath, file);
-      const cleanedContent = fs.readFileSync(tempPath, 'utf8');
-      
+      const cleanedContent = fs.readFileSync(tempPath, "utf8");
+
       // Split into individual statements and execute
       const statements = cleanedContent
-        .split('\n')
+        .split("\n")
         .filter(line => line.trim().length > 0)
-        .join('\n')
-        .split(';')
+        .join("\n")
+        .split(";")
         .map(stmt => stmt.trim())
         .filter(stmt => stmt.length > 0);
-      
+
       for (const statement of statements) {
         try {
           sqliteDb.exec(statement);
         } catch (error) {
-          console.error(`Failed to execute statement: ${statement.substring(0, 100)}...`);
+          console.error(
+            `Failed to execute statement: ${statement.substring(0, 100)}...`
+          );
           throw error;
         }
       }
       console.log(`Migration ${file} applied successfully`);
     }
     console.log("All test database migrations applied successfully");
-    
+
     // Clean up temporary directory
     fs.rmSync(tempMigrationsPath, { recursive: true, force: true });
   } else {
@@ -280,9 +328,11 @@ export const mockMidtrans = {
 
 // Database helper functions for testing
 export const testDbHelpers = {
-  async createTestUser(userData = createTestUser()) {
+  async createTestUser(overrides: Partial<any> = {}) {
+    const defaultData = createTestUser();
+    const userData = { ...defaultData, ...overrides };
     const [user] = await testDb
-      .insert(schema.users)
+      .insert(users)
       .values({
         googleId: userData.googleId,
         email: userData.email,
@@ -301,9 +351,11 @@ export const testDbHelpers = {
     return await createTestJWT(userId, role);
   },
 
-  async createTestMitra(mitraData = createTestMitra()) {
+  async createTestMitra(overrides: Partial<any> = {}) {
+    const defaultData = createTestMitra();
+    const mitraData = { ...defaultData, ...overrides };
     const [mitra] = await testDb
-      .insert(schema.mitras)
+      .insert(mitras)
       .values({
         userId: mitraData.userId,
         businessName: mitraData.businessName,
@@ -321,7 +373,7 @@ export const testDbHelpers = {
 
   async createTestService(serviceData: any) {
     const [service] = await testDb
-      .insert(schema.services)
+      .insert(services)
       .values({
         mitraId: serviceData.mitraId,
         name: serviceData.name,
@@ -329,12 +381,24 @@ export const testDbHelpers = {
         maxRangeKm: serviceData.maxRangeKm ?? 10.0,
       })
       .returning();
+    
+    // Create service rate data which is required for quote calculations
+    await testDb
+      .insert(serviceRates)
+      .values({
+        serviceId: service.id,
+        baseFee: serviceData.baseFee ?? 5000,
+        feePerKm: serviceData.feePerKm ?? 2000,
+      });
+    
     return service;
   },
 
-  async createTestOrder(orderData = createTestOrder()) {
+  async createTestOrder(overrides: Partial<any> = {}) {
+    const defaultData = createTestOrder();
+    const orderData = { ...defaultData, ...overrides };
     const [order] = await testDb
-      .insert(schema.orders)
+      .insert(orders)
       .values({
         serviceId: orderData.serviceId,
         ordererName: orderData.ordererName,
@@ -350,7 +414,7 @@ export const testDbHelpers = {
     // Create order stops
     if (orderData.stops) {
       for (const stop of orderData.stops) {
-        await testDb.insert(schema.orderStops).values({
+        await testDb.insert(orderStops).values({
           orderId: order.id,
           address: stop.address,
           lat: stop.lat,
@@ -368,25 +432,26 @@ export const testDbHelpers = {
   async cleanupTestData() {
     try {
       // Clean up all test data in proper order (respecting foreign keys)
-      await testDb.delete(schema.auditLogs);
-      await testDb.delete(schema.notificationLogs);
-      await testDb.delete(schema.orderReports);
-      await testDb.delete(schema.orderStops);
-      await testDb.delete(schema.orders);
-      await testDb.delete(schema.invoices);
-      await testDb.delete(schema.serviceRates);
-      await testDb.delete(schema.servicesToFacilities);
-      await testDb.delete(schema.servicesToPayloadTypes);
-      await testDb.delete(schema.servicesToVehicleTypes);
-      await testDb.delete(schema.services);
-      await testDb.delete(schema.driverInvites);
-      await testDb.delete(schema.driverLocations);
-      await testDb.delete(schema.drivers);
-      await testDb.delete(schema.vehicles);
-      await testDb.delete(schema.mitras);
-      await testDb.delete(schema.refreshTokens);
-      await testDb.delete(schema.oauthSessions);
-      await testDb.delete(schema.users);
+      // Use execute() to ensure statements are properly completed
+      await testDb.delete(auditLogs).execute();
+      await testDb.delete(notificationLogs).execute();
+      await testDb.delete(orderReports).execute();
+      await testDb.delete(orderStops).execute();
+      await testDb.delete(orders).execute();
+      await testDb.delete(invoices).execute();
+      await testDb.delete(serviceRates).execute();
+      await testDb.delete(servicesToFacilities).execute();
+      await testDb.delete(servicesToPayloadTypes).execute();
+      await testDb.delete(servicesToVehicleTypes).execute();
+      await testDb.delete(services).execute();
+      await testDb.delete(driverInvites).execute();
+      await testDb.delete(driverLocations).execute();
+      await testDb.delete(drivers).execute();
+      await testDb.delete(vehicles).execute();
+      await testDb.delete(mitras).execute();
+      await testDb.delete(refreshTokens).execute();
+      await testDb.delete(oauthSessions).execute();
+      await testDb.delete(users).execute();
       console.log("Test data cleaned up");
     } catch (error) {
       console.warn("Error during test cleanup:", error);

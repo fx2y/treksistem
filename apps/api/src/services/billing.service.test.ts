@@ -1,9 +1,4 @@
-import {
-  invoices,
-  mitras,
-  drivers,
-  users,
-} from "@treksistem/db";
+import { invoices, mitras, drivers, users } from "@treksistem/db";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { BillingService } from "./billing.service";
@@ -72,7 +67,7 @@ describe("BillingService", () => {
     it("should return subscription status for valid mitra", async () => {
       // Mock mitra lookup
       mockDb.select.mockReturnValueOnce(createMockSelectChain(mockMitra));
-      
+
       // Mock driver count check - return 3 drivers
       const driversCountChain = createMockSelectChain([{}, {}, {}]); // 3 drivers
       driversCountChain.length = 3;
@@ -91,7 +86,7 @@ describe("BillingService", () => {
     it("should return false for canInviteDrivers when at limit", async () => {
       // Mock mitra lookup
       mockDb.select.mockReturnValueOnce(createMockSelectChain(mockMitra));
-      
+
       // Mock driver count check - return 5 drivers (at limit)
       const driversCountChain = createMockSelectChain([{}, {}, {}, {}, {}]); // 5 drivers
       driversCountChain.length = 5;
@@ -109,10 +104,10 @@ describe("BillingService", () => {
 
     it("should return false for canInviteDrivers when subscription inactive", async () => {
       const inactiveMitra = { ...mockMitra, subscriptionStatus: "past_due" };
-      
+
       // Mock mitra lookup
       mockDb.select.mockReturnValueOnce(createMockSelectChain(inactiveMitra));
-      
+
       // Mock driver count check
       const driversCountChain = createMockSelectChain([{}, {}]); // 2 drivers
       driversCountChain.length = 2;
@@ -230,14 +225,14 @@ describe("BillingService", () => {
   describe("updateInvoiceStatus", () => {
     it("should update invoice status from webhook", async () => {
       const updatedInvoice = { ...mockInvoice, status: "paid" };
-      
+
       // Mock get invoice - first return the invoice
       mockDb.select.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([mockInvoice]),
         }),
       });
-      
+
       // Mock update
       mockDb.update.mockReturnValue(createMockUpdateChain([updatedInvoice]));
 
@@ -261,9 +256,9 @@ describe("BillingService", () => {
         transactionStatus: "capture",
       };
 
-      await expect(
-        service.updateInvoiceStatus(webhookData)
-      ).rejects.toThrow(NotFoundError);
+      await expect(service.updateInvoiceStatus(webhookData)).rejects.toThrow(
+        NotFoundError
+      );
     });
   });
 });

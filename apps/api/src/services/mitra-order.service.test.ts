@@ -273,7 +273,9 @@ describe("MitraOrderService", () => {
       // First call (order insertion) should fail
       mockTx.insert.mockReturnValueOnce({
         values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockRejectedValue(new Error("DB constraint violation")),
+          returning: vi
+            .fn()
+            .mockRejectedValue(new Error("DB constraint violation")),
         }),
       });
 

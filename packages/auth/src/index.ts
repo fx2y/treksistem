@@ -14,8 +14,8 @@ async function generateHash(input: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-import { createAuthMiddleware } from "./middleware";
-import type { JwtPayload } from "./types";
+import { createAuthMiddleware } from "./middleware.js";
+import type { JwtPayload } from "./types.js";
 
 export interface AuthServices {
   googleProvider: Google;
@@ -158,5 +158,5 @@ export async function verifyJwt(
 }
 
 // Re-exports
-export * from "./middleware";
-export * from "./types";
+export * from "./middleware.js";
+export * from "./types.js";

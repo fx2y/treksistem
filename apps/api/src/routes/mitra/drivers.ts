@@ -20,12 +20,13 @@ const app = new Hono<{
   };
 }>();
 
-app.post("/invite", 
+app.post(
+  "/invite",
   async (c, next) => {
     const { rateLimitService } = c.get("services");
     return rateLimitByMitraId(rateLimitService, "driver:invite")(c, next);
   },
-  zValidator("json", InviteDriverRequest), 
+  zValidator("json", InviteDriverRequest),
   async c => {
     try {
       const { email } = c.req.valid("json");
@@ -36,19 +37,22 @@ app.post("/invite",
       return c.json(result);
     } catch (error) {
       console.error("Driver invitation error:", error);
-      
+
       if (error.code === "PAYMENT_REQUIRED") {
         return c.json({ error: error.message }, 402);
       }
-      
-      if (error.message.includes("already exists") || error.message.includes("already")) {
+
+      if (
+        error.message.includes("already exists") ||
+        error.message.includes("already")
+      ) {
         return c.json({ error: error.message }, 409);
       }
-      
+
       if (error.message.includes("not found")) {
         return c.json({ error: error.message }, 404);
       }
-      
+
       return c.json({ error: "Failed to create invitation" }, 500);
     }
   }

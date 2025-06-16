@@ -61,27 +61,36 @@ export function createMockEnv(): Bindings {
 // Create test services that use the testDb instead of mock D1
 export function createTestServices(mockEnv: Bindings) {
   // Import the service classes at runtime to avoid circular deps
-  const NotificationService = require("@treksistem/notifications").NotificationService;
+  // Use a simple mock for NotificationService instead of importing the package
+  const NotificationService = class {
+    constructor() {}
+    async createNotificationLog() {
+      return { id: "mock-log-id" };
+    }
+    async markNotificationAsTriggered() {
+      return;
+    }
+  };
   const { createAuthServices } = require("@treksistem/auth");
-  
-  const AuditService = require("../../services/audit.service").AuditService;
-  const AuthService = require("../../services/auth.service").AuthService;
-  const BillingService = require("../../services/billing.service").BillingService;
-  const DriverManagementService = require("../../services/driver-management.service").DriverManagementService;
-  const DriverWorkflowService = require("../../services/driver-workflow.service").DriverWorkflowService;
-  const LogbookService = require("../../services/logbook.service").LogbookService;
-  const MasterDataService = require("../../services/master-data.service").MasterDataService;
-  const MitraMonitoringService = require("../../services/mitra-monitoring.service").MitraMonitoringService;
-  const MitraOrderService = require("../../services/mitra-order.service").MitraOrderService;
-  const MitraProfileService = require("../../services/mitra-profile.service").MitraProfileService;
-  const MitraServiceManagementService = require("../../services/mitra-service-management.service").MitraServiceManagementService;
-  const PublicOrderService = require("../../services/public-order.service").PublicOrderService;
-  const RateLimitService = require("../../services/rate-limit.service").RateLimitService;
-  const SchemaValidationService = require("../../services/schema-validation.service").SchemaValidationService;
-  const TestService = require("../../services/test.service").TestService;
-  const UploadService = require("../../services/upload.service").UploadService;
-  const VehicleService = require("../../services/vehicle.service").VehicleService;
-  const WebhookRetryService = require("../../services/webhook-retry.service").WebhookRetryService;
+
+  const { AuditService } = require("../../services/audit.service");
+  const { AuthService } = require("../../services/auth.service");
+  const { BillingService } = require("../../services/billing.service");
+  const { DriverManagementService } = require("../../services/driver-management.service");
+  const { DriverWorkflowService } = require("../../services/driver-workflow.service");
+  const { LogbookService } = require("../../services/logbook.service");
+  const { MasterDataService } = require("../../services/master-data.service");
+  const { MitraMonitoringService } = require("../../services/mitra-monitoring.service");
+  const { MitraOrderService } = require("../../services/mitra-order.service");
+  const { MitraProfileService } = require("../../services/mitra-profile.service");
+  const { MitraServiceManagementService } = require("../../services/mitra-service-management.service");
+  const { PublicOrderService } = require("../../services/public-order.service");
+  const { RateLimitService } = require("../../services/rate-limit.service");
+  const { SchemaValidationService } = require("../../services/schema-validation.service");
+  const { TestService } = require("../../services/test.service");
+  const { UploadService } = require("../../services/upload.service");
+  const { VehicleService } = require("../../services/vehicle.service");
+  const { WebhookRetryService } = require("../../services/webhook-retry.service");
 
   // Use testDb instead of creating a new client
   const db = testDb;
@@ -99,7 +108,7 @@ export function createTestServices(mockEnv: Bindings) {
     frontendUrl: mockEnv.FRONTEND_URL,
     auditService,
   });
-  
+
   const billingService = new BillingService(db, auditService);
   const driverManagementService = new DriverManagementService(db, auditService);
   const driverWorkflowService = new DriverWorkflowService(db);
@@ -161,6 +170,10 @@ export function createTestServices(mockEnv: Bindings) {
 // Create a properly configured test client
 export function createTestClient() {
   const mockEnv = createMockEnv();
+
+  // Set test environment flag so factory uses testDb
+  process.env.NODE_ENV = "test";
+  (global as any).testDb = testDb;
 
   // Create test client with mock environment
   const client = testClient(app, mockEnv);

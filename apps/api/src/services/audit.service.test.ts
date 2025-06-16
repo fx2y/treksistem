@@ -75,7 +75,9 @@ describe("AuditService", () => {
     });
 
     it("should not throw error when database insert fails", async () => {
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
       (mockDb.insert as any).mockImplementation(() => {
         throw new Error("Database error");
       });
@@ -89,7 +91,10 @@ describe("AuditService", () => {
 
       // Should not throw
       await expect(service.log(auditOptions)).resolves.toBeUndefined();
-      expect(consoleSpy).toHaveBeenCalledWith("Audit logging failed:", expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Audit logging failed:",
+        expect.any(Error)
+      );
 
       consoleSpy.mockRestore();
     });
@@ -100,7 +105,9 @@ describe("AuditService", () => {
       const mockInsertChain = createMockInsertChain([{ id: "audit-1" }]);
       (mockDb.insert as any).mockReturnValue(mockInsertChain);
 
-      const mockServiceMethod = vi.fn().mockResolvedValue({ id: "created-123" });
+      const mockServiceMethod = vi
+        .fn()
+        .mockResolvedValue({ id: "created-123" });
       const auditOptions = {
         actorId: "user-123",
         mitraId: "mitra-123",
@@ -109,7 +116,10 @@ describe("AuditService", () => {
         entityIdFrom: (result: any) => result.id,
       };
 
-      const auditedMethod = service.withAuditing(auditOptions, mockServiceMethod);
+      const auditedMethod = service.withAuditing(
+        auditOptions,
+        mockServiceMethod
+      );
       const result = await auditedMethod("arg1", "arg2");
 
       expect(mockServiceMethod).toHaveBeenCalledWith("arg1", "arg2");
@@ -129,14 +139,19 @@ describe("AuditService", () => {
       const mockInsertChain = createMockInsertChain([{ id: "audit-1" }]);
       (mockDb.insert as any).mockReturnValue(mockInsertChain);
 
-      const mockServiceMethod = vi.fn().mockResolvedValue({ id: "created-123" });
+      const mockServiceMethod = vi
+        .fn()
+        .mockResolvedValue({ id: "created-123" });
       const auditOptions = {
         actorId: "user-123",
         entityType: "ORDER" as const,
         eventType: "ORDER_UPDATED" as const,
       };
 
-      const auditedMethod = service.withAuditing(auditOptions, mockServiceMethod);
+      const auditedMethod = service.withAuditing(
+        auditOptions,
+        mockServiceMethod
+      );
       await auditedMethod("arg1");
 
       expect(mockInsertChain.values).toHaveBeenCalledWith({
@@ -150,23 +165,32 @@ describe("AuditService", () => {
     });
 
     it("should not log audit entry when service method fails", async () => {
-      const mockServiceMethod = vi.fn().mockRejectedValue(new Error("Service error"));
+      const mockServiceMethod = vi
+        .fn()
+        .mockRejectedValue(new Error("Service error"));
       const auditOptions = {
         actorId: "user-123",
         entityType: "ORDER" as const,
         eventType: "ORDER_CREATED" as const,
       };
 
-      const auditedMethod = service.withAuditing(auditOptions, mockServiceMethod);
+      const auditedMethod = service.withAuditing(
+        auditOptions,
+        mockServiceMethod
+      );
 
       await expect(auditedMethod("arg1")).rejects.toThrow("Service error");
       expect(mockDb.insert).not.toHaveBeenCalled();
     });
 
     it("should handle audit logging failure gracefully", async () => {
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-      const mockServiceMethod = vi.fn().mockResolvedValue({ id: "created-123" });
-      
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      const mockServiceMethod = vi
+        .fn()
+        .mockResolvedValue({ id: "created-123" });
+
       // Make audit logging fail
       (mockDb.insert as any).mockImplementation(() => {
         throw new Error("Audit error");
@@ -179,11 +203,17 @@ describe("AuditService", () => {
         entityIdFrom: (result: any) => result.id,
       };
 
-      const auditedMethod = service.withAuditing(auditOptions, mockServiceMethod);
+      const auditedMethod = service.withAuditing(
+        auditOptions,
+        mockServiceMethod
+      );
       const result = await auditedMethod("arg1");
 
       expect(result).toEqual({ id: "created-123" });
-      expect(consoleSpy).toHaveBeenCalledWith("Audit logging failed:", expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Audit logging failed:",
+        expect.any(Error)
+      );
 
       consoleSpy.mockRestore();
     });
@@ -192,9 +222,11 @@ describe("AuditService", () => {
       const mockInsertChain = createMockInsertChain([{ id: "audit-1" }]);
       (mockDb.insert as any).mockReturnValue(mockInsertChain);
 
-      const mockServiceMethod = vi.fn().mockImplementation((a: string, b: number, c: boolean) => {
-        return Promise.resolve({ args: [a, b, c] });
-      });
+      const mockServiceMethod = vi
+        .fn()
+        .mockImplementation((a: string, b: number, c: boolean) => {
+          return Promise.resolve({ args: [a, b, c] });
+        });
 
       const auditOptions = {
         actorId: "user-123",
@@ -202,7 +234,10 @@ describe("AuditService", () => {
         eventType: "ORDER_CREATED" as const,
       };
 
-      const auditedMethod = service.withAuditing(auditOptions, mockServiceMethod);
+      const auditedMethod = service.withAuditing(
+        auditOptions,
+        mockServiceMethod
+      );
       const result = await auditedMethod("test", 42, true);
 
       expect(mockServiceMethod).toHaveBeenCalledWith("test", 42, true);

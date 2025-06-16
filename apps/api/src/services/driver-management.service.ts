@@ -88,16 +88,21 @@ export class DriverManagementService {
     const token = nanoid(32);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    const createdInvites = await this.db.insert(driverInvites).values({
-      mitraId,
-      email,
-      token,
-      expiresAt,
-      status: "pending",
-    }).returning({ id: driverInvites.id });
+    const createdInvites = await this.db
+      .insert(driverInvites)
+      .values({
+        mitraId,
+        email,
+        token,
+        expiresAt,
+        status: "pending",
+      })
+      .returning({ id: driverInvites.id });
 
     if (!createdInvites || createdInvites.length === 0) {
-      throw new Error("Failed to create driver invitation - database insert failed");
+      throw new Error(
+        "Failed to create driver invitation - database insert failed"
+      );
     }
 
     const [createdInvite] = createdInvites;
@@ -202,11 +207,14 @@ export class DriverManagementService {
       throw new Error("User is already a driver for this Mitra");
     }
 
-    const [newDriver] = await this.db.insert(drivers).values({
-      userId,
-      mitraId: invite.driver_invites.mitraId,
-      status: "active",
-    }).returning({ id: drivers.id });
+    const [newDriver] = await this.db
+      .insert(drivers)
+      .values({
+        userId,
+        mitraId: invite.driver_invites.mitraId,
+        status: "active",
+      })
+      .returning({ id: drivers.id });
 
     await this.db
       .update(driverInvites)

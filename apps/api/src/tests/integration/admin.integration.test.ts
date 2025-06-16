@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeAll } from "vitest";
 
 import { testDbHelpers } from "./setup";
-import { createTestClient } from "./test-client";
+import { createTestClient, createAuthenticatedClient } from "./test-client";
 
 describe("Admin Integration Tests", () => {
+  let adminToken: string;
+
   beforeAll(async () => {
     // Create admin user and get token
     const adminUser = await testDbHelpers.createTestUser({
@@ -11,12 +13,12 @@ describe("Admin Integration Tests", () => {
       name: "Admin User",
       role: "admin",
     });
-    await testDbHelpers.generateTestJWT(adminUser.id, "admin");
+    adminToken = await testDbHelpers.generateTestJWT(adminUser.id, "admin");
   });
 
   describe("Health Check", () => {
     it("should return system health status", async () => {
-      const client = createTestClient();
+      const client = createAuthenticatedClient(adminToken);
 
       const response = await client.api.admin.health.$get();
 
@@ -33,7 +35,7 @@ describe("Admin Integration Tests", () => {
 
   describe("Schema Validation", () => {
     it("should validate database schema", async () => {
-      const client = createTestClient();
+      const client = createAuthenticatedClient(adminToken);
 
       const response = await client.api.admin.schema.validate.$get();
 
@@ -46,7 +48,7 @@ describe("Admin Integration Tests", () => {
     });
 
     it("should return schema information", async () => {
-      const client = createTestClient();
+      const client = createAuthenticatedClient(adminToken);
 
       const response = await client.api.admin.schema.info.$get();
 
@@ -58,7 +60,7 @@ describe("Admin Integration Tests", () => {
     });
 
     it("should check foreign key constraints", async () => {
-      const client = createTestClient();
+      const client = createAuthenticatedClient(adminToken);
 
       const response = await client.api.admin.schema["foreign-keys"].$get();
 
@@ -108,7 +110,7 @@ describe("Admin Integration Tests", () => {
 
   describe("System Monitoring", () => {
     it("should provide system metrics in health check", async () => {
-      const client = createTestClient();
+      const client = createAuthenticatedClient(adminToken);
 
       const response = await client.api.admin.health.$get();
 
@@ -121,7 +123,7 @@ describe("Admin Integration Tests", () => {
     });
 
     it("should handle database errors gracefully", async () => {
-      const client = createTestClient();
+      const client = createAuthenticatedClient(adminToken);
 
       // In a real implementation, you might mock database failures
       const response = await client.api.admin.schema.validate.$get();

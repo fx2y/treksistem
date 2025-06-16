@@ -14,7 +14,8 @@ payment.get("/:publicInvoiceId", async c => {
   const { publicInvoiceId } = c.req.param();
   const { billingService } = c.get("services");
 
-  const invoiceDetails = await billingService.getPublicInvoiceDetails(publicInvoiceId);
+  const invoiceDetails =
+    await billingService.getPublicInvoiceDetails(publicInvoiceId);
   return c.json(invoiceDetails);
 });
 

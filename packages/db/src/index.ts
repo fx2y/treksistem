@@ -1,6 +1,6 @@
 // Database configuration and schema exports
-export * from "./schema";
-export * from "./client";
+export * from "./schema.js";
+export * from "./client.js";
 
 // Export database type as Database for backward compatibility
 export type { DbClient as Database } from "./client";

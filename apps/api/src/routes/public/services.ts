@@ -36,7 +36,8 @@ services.get("/", zValidator("query", ServiceDiscoverySchema), async c => {
   const { publicOrderService } = c.get("services");
   const params = c.req.valid("query");
 
-  const availableServices = await publicOrderService.findAvailableServices(params);
+  const availableServices =
+    await publicOrderService.findAvailableServices(params);
   return c.json(availableServices);
 });
 

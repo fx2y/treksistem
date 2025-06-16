@@ -58,8 +58,8 @@ export class SchemaValidationService {
     try {
       // Get all tables from the database - handle test vs production environments
       let actualTables: string[] = [];
-      
-      if ('all' in this.deps.db && this.deps.db.all) {
+
+      if ("all" in this.deps.db && this.deps.db.all) {
         try {
           const result = await (this.deps.db as any).all(`
             SELECT name FROM sqlite_master 
@@ -119,9 +119,9 @@ export class SchemaValidationService {
     try {
       // Get table schema - handle both D1 and better-sqlite3 environments
       const query = `PRAGMA table_info(${tableName})`;
-      
+
       // Check if we're in test environment (better-sqlite3) or production (D1)
-      if ('all' in this.deps.db && this.deps.db.all) {
+      if ("all" in this.deps.db && this.deps.db.all) {
         try {
           const result = await (this.deps.db as any).all(query);
           return result.length > 0;
@@ -144,20 +144,24 @@ export class SchemaValidationService {
   }> {
     try {
       // Check if foreign key constraints are enabled - handle test vs production environments
-      if ('all' in this.deps.db && this.deps.db.all) {
+      if ("all" in this.deps.db && this.deps.db.all) {
         try {
-          const fkResult = await (this.deps.db as any).all("PRAGMA foreign_keys");
+          const fkResult = await (this.deps.db as any).all(
+            "PRAGMA foreign_keys"
+          );
           const fkEnabled = (fkResult[0] as any)?.foreign_keys === 1;
 
           if (!fkEnabled) {
             return {
-            isValid: false,
-            errors: ["Foreign key constraints are not enabled"],
-          };
-        }
+              isValid: false,
+              errors: ["Foreign key constraints are not enabled"],
+            };
+          }
 
           // Check for foreign key constraint violations
-          const violations = await (this.deps.db as any).all("PRAGMA foreign_key_check");
+          const violations = await (this.deps.db as any).all(
+            "PRAGMA foreign_key_check"
+          );
 
           if (violations.length > 0) {
             return {

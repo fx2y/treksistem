@@ -2,9 +2,9 @@ import type { User } from "@treksistem/db";
 import type { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
 
-import type { JwtPayload, AuthenticatedUserProfile } from "./types";
+import type { JwtPayload, AuthenticatedUserProfile } from "./types.js";
 
-import type { JwtService } from "./index";
+import type { JwtService } from "./index.js";
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -105,16 +105,22 @@ export function createAuthMiddleware(jwtService: JwtService, db: any) {
       // Check if user has permission based on role
       const hasPermission = await checkUserPermission(user, permission);
       if (!hasPermission) {
-        return c.json({ 
-          error: `Forbidden - Permission '${permission}' required` 
-        }, 403);
+        return c.json(
+          {
+            error: `Forbidden - Permission '${permission}' required`,
+          },
+          403
+        );
       }
 
       await next();
     };
   }
 
-  async function checkUserPermission(user: any, permission: string): Promise<boolean> {
+  async function checkUserPermission(
+    user: any,
+    permission: string
+  ): Promise<boolean> {
     // Admin users have all permissions
     if (user.role === "admin") {
       return true;
@@ -129,14 +135,14 @@ export function createAuthMiddleware(jwtService: JwtService, db: any) {
         });
         return !!mitra;
       },
-      
+
       "mitra:manage_services": async () => {
         const mitra = await db.query.mitras.findFirst({
           where: (mitras: any, { eq }: any) => eq(mitras.userId, user.id),
         });
         return !!mitra;
       },
-      
+
       "mitra:view_analytics": async () => {
         const mitra = await db.query.mitras.findFirst({
           where: (mitras: any, { eq }: any) => eq(mitras.userId, user.id),
@@ -151,7 +157,7 @@ export function createAuthMiddleware(jwtService: JwtService, db: any) {
         });
         return !!driver;
       },
-      
+
       "driver:update_location": async () => {
         const driver = await db.query.drivers.findFirst({
           where: (drivers: any, { eq }: any) => eq(drivers.userId, user.id),

@@ -42,13 +42,16 @@ uploads.post(
     const request = c.req.valid("json");
     const { authMiddleware } = c.get("authServices");
     const { uploadService } = c.get("services");
-    
+
     const userProfile = await authMiddleware.getUserProfile(c);
     if (!userProfile) {
       return c.json({ error: "User profile not found" }, 401);
     }
-    const result = await uploadService.generateDriverUploadUrl(request, userProfile);
-    
+    const result = await uploadService.generateDriverUploadUrl(
+      request,
+      userProfile
+    );
+
     return c.json(result);
   }
 );

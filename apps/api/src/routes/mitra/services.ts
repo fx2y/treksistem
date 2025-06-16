@@ -41,12 +41,13 @@ const app = new Hono<{
 }>();
 
 // Create a new service
-app.post("/", 
+app.post(
+  "/",
   async (c, next) => {
     const { rateLimitService } = c.get("services");
     return rateLimitByMitraId(rateLimitService, "service:create")(c, next);
   },
-  zValidator("json", createServiceSchema), 
+  zValidator("json", createServiceSchema),
   async c => {
     const mitraId = c.get("mitraId");
     const data = c.req.valid("json");

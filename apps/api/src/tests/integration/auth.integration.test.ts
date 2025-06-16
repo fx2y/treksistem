@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 
 import { testDbHelpers } from "./setup";
-import { createTestClient, createMockEnv, createTestServices } from "./test-client";
+import {
+  createTestClient,
+  createMockEnv,
+  createTestServices,
+} from "./test-client";
 
 describe("Auth Integration Tests", () => {
   let services: ReturnType<typeof createTestServices>;

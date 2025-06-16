@@ -92,7 +92,9 @@ export class TestService {
     await this.directDb.exec(
       `DELETE FROM order_stops WHERE id IN ('stop_1_pickup', 'stop_1_dropoff', 'stop_2_pickup', 'stop_2_dropoff')`
     );
-    await this.directDb.exec(`DELETE FROM orders WHERE id IN ('order_1', 'order_2')`);
+    await this.directDb.exec(
+      `DELETE FROM orders WHERE id IN ('order_1', 'order_2')`
+    );
     await this.directDb.exec(`DELETE FROM services WHERE id = 'service_1'`);
     await this.directDb.exec(
       `DELETE FROM vehicles WHERE id IN ('vehicle_v1', 'vehicle_v2')`
@@ -157,7 +159,8 @@ export class TestService {
     const todayDropoff = new Date(today);
     todayDropoff.setHours(15, 30, 0, 0);
 
-    await this.directDb.exec(`INSERT INTO order_reports (id, order_id, driver_id, stage, notes, timestamp) VALUES 
+    await this.directDb
+      .exec(`INSERT INTO order_reports (id, order_id, driver_id, stage, notes, timestamp) VALUES 
       ('report_1_pickup', 'order_1', 'driver_a1', 'pickup', 'Jl. Merdeka No. 5', '${yesterdayPickup.toISOString()}'),
       ('report_1_dropoff', 'order_1', 'driver_a1', 'dropoff', 'Jl. Sudirman No. 10', '${yesterdayDropoff.toISOString()}'),
       ('report_2_pickup', 'order_2', 'driver_a1', 'pickup', 'Jl. Pahlawan No. 1', '${todayPickup.toISOString()}'),

@@ -64,17 +64,19 @@ export class AuditService {
   }
 
   withAuditing<T extends any[], R>(
-    auditOptions: Omit<AuditLogOptions, 'entityId'> & { entityIdFrom?: (result: R) => string },
+    auditOptions: Omit<AuditLogOptions, "entityId"> & {
+      entityIdFrom?: (result: R) => string;
+    },
     serviceMethod: (...args: T) => Promise<R>
   ): (...args: T) => Promise<R> {
     return async (...args: T): Promise<R> => {
       try {
         const result = await serviceMethod(...args);
-        
+
         // Determine entityId from result or use placeholder
-        const entityId = auditOptions.entityIdFrom 
+        const entityId = auditOptions.entityIdFrom
           ? auditOptions.entityIdFrom(result)
-          : 'COMPLETED';
+          : "COMPLETED";
 
         // Log successful operation
         await this.log({

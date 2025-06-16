@@ -24,6 +24,7 @@ export function createRateLimitMiddleware(
       const extracted = keyExtractor(c);
       if (!extracted) {
         // Skip rate limiting if identifier cannot be extracted
+        console.warn(`Rate limit skipped: no identifier extracted for ${endpoint}`);
         await next();
         return;
       }

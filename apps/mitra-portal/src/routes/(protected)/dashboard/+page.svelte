@@ -129,9 +129,7 @@
 		<div class="bg-white shadow overflow-hidden sm:rounded-md">
 			<div class="px-4 py-5 sm:px-6">
 				<h3 class="text-lg leading-6 font-medium text-gray-900">Pending Dispatch</h3>
-				<p class="mt-1 max-w-2xl text-sm text-gray-500">
-					Orders ready for driver assignment
-				</p>
+				<p class="mt-1 max-w-2xl text-sm text-gray-500">Orders ready for driver assignment</p>
 			</div>
 			<ul class="divide-y divide-gray-200">
 				{#each pendingDispatchOrders as order}
@@ -267,19 +265,14 @@
 					<h3 class="text-lg font-medium text-gray-900">
 						Assign Order #{assignmentModal.order.public_id}
 					</h3>
-					<button
-						on:click={closeAssignmentModal}
-						class="text-gray-400 hover:text-gray-600"
-					>
+					<button on:click={closeAssignmentModal} class="text-gray-400 hover:text-gray-600">
 						×
 					</button>
 				</div>
 
 				<div class="space-y-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
-							Select Driver
-						</label>
+						<label class="block text-sm font-medium text-gray-700 mb-2"> Select Driver </label>
 						<div class="space-y-2 max-h-40 overflow-y-auto">
 							{#each drivers as driver}
 								<button

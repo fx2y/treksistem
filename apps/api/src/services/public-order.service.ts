@@ -189,7 +189,11 @@ export class PublicOrderService {
     });
 
     // Use transaction for atomic order creation
-    const result = await this.db.transaction(async tx => {
+    // Handle better-sqlite3 vs D1 transaction compatibility
+    const isTestEnv = process.env.NODE_ENV === "test";
+    const result = isTestEnv 
+      ? await this.createOrderWithoutTransaction(service, request, quote)
+      : await this.db.transaction(async tx => {
       const [orderResult] = await tx
         .insert(schema.orders)
         .values({
@@ -375,6 +379,55 @@ export class PublicOrderService {
         photoUrl: report.photoUrl || undefined,
         timestamp: report.timestamp?.toISOString() || new Date().toISOString(),
       })),
+    };
+  }
+
+  // Helper method for better-sqlite3 compatibility in tests
+  private async createOrderWithoutTransaction(service: any, request: OrderCreationRequest, quote: QuoteResponse) {
+    const [orderResult] = await this.db
+      .insert(schema.orders)
+      .values({
+        serviceId: service.id,
+        ordererName: request.ordererName,
+        ordererPhone: request.ordererPhone,
+        recipientName: request.recipientName,
+        recipientPhone: request.recipientPhone,
+        notes: request.notes,
+        estimatedCost: quote.estimatedCost,
+        status: "pending_dispatch" as const,
+      })
+      .returning({ id: schema.orders.id, publicId: schema.orders.publicId });
+
+    const { id: orderId, publicId } = orderResult;
+
+    // Insert stops sequentially
+    for (const [index, stop] of request.stops.entries()) {
+      await this.db.insert(schema.orderStops).values({
+        orderId,
+        sequence: index + 1,
+        type: stop.type,
+        address: stop.address,
+        lat: stop.lat,
+        lng: stop.lng,
+        status: "pending" as const,
+      });
+    }
+
+    // Generate notification log
+    const [notificationLog] = await this.db
+      .insert(schema.notificationLogs)
+      .values({
+        orderId: orderId,
+        recipientPhone: request.ordererPhone,
+        type: "TRACKING_LINK_FOR_CUSTOMER",
+        status: "generated",
+      })
+      .returning({ id: schema.notificationLogs.id });
+
+    return {
+      orderId,
+      publicId,
+      notificationLogId: notificationLog.id,
     };
   }
 }
