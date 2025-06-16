@@ -20,8 +20,17 @@ const mockD1: D1Database = {
   exec: (query: string) => {
     return Promise.resolve({ success: true, results: [], meta: {} });
   },
-  prepare: () => {
-    throw new Error("prepare method not implemented in test mock");
+  prepare: (query: string) => {
+    return {
+      bind: (...params: any[]) => ({
+        first: () => Promise.resolve(null),
+        all: () => Promise.resolve([]),
+        run: () => Promise.resolve({ success: true, meta: {} }),
+      }),
+      first: () => Promise.resolve(null),
+      all: () => Promise.resolve([]),
+      run: () => Promise.resolve({ success: true, meta: {} }),
+    } as any;
   },
   dump: () => Promise.resolve(new ArrayBuffer(0)),
   batch: () => Promise.resolve([]),

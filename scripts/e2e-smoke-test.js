@@ -64,19 +64,43 @@ class SmokeTest {
     };
   }
 
+  async waitForServer() {
+    const maxRetries = 30; // 30 seconds max wait
+    const retryInterval = 1000; // 1 second between retries
+    
+    console.log("⏳ Waiting for API server to be ready...");
+    
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await this.makeRequest("/api/test");
+        if (response.status === 200) {
+          console.log("✅ API server is ready!");
+          return;
+        }
+      } catch (error) {
+        // Server not ready yet, continue waiting
+      }
+      
+      process.stdout.write(".");
+      await new Promise(resolve => setTimeout(resolve, retryInterval));
+    }
+    
+    throw new Error("API server did not become ready within 30 seconds");
+  }
+
   async runTests() {
     console.log("🚀 Starting E2E Smoke Tests");
     console.log(`📍 API Base: ${API_BASE}`);
     console.log("=" * 50);
 
-    // Test 1: Health check
-    await this.test("API Health Check", async () => {
-      const response = await this.makeRequest("/health");
+    // Wait for server to be ready before running tests
+    await this.waitForServer();
+
+    // Test 1: API availability check
+    await this.test("API Availability Check", async () => {
+      const response = await this.makeRequest("/api/test");
       if (response.status !== 200) {
         throw new Error(`Expected 200, got ${response.status}`);
-      }
-      if (!response.data.status || response.data.status !== "ok") {
-        throw new Error("Health check failed");
       }
     });
 

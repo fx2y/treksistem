@@ -42,11 +42,15 @@ describe("Webhook Integration Tests", () => {
     it("should handle successful payment webhook", async () => {
       // First create a test invoice
       const testUser = await testDbHelpers.createTestUser({
+        googleId: "webhook-test-google-id",
+        email: "webhook-test@example.com",
+        name: "Webhook Test User",
         role: "mitra",
       });
 
       const testMitra = await testDbHelpers.createTestMitra({
         userId: testUser.id,
+        businessName: "Webhook Test Business",
       });
 
       const invoice = await services.billingService.createInvoice({
@@ -96,9 +100,15 @@ describe("Webhook Integration Tests", () => {
 
     it("should handle pending payment webhook", async () => {
       // Create test invoice
-      const testUser = await testDbHelpers.createTestUser({ role: "mitra" });
+      const testUser = await testDbHelpers.createTestUser({ 
+        googleId: "webhook-pending-google-id",
+        email: "webhook-pending@example.com",
+        name: "Webhook Pending User",
+        role: "mitra" 
+      });
       const testMitra = await testDbHelpers.createTestMitra({
         userId: testUser.id,
+        businessName: "Webhook Test Business",
       });
 
       const invoice = await services.billingService.createInvoice({
@@ -142,9 +152,15 @@ describe("Webhook Integration Tests", () => {
 
     it("should handle cancelled payment webhook", async () => {
       // Create test invoice
-      const testUser = await testDbHelpers.createTestUser({ role: "mitra" });
+      const testUser = await testDbHelpers.createTestUser({ 
+        googleId: "webhook-cancelled-google-id",
+        email: "webhook-cancelled@example.com",
+        name: "Webhook Cancelled User",
+        role: "mitra" 
+      });
       const testMitra = await testDbHelpers.createTestMitra({
         userId: testUser.id,
+        businessName: "Webhook Test Business",
       });
 
       const invoice = await services.billingService.createInvoice({
@@ -243,9 +259,15 @@ describe("Webhook Integration Tests", () => {
 
     it("should handle fraud detected in webhook", async () => {
       // Create test invoice
-      const testUser = await testDbHelpers.createTestUser({ role: "mitra" });
+      const testUser = await testDbHelpers.createTestUser({ 
+        googleId: "webhook-fraud-google-id",
+        email: "webhook-fraud@example.com",
+        name: "Webhook Fraud User",
+        role: "mitra" 
+      });
       const testMitra = await testDbHelpers.createTestMitra({
         userId: testUser.id,
+        businessName: "Webhook Test Business",
       });
 
       const invoice = await services.billingService.createInvoice({
@@ -290,7 +312,12 @@ describe("Webhook Integration Tests", () => {
 
     it("should update subscription status for platform subscription payments", async () => {
       // Create test mitra with past_due subscription
-      const testUser = await testDbHelpers.createTestUser({ role: "mitra" });
+      const testUser = await testDbHelpers.createTestUser({ 
+        googleId: "webhook-subscription-google-id",
+        email: "webhook-subscription@example.com",
+        name: "Webhook Subscription User",
+        role: "mitra" 
+      });
       const testMitra = await testDbHelpers.createTestMitra({
         userId: testUser.id,
         subscriptionStatus: "past_due",
