@@ -4,7 +4,7 @@ import path from "path";
 import * as schema from "@treksistem/db/schema";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { sql } from "drizzle-orm";
 import { beforeAll, afterAll } from "vitest";
 
 // Test database instance
@@ -19,14 +19,82 @@ beforeAll(async () => {
   sqliteDb = new Database(":memory:");
   testDb = drizzle(sqliteDb, { schema });
 
-  // 2. Run migrations
+  // 2. Run migrations (with statement breakpoint cleanup)
   const migrationsPath = path.join(
     process.cwd(),
     "../../packages/db/migrations"
   );
   if (fs.existsSync(migrationsPath)) {
-    await migrate(testDb, { migrationsFolder: migrationsPath });
-    console.log("Test database migrations applied successfully");
+    // Clean migration files by removing statement breakpoints
+    const migrationFiles = fs.readdirSync(migrationsPath).filter(file => file.endsWith('.sql'));
+    const tempMigrationsPath = path.join(process.cwd(), 'temp_migrations');
+    
+    // Create temporary migrations directory
+    if (!fs.existsSync(tempMigrationsPath)) {
+      fs.mkdirSync(tempMigrationsPath);
+    }
+    
+    // Copy and clean each migration file
+    migrationFiles.forEach(file => {
+      const originalPath = path.join(migrationsPath, file);
+      const tempPath = path.join(tempMigrationsPath, file);
+      
+      let content = fs.readFileSync(originalPath, 'utf8');
+      
+      // Remove statement breakpoints and split into individual statements
+      content = content
+        .split('\n')
+        .filter(line => !line.includes('--> statement-breakpoint'))
+        .join('\n')
+        .split(';')
+        .map(stmt => stmt.trim())
+        .filter(stmt => stmt.length > 0)
+        .map(stmt => stmt + ';')
+        .join('\n');
+      
+      fs.writeFileSync(tempPath, content);
+    });
+    
+    // Copy meta directory if it exists
+    const metaPath = path.join(migrationsPath, 'meta');
+    const tempMetaPath = path.join(tempMigrationsPath, 'meta');
+    if (fs.existsSync(metaPath)) {
+      fs.mkdirSync(tempMetaPath, { recursive: true });
+      const metaFiles = fs.readdirSync(metaPath);
+      metaFiles.forEach(file => {
+        fs.copyFileSync(path.join(metaPath, file), path.join(tempMetaPath, file));
+      });
+    }
+    
+    // Execute migration statements manually
+    const sortedMigrationFiles = migrationFiles.sort();
+    for (const file of sortedMigrationFiles) {
+      const tempPath = path.join(tempMigrationsPath, file);
+      const cleanedContent = fs.readFileSync(tempPath, 'utf8');
+      
+      // Split into individual statements and execute
+      const statements = cleanedContent
+        .split('\n')
+        .filter(line => line.trim().length > 0)
+        .join('\n')
+        .split(';')
+        .map(stmt => stmt.trim())
+        .filter(stmt => stmt.length > 0);
+      
+      for (const statement of statements) {
+        try {
+          sqliteDb.exec(statement);
+        } catch (error) {
+          console.error(`Failed to execute statement: ${statement.substring(0, 100)}...`);
+          throw error;
+        }
+      }
+      console.log(`Migration ${file} applied successfully`);
+    }
+    console.log("All test database migrations applied successfully");
+    
+    // Clean up temporary directory
+    fs.rmSync(tempMigrationsPath, { recursive: true, force: true });
   } else {
     console.warn("Migrations folder not found, skipping migration");
   }

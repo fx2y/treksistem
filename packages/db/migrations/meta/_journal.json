@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1749696876226,
-      "tag": "0000_lucky_newton_destine",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1749703219324,
-      "tag": "0001_charming_tyger_tiger",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1749705383413,
-      "tag": "0002_lying_ink",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1749720083354,
-      "tag": "0003_soft_scarlet_witch",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1749720084000,
-      "tag": "0004_phase2_schema_standardization",
+      "when": 1750041620089,
+      "tag": "0000_cooing_doctor_octopus",
       "breakpoints": true
     }
   ]

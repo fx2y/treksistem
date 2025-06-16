@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "723dcc5e-85d5-4c5c-9aca-52222c3132d3",
+  "id": "b0133ecc-9293-41a0-99c2-61513c194f43",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "audit_logs": {
@@ -14,15 +14,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "actor_id": {
-          "name": "actor_id",
+        "admin_user_id": {
+          "name": "admin_user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "impersonator_id": {
-          "name": "impersonator_id",
+        "impersonated_mitra_id": {
+          "name": "impersonated_mitra_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -56,42 +56,43 @@
           "notNull": false,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
+        "timestamp": {
+          "name": "timestamp",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(current_timestamp)"
         }
       },
       "indexes": {
-        "audit_logs_actor_action_idx": {
-          "name": "audit_logs_actor_action_idx",
-          "columns": ["actor_id", "action"],
+        "audit_logs_admin_user_action_idx": {
+          "name": "audit_logs_admin_user_action_idx",
+          "columns": [
+            "admin_user_id",
+            "action"
+          ],
           "isUnique": false
         },
-        "audit_logs_created_at_idx": {
-          "name": "audit_logs_created_at_idx",
-          "columns": ["created_at"],
+        "audit_logs_timestamp_idx": {
+          "name": "audit_logs_timestamp_idx",
+          "columns": [
+            "timestamp"
+          ],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "audit_logs_actor_id_users_id_fk": {
-          "name": "audit_logs_actor_id_users_id_fk",
+        "audit_logs_impersonated_mitra_id_mitras_id_fk": {
+          "name": "audit_logs_impersonated_mitra_id_mitras_id_fk",
           "tableFrom": "audit_logs",
-          "tableTo": "users",
-          "columnsFrom": ["actor_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "audit_logs_impersonator_id_users_id_fk": {
-          "name": "audit_logs_impersonator_id_users_id_fk",
-          "tableFrom": "audit_logs",
-          "tableTo": "users",
-          "columnsFrom": ["impersonator_id"],
-          "columnsTo": ["id"],
+          "tableTo": "mitras",
+          "columnsFrom": [
+            "impersonated_mitra_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -150,7 +151,9 @@
       "indexes": {
         "driver_invites_token_unique": {
           "name": "driver_invites_token_unique",
-          "columns": ["token"],
+          "columns": [
+            "token"
+          ],
           "isUnique": true
         }
       },
@@ -159,8 +162,12 @@
           "name": "driver_invites_mitra_id_mitras_id_fk",
           "tableFrom": "driver_invites",
           "tableTo": "mitras",
-          "columnsFrom": ["mitra_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "mitra_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -197,8 +204,9 @@
           "name": "last_seen_at",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(current_timestamp)"
         }
       },
       "indexes": {},
@@ -207,8 +215,12 @@
           "name": "driver_locations_driver_id_drivers_id_fk",
           "tableFrom": "driver_locations",
           "tableTo": "drivers",
-          "columnsFrom": ["driver_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "driver_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -253,7 +265,10 @@
       "indexes": {
         "drivers_mitra_user_idx": {
           "name": "drivers_mitra_user_idx",
-          "columns": ["mitra_id", "user_id"],
+          "columns": [
+            "mitra_id",
+            "user_id"
+          ],
           "isUnique": false
         }
       },
@@ -262,8 +277,12 @@
           "name": "drivers_user_id_users_id_fk",
           "tableFrom": "drivers",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -271,8 +290,131 @@
           "name": "drivers_mitra_id_mitras_id_fk",
           "tableFrom": "drivers",
           "tableTo": "mitras",
-          "columnsFrom": ["mitra_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "mitra_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "invoices": {
+      "name": "invoices",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "public_id": {
+          "name": "public_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "mitra_id": {
+          "name": "mitra_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'IDR'"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "qris_payload": {
+          "name": "qris_payload",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "due_date": {
+          "name": "due_date",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "paid_at": {
+          "name": "paid_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(current_timestamp)"
+        }
+      },
+      "indexes": {
+        "invoices_public_id_unique": {
+          "name": "invoices_public_id_unique",
+          "columns": [
+            "public_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "invoices_mitra_id_mitras_id_fk": {
+          "name": "invoices_mitra_id_mitras_id_fk",
+          "tableFrom": "invoices",
+          "tableTo": "mitras",
+          "columnsFrom": [
+            "mitra_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -448,6 +590,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": 2
+        },
+        "has_completed_onboarding": {
+          "name": "has_completed_onboarding",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
         }
       },
       "indexes": {},
@@ -456,8 +606,12 @@
           "name": "mitras_user_id_users_id_fk",
           "tableFrom": "mitras",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -483,6 +637,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "template_id": {
+          "name": "template_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "recipient_phone": {
           "name": "recipient_phone",
           "type": "text",
@@ -505,8 +666,16 @@
           "autoincrement": false,
           "default": "'generated'"
         },
-        "timestamp": {
-          "name": "timestamp",
+        "generated_at": {
+          "name": "generated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(current_timestamp)"
+        },
+        "triggered_at": {
+          "name": "triggered_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -519,12 +688,145 @@
           "name": "notification_logs_order_id_orders_id_fk",
           "tableFrom": "notification_logs",
           "tableTo": "orders",
-          "columnsFrom": ["order_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "order_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "notification_logs_template_id_notification_templates_id_fk": {
+          "name": "notification_logs_template_id_notification_templates_id_fk",
+          "tableFrom": "notification_logs",
+          "tableTo": "notification_templates",
+          "columnsFrom": [
+            "template_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "notification_templates": {
+      "name": "notification_templates",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "language": {
+          "name": "language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'id'"
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(current_timestamp)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "oauth_sessions": {
+      "name": "oauth_sessions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "code_verifier": {
+          "name": "code_verifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'google'"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(current_timestamp)"
+        }
+      },
+      "indexes": {
+        "oauth_sessions_state_unique": {
+          "name": "oauth_sessions_state_unique",
+          "columns": [
+            "state"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -578,8 +880,9 @@
           "name": "timestamp",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(current_timestamp)"
         }
       },
       "indexes": {},
@@ -588,8 +891,12 @@
           "name": "order_reports_order_id_orders_id_fk",
           "tableFrom": "order_reports",
           "tableTo": "orders",
-          "columnsFrom": ["order_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "order_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -597,8 +904,12 @@
           "name": "order_reports_driver_id_drivers_id_fk",
           "tableFrom": "order_reports",
           "tableTo": "drivers",
-          "columnsFrom": ["driver_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "driver_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -671,12 +982,18 @@
       "indexes": {
         "order_stops_order_sequence_idx": {
           "name": "order_stops_order_sequence_idx",
-          "columns": ["order_id", "sequence"],
+          "columns": [
+            "order_id",
+            "sequence"
+          ],
           "isUnique": false
         },
         "order_stops_order_status_idx": {
           "name": "order_stops_order_status_idx",
-          "columns": ["order_id", "status"],
+          "columns": [
+            "order_id",
+            "status"
+          ],
           "isUnique": false
         }
       },
@@ -685,8 +1002,12 @@
           "name": "order_stops_order_id_orders_id_fk",
           "tableFrom": "order_stops",
           "tableTo": "orders",
-          "columnsFrom": ["order_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "order_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -787,29 +1108,40 @@
           "name": "created_at",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(current_timestamp)"
         }
       },
       "indexes": {
         "orders_public_id_unique": {
           "name": "orders_public_id_unique",
-          "columns": ["public_id"],
+          "columns": [
+            "public_id"
+          ],
           "isUnique": true
         },
         "orders_service_status_idx": {
           "name": "orders_service_status_idx",
-          "columns": ["service_id", "status"],
+          "columns": [
+            "service_id",
+            "status"
+          ],
           "isUnique": false
         },
         "orders_assigned_driver_status_idx": {
           "name": "orders_assigned_driver_status_idx",
-          "columns": ["assigned_driver_id", "status"],
+          "columns": [
+            "assigned_driver_id",
+            "status"
+          ],
           "isUnique": false
         },
         "orders_created_at_idx": {
           "name": "orders_created_at_idx",
-          "columns": ["created_at"],
+          "columns": [
+            "created_at"
+          ],
           "isUnique": false
         }
       },
@@ -818,8 +1150,12 @@
           "name": "orders_service_id_services_id_fk",
           "tableFrom": "orders",
           "tableTo": "services",
-          "columnsFrom": ["service_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "service_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -827,8 +1163,12 @@
           "name": "orders_assigned_driver_id_drivers_id_fk",
           "tableFrom": "orders",
           "tableTo": "drivers",
-          "columnsFrom": ["assigned_driver_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "assigned_driver_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -836,9 +1176,73 @@
           "name": "orders_assigned_vehicle_id_vehicles_id_fk",
           "tableFrom": "orders",
           "tableTo": "vehicles",
-          "columnsFrom": ["assigned_vehicle_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "assigned_vehicle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "refresh_tokens": {
+      "name": "refresh_tokens",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hashed_token": {
+          "name": "hashed_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(current_timestamp)"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "refresh_tokens_user_id_users_id_fk": {
+          "name": "refresh_tokens_user_id_users_id_fk",
+          "tableFrom": "refresh_tokens",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -898,8 +1302,12 @@
           "name": "service_rates_service_id_services_id_fk",
           "tableFrom": "service_rates",
           "tableTo": "services",
-          "columnsFrom": ["service_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "service_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -946,27 +1354,6 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
-        },
-        "supported_vehicle_type_ids": {
-          "name": "supported_vehicle_type_ids",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "supported_payload_type_ids": {
-          "name": "supported_payload_type_ids",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "available_facility_ids": {
-          "name": "available_facility_ids",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         }
       },
       "indexes": {},
@@ -975,9 +1362,193 @@
           "name": "services_mitra_id_mitras_id_fk",
           "tableFrom": "services",
           "tableTo": "mitras",
-          "columnsFrom": ["mitra_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "mitra_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "services_to_facilities": {
+      "name": "services_to_facilities",
+      "columns": {
+        "service_id": {
+          "name": "service_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "facility_id": {
+          "name": "facility_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "services_to_facilities_pk": {
+          "name": "services_to_facilities_pk",
+          "columns": [
+            "service_id",
+            "facility_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "services_to_facilities_service_id_services_id_fk": {
+          "name": "services_to_facilities_service_id_services_id_fk",
+          "tableFrom": "services_to_facilities",
+          "tableTo": "services",
+          "columnsFrom": [
+            "service_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "services_to_facilities_facility_id_master_facilities_id_fk": {
+          "name": "services_to_facilities_facility_id_master_facilities_id_fk",
+          "tableFrom": "services_to_facilities",
+          "tableTo": "master_facilities",
+          "columnsFrom": [
+            "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "services_to_payload_types": {
+      "name": "services_to_payload_types",
+      "columns": {
+        "service_id": {
+          "name": "service_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payload_type_id": {
+          "name": "payload_type_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "services_to_payload_types_pk": {
+          "name": "services_to_payload_types_pk",
+          "columns": [
+            "service_id",
+            "payload_type_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "services_to_payload_types_service_id_services_id_fk": {
+          "name": "services_to_payload_types_service_id_services_id_fk",
+          "tableFrom": "services_to_payload_types",
+          "tableTo": "services",
+          "columnsFrom": [
+            "service_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "services_to_payload_types_payload_type_id_master_payload_types_id_fk": {
+          "name": "services_to_payload_types_payload_type_id_master_payload_types_id_fk",
+          "tableFrom": "services_to_payload_types",
+          "tableTo": "master_payload_types",
+          "columnsFrom": [
+            "payload_type_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "services_to_vehicle_types": {
+      "name": "services_to_vehicle_types",
+      "columns": {
+        "service_id": {
+          "name": "service_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_type_id": {
+          "name": "vehicle_type_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "services_to_vehicle_types_pk": {
+          "name": "services_to_vehicle_types_pk",
+          "columns": [
+            "service_id",
+            "vehicle_type_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "services_to_vehicle_types_service_id_services_id_fk": {
+          "name": "services_to_vehicle_types_service_id_services_id_fk",
+          "tableFrom": "services_to_vehicle_types",
+          "tableTo": "services",
+          "columnsFrom": [
+            "service_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "services_to_vehicle_types_vehicle_type_id_master_vehicle_types_id_fk": {
+          "name": "services_to_vehicle_types_vehicle_type_id_master_vehicle_types_id_fk",
+          "tableFrom": "services_to_vehicle_types",
+          "tableTo": "master_vehicle_types",
+          "columnsFrom": [
+            "vehicle_type_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -1023,23 +1594,36 @@
           "notNull": false,
           "autoincrement": false
         },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'user'"
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(current_timestamp)"
         }
       },
       "indexes": {
         "users_google_id_unique": {
           "name": "users_google_id_unique",
-          "columns": ["google_id"],
+          "columns": [
+            "google_id"
+          ],
           "isUnique": true
         },
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": ["email"],
+          "columns": [
+            "email"
+          ],
           "isUnique": true
         }
       },
@@ -1078,6 +1662,21 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(current_timestamp)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -1086,8 +1685,12 @@
           "name": "vehicles_mitra_id_mitras_id_fk",
           "tableFrom": "vehicles",
           "tableTo": "mitras",
-          "columnsFrom": ["mitra_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "mitra_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

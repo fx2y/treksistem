@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 
-import { createServices } from "../../services/factory";
-
 import { testDbHelpers } from "./setup";
-import { createTestClient, createMockEnv } from "./test-client";
+import { createTestClient, createMockEnv, createTestServices } from "./test-client";
 
 describe("Auth Integration Tests", () => {
-  let services: ReturnType<typeof createServices>;
+  let services: ReturnType<typeof createTestServices>;
   let client: ReturnType<typeof createTestClient>;
 
   beforeEach(async () => {
@@ -15,10 +13,10 @@ describe("Auth Integration Tests", () => {
 
     // Setup services with mock environment
     const mockEnv = createMockEnv();
-    services = createServices(mockEnv);
+    services = createTestServices(mockEnv);
 
     // Setup test data
-    await services.testService.setupTestData();
+    await services.testService.setupBaseTestData();
   });
 
   afterEach(async () => {

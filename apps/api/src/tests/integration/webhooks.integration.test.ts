@@ -21,7 +21,7 @@ describe("Webhook Integration Tests", () => {
     services = createServices(mockEnv);
 
     // Setup test data
-    await services.testService.setupTestData();
+    await services.testService.setupBaseTestData();
   });
 
   afterEach(async () => {
