@@ -1,13 +1,17 @@
 <script lang="ts">
   import type { DriverOrder } from '../services/apiClient';
   import { Svelte } from '@treksistem/ui';
+  import PhotoReportModal from './PhotoReportModal.svelte';
   const { Card, Button } = Svelte;
 
   export let order: DriverOrder;
   export let onClaim: (orderId: string) => Promise<void>;
   export let onViewDetails: (order: DriverOrder) => void;
+  export let onSubmitReport: (orderId: string, data: { stage: 'pickup' | 'dropoff'; notes: string; photoUrl: string }) => Promise<void>;
 
   let claiming = false;
+  let showPhotoModal = false;
+  let currentReportStage: 'pickup' | 'dropoff' = 'pickup';
 
   async function handleClaim() {
     if (claiming) return;
@@ -38,6 +42,23 @@
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  function openPhotoModal(stage: 'pickup' | 'dropoff') {
+    currentReportStage = stage;
+    showPhotoModal = true;
+  }
+
+  async function handleReportSubmit(data: { notes: string; photoUrl: string }) {
+    try {
+      await onSubmitReport(order.id, {
+        stage: currentReportStage,
+        ...data
+      });
+    } catch (error) {
+      console.error('Failed to submit report:', error);
+      throw error;
     }
   }
 </script>
@@ -92,6 +113,40 @@
       >
         {claiming ? 'Claiming...' : 'Accept Order'}
       </Button>
+    {:else if order.status === 'accepted'}
+      <Button
+        variant="primary"
+        size="sm"
+        on:click={() => openPhotoModal('pickup')}
+        class="flex-1"
+      >
+        📦 Pickup Report
+      </Button>
+      <Button
+        variant="secondary"
+        size="sm"
+        on:click={() => onViewDetails(order)}
+        class="flex-1"
+      >
+        View Details
+      </Button>
+    {:else if order.status === 'pickup' || order.status === 'in_transit'}
+      <Button
+        variant="primary"
+        size="sm"
+        on:click={() => openPhotoModal('dropoff')}
+        class="flex-1"
+      >
+        🚚 Delivery Report
+      </Button>
+      <Button
+        variant="secondary"
+        size="sm"
+        on:click={() => onViewDetails(order)}
+        class="flex-1"
+      >
+        View Details
+      </Button>
     {:else}
       <Button
         variant="secondary"
@@ -104,3 +159,10 @@
     {/if}
   </div>
 </Card>
+
+<!-- Photo Report Modal -->
+<PhotoReportModal
+  bind:open={showPhotoModal}
+  stage={currentReportStage}
+  onSubmit={handleReportSubmit}
+/>

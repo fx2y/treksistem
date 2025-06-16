@@ -25,8 +25,8 @@ R2_SECRET_ACCESS_KEY = ""
 # D1 Database binding for local development and remote deployment
 [[d1_databases]]
 binding = "DB"
-database_name = "treksistem-db-local"
-database_id = "132903a7-4ca2-40a6-8900-a43fd0a89da4"
+database_name = "treksistem-showcase-db"
+database_id = "fc8ace76-5e4f-4bbe-8186-7d4198559f4d"
 migrations_dir = "packages/db/migrations"
 
 [[r2_buckets]]

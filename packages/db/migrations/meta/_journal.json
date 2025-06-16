@@ -29,6 +29,13 @@
       "when": 1749720083354,
       "tag": "0003_soft_scarlet_witch",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1749720084000,
+      "tag": "0004_phase2_schema_standardization",
+      "breakpoints": true
     }
   ]
 }

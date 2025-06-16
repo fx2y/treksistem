@@ -88,13 +88,19 @@ export class DriverManagementService {
     const token = nanoid(32);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    const [createdInvite] = await this.db.insert(driverInvites).values({
+    const createdInvites = await this.db.insert(driverInvites).values({
       mitraId,
       email,
       token,
       expiresAt,
       status: "pending",
     }).returning({ id: driverInvites.id });
+
+    if (!createdInvites || createdInvites.length === 0) {
+      throw new Error("Failed to create driver invitation - database insert failed");
+    }
+
+    const [createdInvite] = createdInvites;
 
     // Audit log the driver invitation
     if (this.auditService) {

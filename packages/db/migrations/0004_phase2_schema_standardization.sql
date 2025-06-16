@@ -1,6 +1,16 @@
 -- Phase 2: Database schema standardization migration
 -- Add missing columns and update timestamp constraints
 
+-- Create notification_templates table if it doesn't exist
+CREATE TABLE IF NOT EXISTS `notification_templates` (
+	`id` text PRIMARY KEY NOT NULL,
+	`type` text NOT NULL,
+	`language` text DEFAULT 'id' NOT NULL,
+	`content` text NOT NULL,
+	`created_at` integer,
+	`updated_at` integer
+);
+
 -- Add has_completed_onboarding to mitras table
 ALTER TABLE `mitras` ADD `has_completed_onboarding` integer DEFAULT false NOT NULL;
 
@@ -11,22 +21,9 @@ ALTER TABLE `notification_logs` ADD `template_id` text;
 ALTER TABLE `notification_logs` ADD `generated_at` integer;
 ALTER TABLE `notification_logs` ADD `triggered_at` integer;
 
--- Add updated_at to notification_templates table
-ALTER TABLE `notification_templates` ADD `updated_at` integer;
-
 -- Add created_at and updated_at to vehicles table (if not exists)
 ALTER TABLE `vehicles` ADD `created_at` integer;
 ALTER TABLE `vehicles` ADD `updated_at` integer;
-
--- Create notification_templates table if it doesn't exist
-CREATE TABLE IF NOT EXISTS `notification_templates` (
-	`id` text PRIMARY KEY NOT NULL,
-	`type` text NOT NULL,
-	`language` text DEFAULT 'id' NOT NULL,
-	`content` text NOT NULL,
-	`created_at` integer,
-	`updated_at` integer
-);
 
 -- Create many-to-many tables for services
 CREATE TABLE IF NOT EXISTS `services_to_vehicle_types` (

@@ -117,7 +117,7 @@ class QRISBillingVerification {
       // Test 1: Create subscription invoice
       const subscriptionInvoice = await this.billingService.createInvoice({
         mitraId: this.testMitra1.id,
-        type: "subscription",
+        type: "PLATFORM_SUBSCRIPTION",
         amount:
           TEST_CONFIG.SUBSCRIPTION_AMOUNT_PER_DRIVER *
           TEST_CONFIG.DEFAULT_DRIVER_LIMIT,
@@ -136,7 +136,7 @@ class QRISBillingVerification {
       // Test 2: Create delivery fee invoice
       const deliveryInvoice = await this.billingService.createInvoice({
         mitraId: this.testMitra2.id,
-        type: "delivery_fee",
+        type: "CUSTOMER_PAYMENT",
         amount: 5000,
         description: "Delivery service fee",
       });

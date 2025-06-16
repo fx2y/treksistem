@@ -8,11 +8,13 @@
     "dev:mitra": "turbo run dev --filter=@treksistem/mitra-portal",
     "dev:driver": "turbo run dev --filter=@treksistem/driver-pwa",
     "dev:public": "turbo run dev --filter=@treksistem/public-site",
+    "dev:admin": "turbo run dev --filter=@treksistem/admin-portal",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "format": "turbo run format",
     "format:all": "prettier --write \"**/*.{js,ts,tsx,json,md,css,html}\" --cache",
     "db:seed": "node scripts/seed-db.js",
+    "db:seed:showcase": "node scripts/setup-showcase-data.js",
     "prepare": "husky"
   },
   "devDependencies": {
