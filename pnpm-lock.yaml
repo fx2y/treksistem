@@ -7,6 +7,19 @@ settings:
 importers:
 
   .:
+    dependencies:
+      better-sqlite3:
+        specifier: ^11.10.0
+        version: 11.10.0
+      drizzle-orm:
+        specifier: ^0.44.2
+        version: 0.44.2(@cloudflare/workers-types@4.20250612.0)(better-sqlite3@11.10.0)
+      hono:
+        specifier: ^4.7.11
+        version: 4.7.11
+      nanoid:
+        specifier: ^5.1.5
+        version: 5.1.5
     devDependencies:
       '@typescript-eslint/eslint-plugin':
         specifier: ^7.0.0
@@ -8300,6 +8313,11 @@ snapshots:
   drizzle-orm@0.44.2(@cloudflare/workers-types@4.20250610.0)(better-sqlite3@11.10.0):
     optionalDependencies:
       '@cloudflare/workers-types': 4.20250610.0
+      better-sqlite3: 11.10.0
+
+  drizzle-orm@0.44.2(@cloudflare/workers-types@4.20250612.0)(better-sqlite3@11.10.0):
+    optionalDependencies:
+      '@cloudflare/workers-types': 4.20250612.0
       better-sqlite3: 11.10.0
 
   dunder-proto@1.0.1:

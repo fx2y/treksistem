@@ -193,6 +193,42 @@ pnpm format
 `
     _(Note: A pre-commit hook is set up with Husky to automatically lint and format staged files.)_
 
+### Showcase Environment Setup
+
+For stakeholder demonstrations and testing, the project includes an automated showcase environment setup that creates realistic test data and personas.
+
+**Prerequisites:**
+
+- Complete the standard development setup above (dependencies, environment variables, database migrations)
+
+**Setup Process:**
+
+1. Run the showcase setup script from the project root:
+
+   ```bash
+   sh setup-showcase.sh
+   ```
+
+2. This script will:
+   - Seed the database with demo personas (admin, business owner, driver, customer)
+   - Create realistic business entities, services, and historical order data
+   - Generate JWT tokens for each persona for easy API testing
+   - Set up billing state with pending invoices for subscription demonstrations
+
+**What Gets Created:**
+
+- **Admin User**: `admin@treksistem.com` - Platform administrator
+- **Mitra Business**: "Katering Bu Ani" - Active food delivery business
+- **Driver**: "Budi Santoso" - Active driver for Bu Ani's business
+- **Customer**: Sample customer data for order tracking
+- **Historical Orders**: 3 completed orders for logbook demonstrations
+- **Billing Data**: Pending subscription invoice and payment history
+
+**Using the Showcase:**
+After running the setup, the script outputs JWT tokens for each persona. Use these tokens for API testing or copy them into your frontend applications for seamless demo experiences.
+
+The showcase environment is designed to be repeatable - running the setup script again will reset all data to a clean, consistent state.
+
 ### Contributing
 
 We welcome contributions of all kinds! Whether it's improving documentation, fixing a bug, or proposing a new feature, your help is appreciated.

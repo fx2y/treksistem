@@ -2,21 +2,22 @@
 
 /**
  * Master Showcase Data Seeding Script
- * 
+ *
  * This script sets up a complete sandbox environment for the stakeholder showcase.
  * It creates all necessary personas, business entities, historical data, and billing state.
  */
 
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
-import * as schema from "../packages/db/src/schema.js";
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import * as schema from "../packages/db/src/schema.ts";
 import { nanoid } from "nanoid";
 
-const DATABASE_URL = "file:./.wrangler/state/v3/d1/miniflare-D1DatabaseObject/fc8ace76-5e4f-4bbe-8186-7d4198559f4d.sqlite";
+const DATABASE_URL =
+  "./.wrangler/state/v3/d1/miniflare-D1DatabaseObject/fc8ace76-5e4f-4bbe-8186-7d4198559f4d.sqlite";
 
 class ShowcaseDataSeeder {
   constructor() {
-    this.client = createClient({ url: DATABASE_URL });
+    this.client = new Database(DATABASE_URL);
     this.db = drizzle(this.client, { schema });
     this.personas = {};
   }
@@ -27,27 +28,44 @@ class ShowcaseDataSeeder {
 
   async cleanSlate() {
     this.log("🧹 Cleaning slate - wiping all relevant tables...");
-    
+
     // Delete in proper order to respect foreign key constraints
-    await this.db.delete(schema.orderReports);
-    await this.db.delete(schema.orderStops);
-    await this.db.delete(schema.orders);
-    await this.db.delete(schema.invoices);
-    await this.db.delete(schema.notificationLogs);
-    await this.db.delete(schema.driverInvites);
-    await this.db.delete(schema.drivers);
-    await this.db.delete(schema.vehicles);
-    await this.db.delete(schema.serviceRates);
-    await this.db.delete(schema.servicesToVehicleTypes);
-    await this.db.delete(schema.servicesToPayloadTypes);
-    await this.db.delete(schema.servicesToFacilities);
-    await this.db.delete(schema.services);
-    await this.db.delete(schema.mitras);
-    await this.db.delete(schema.auditLogs);
-    await this.db.delete(schema.refreshTokens);
-    await this.db.delete(schema.oauthSessions);
-    await this.db.delete(schema.users);
-    
+    // Use try/catch for each table in case it doesn't exist
+    const tablesToClean = [
+      { name: "orderReports", table: schema.orderReports },
+      { name: "orderStops", table: schema.orderStops },
+      { name: "orders", table: schema.orders },
+      { name: "invoices", table: schema.invoices },
+      { name: "notificationLogs", table: schema.notificationLogs },
+      { name: "driverInvites", table: schema.driverInvites },
+      { name: "drivers", table: schema.drivers },
+      { name: "vehicles", table: schema.vehicles },
+      { name: "serviceRates", table: schema.serviceRates },
+      { name: "servicesToVehicleTypes", table: schema.servicesToVehicleTypes },
+      { name: "servicesToPayloadTypes", table: schema.servicesToPayloadTypes },
+      { name: "servicesToFacilities", table: schema.servicesToFacilities },
+      { name: "services", table: schema.services },
+      { name: "masterFacilities", table: schema.masterFacilities },
+      { name: "masterPayloadTypes", table: schema.masterPayloadTypes },
+      { name: "masterVehicleTypes", table: schema.masterVehicleTypes },
+      { name: "mitras", table: schema.mitras },
+      { name: "auditLogs", table: schema.auditLogs },
+      { name: "refreshTokens", table: schema.refreshTokens },
+      { name: "oauthSessions", table: schema.oauthSessions },
+      { name: "users", table: schema.users },
+    ];
+
+    for (const { name, table } of tablesToClean) {
+      try {
+        await this.db.delete(table);
+        this.log(`  ✓ Cleaned ${name}`);
+      } catch (error) {
+        this.log(
+          `  ⚠️  Skipped ${name} (table may not exist): ${error.message}`
+        );
+      }
+    }
+
     this.log("✅ All tables cleaned");
   }
 
@@ -55,49 +73,65 @@ class ShowcaseDataSeeder {
     this.log("👥 Creating showcase personas...");
 
     // Master Admin
-    const adminUser = await this.db.insert(schema.users).values({
-      id: "user_admin_showcase",
-      googleId: "google_admin_showcase",
-      email: "admin@treksistem.com",
-      name: "Master Admin",
-      role: "admin",
-      avatarUrl: "https://example.com/admin-avatar.jpg",
-    }).returning().then(rows => rows[0]);
+    const adminUser = await this.db
+      .insert(schema.users)
+      .values({
+        id: "user_admin_showcase",
+        googleId: "google_admin_showcase",
+        email: "admin@treksistem.com",
+        name: "Master Admin",
+        role: "admin",
+        avatarUrl: "https://example.com/admin-avatar.jpg",
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     // Mitra Bu Ani
-    const buAniUser = await this.db.insert(schema.users).values({
-      id: "user_bu_ani_showcase",
-      googleId: "google_bu_ani_showcase", 
-      email: "bu.ani@example.com",
-      name: "Bu Ani",
-      role: "user",
-      avatarUrl: "https://example.com/bu-ani-avatar.jpg",
-    }).returning().then(rows => rows[0]);
+    const buAniUser = await this.db
+      .insert(schema.users)
+      .values({
+        id: "user_bu_ani_showcase",
+        googleId: "google_bu_ani_showcase",
+        email: "bu.ani@example.com",
+        name: "Bu Ani",
+        role: "user",
+        avatarUrl: "https://example.com/bu-ani-avatar.jpg",
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     // Driver Budi
-    const budiUser = await this.db.insert(schema.users).values({
-      id: "user_budi_showcase",
-      googleId: "google_budi_showcase",
-      email: "budi.driver@example.com", 
-      name: "Budi Santoso",
-      role: "user",
-      avatarUrl: "https://example.com/budi-avatar.jpg",
-    }).returning().then(rows => rows[0]);
+    const budiUser = await this.db
+      .insert(schema.users)
+      .values({
+        id: "user_budi_showcase",
+        googleId: "google_budi_showcase",
+        email: "budi.driver@example.com",
+        name: "Budi Santoso",
+        role: "user",
+        avatarUrl: "https://example.com/budi-avatar.jpg",
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     // Customer Andi
-    const andiUser = await this.db.insert(schema.users).values({
-      id: "user_andi_showcase", 
-      googleId: "google_andi_showcase",
-      email: "andi.customer@example.com",
-      name: "Andi Customer",
-      role: "user",
-    }).returning().then(rows => rows[0]);
+    const andiUser = await this.db
+      .insert(schema.users)
+      .values({
+        id: "user_andi_showcase",
+        googleId: "google_andi_showcase",
+        email: "andi.customer@example.com",
+        name: "Andi Customer",
+        role: "user",
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     this.personas = {
       admin: adminUser,
       buAni: buAniUser,
       budi: budiUser,
-      andi: andiUser
+      andi: andiUser,
     };
 
     this.log("✅ Personas created");
@@ -107,43 +141,63 @@ class ShowcaseDataSeeder {
     this.log("🏢 Creating business entities...");
 
     // Create Katering Bu Ani Mitra
-    const kateringBuAni = await this.db.insert(schema.mitras).values({
-      id: "mitra_katering_bu_ani",
-      userId: this.personas.buAni.id,
-      businessName: "Katering Bu Ani",
-      address: "Jl. Raya Malang No. 123, Malang, Jawa Timur",
-      phone: "+628123456789",
-      lat: -7.9797,
-      lng: 112.6304,
-      subscriptionStatus: "active",
-      activeDriverLimit: 5,
-      hasCompletedOnboarding: true,
-    }).returning().then(rows => rows[0]);
+    const kateringBuAni = await this.db
+      .insert(schema.mitras)
+      .values({
+        id: "mitra_katering_bu_ani",
+        userId: this.personas.buAni.id,
+        businessName: "Katering Bu Ani",
+        address: "Jl. Raya Malang No. 123, Malang, Jawa Timur",
+        phone: "+628123456789",
+        lat: -7.9797,
+        lng: 112.6304,
+        subscriptionStatus: "active",
+        activeDriverLimit: 5,
+        hasCompletedOnboarding: true,
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     // Create master data for services
-    const motorcycleVehicleType = await this.db.insert(schema.masterVehicleTypes).values({
-      name: "Sepeda Motor",
-      icon: "🏍️",
-    }).returning().then(rows => rows[0]);
+    const motorcycleVehicleType = await this.db
+      .insert(schema.masterVehicleTypes)
+      .values({
+        name: "Sepeda Motor",
+        icon: "🏍️",
+      })
+      .returning()
+      .then(rows => rows[0]);
 
-    const foodPayloadType = await this.db.insert(schema.masterPayloadTypes).values({
-      name: "Makanan",
-      icon: "🍽️",
-    }).returning().then(rows => rows[0]);
+    const foodPayloadType = await this.db
+      .insert(schema.masterPayloadTypes)
+      .values({
+        name: "Makanan",
+        icon: "🍽️",
+      })
+      .returning()
+      .then(rows => rows[0]);
 
-    const thermalBagFacility = await this.db.insert(schema.masterFacilities).values({
-      name: "Thermal Bag",
-      icon: "🧊",
-    }).returning().then(rows => rows[0]);
+    const thermalBagFacility = await this.db
+      .insert(schema.masterFacilities)
+      .values({
+        name: "Thermal Bag",
+        icon: "🧊",
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     // Create the service "Pengiriman Katering"
-    const kateringService = await this.db.insert(schema.services).values({
-      id: "service_pengiriman_katering",
-      mitraId: kateringBuAni.id,
-      name: "Pengiriman Katering",
-      isPublic: true,
-      maxRangeKm: 15.0,
-    }).returning().then(rows => rows[0]);
+    const kateringService = await this.db
+      .insert(schema.services)
+      .values({
+        id: "service_pengiriman_katering",
+        mitraId: kateringBuAni.id,
+        name: "Pengiriman Katering",
+        isPublic: true,
+        maxRangeKm: 15.0,
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     // Link service to vehicle types, payload types, and facilities
     await this.db.insert(schema.servicesToVehicleTypes).values({
@@ -170,21 +224,29 @@ class ShowcaseDataSeeder {
     });
 
     // Create vehicle for Bu Ani
-    const vehicle = await this.db.insert(schema.vehicles).values({
-      id: "vehicle_bu_ani_1",
-      mitraId: kateringBuAni.id,
-      licensePlate: "N 1234 ABC",
-      description: "Honda Vario 150",
-      createdAt: new Date(),
-    }).returning().then(rows => rows[0]);
+    const vehicle = await this.db
+      .insert(schema.vehicles)
+      .values({
+        id: "vehicle_bu_ani_1",
+        mitraId: kateringBuAni.id,
+        licensePlate: "N 1234 ABC",
+        description: "Honda Vario 150",
+        createdAt: new Date(),
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     // Create driver record for Budi (already accepted invitation)
-    const driver = await this.db.insert(schema.drivers).values({
-      id: "driver_budi_showcase",
-      userId: this.personas.budi.id,
-      mitraId: kateringBuAni.id,
-      status: "active",
-    }).returning().then(rows => rows[0]);
+    const driver = await this.db
+      .insert(schema.drivers)
+      .values({
+        id: "driver_budi_showcase",
+        userId: this.personas.budi.id,
+        mitraId: kateringBuAni.id,
+        status: "active",
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     this.personas.mitra = kateringBuAni;
     this.personas.service = kateringService;
@@ -202,21 +264,25 @@ class ShowcaseDataSeeder {
     const yesterday = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
 
     // Historical Order 1 - Completed 3 days ago
-    const order1 = await this.db.insert(schema.orders).values({
-      id: "order_history_1",
-      publicId: nanoid(12),
-      serviceId: this.personas.service.id,
-      assignedDriverId: this.personas.driver.id,
-      assignedVehicleId: this.personas.vehicle.id,
-      status: "delivered",
-      ordererName: "Customer A",
-      ordererPhone: "+628111111111",
-      recipientName: "Customer A",
-      recipientPhone: "+628111111111",
-      estimatedCost: 15000,
-      notes: "Catering untuk meeting kantor",
-      createdAt: threeDaysAgo,
-    }).returning().then(rows => rows[0]);
+    const order1 = await this.db
+      .insert(schema.orders)
+      .values({
+        id: "order_history_1",
+        publicId: nanoid(12),
+        serviceId: this.personas.service.id,
+        assignedDriverId: this.personas.driver.id,
+        assignedVehicleId: this.personas.vehicle.id,
+        status: "delivered",
+        ordererName: "Customer A",
+        ordererPhone: "+628111111111",
+        recipientName: "Customer A",
+        recipientPhone: "+628111111111",
+        estimatedCost: 15000,
+        notes: "Catering untuk meeting kantor",
+        createdAt: threeDaysAgo,
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     // Order stops for historical order 1
     await this.db.insert(schema.orderStops).values([
@@ -237,25 +303,29 @@ class ShowcaseDataSeeder {
         lat: -7.9826,
         lng: 112.6353,
         status: "completed",
-      }
+      },
     ]);
 
     // Historical Order 2 - Completed 2 days ago
-    const order2 = await this.db.insert(schema.orders).values({
-      id: "order_history_2",
-      publicId: nanoid(12),
-      serviceId: this.personas.service.id,
-      assignedDriverId: this.personas.driver.id,
-      assignedVehicleId: this.personas.vehicle.id,
-      status: "delivered",
-      ordererName: "Customer B",
-      ordererPhone: "+628222222222",
-      recipientName: "Customer B",
-      recipientPhone: "+628222222222",
-      estimatedCost: 20000,
-      notes: "Lunch box untuk keluarga",
-      createdAt: twoDaysAgo,
-    }).returning().then(rows => rows[0]);
+    const order2 = await this.db
+      .insert(schema.orders)
+      .values({
+        id: "order_history_2",
+        publicId: nanoid(12),
+        serviceId: this.personas.service.id,
+        assignedDriverId: this.personas.driver.id,
+        assignedVehicleId: this.personas.vehicle.id,
+        status: "delivered",
+        ordererName: "Customer B",
+        ordererPhone: "+628222222222",
+        recipientName: "Customer B",
+        recipientPhone: "+628222222222",
+        estimatedCost: 20000,
+        notes: "Lunch box untuk keluarga",
+        createdAt: twoDaysAgo,
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     // Order stops for historical order 2
     await this.db.insert(schema.orderStops).values([
@@ -276,25 +346,29 @@ class ShowcaseDataSeeder {
         lat: -7.9344,
         lng: 112.6407,
         status: "completed",
-      }
+      },
     ]);
 
     // Historical Order 3 - Completed yesterday
-    const order3 = await this.db.insert(schema.orders).values({
-      id: "order_history_3",
-      publicId: nanoid(12),
-      serviceId: this.personas.service.id,
-      assignedDriverId: this.personas.driver.id,
-      assignedVehicleId: this.personas.vehicle.id,
-      status: "delivered",
-      ordererName: "Customer C",
-      ordererPhone: "+628333333333",
-      recipientName: "Customer C",
-      recipientPhone: "+628333333333",
-      estimatedCost: 18000,
-      notes: "Nasi box untuk acara arisan",
-      createdAt: yesterday,
-    }).returning().then(rows => rows[0]);
+    const order3 = await this.db
+      .insert(schema.orders)
+      .values({
+        id: "order_history_3",
+        publicId: nanoid(12),
+        serviceId: this.personas.service.id,
+        assignedDriverId: this.personas.driver.id,
+        assignedVehicleId: this.personas.vehicle.id,
+        status: "delivered",
+        ordererName: "Customer C",
+        ordererPhone: "+628333333333",
+        recipientName: "Customer C",
+        recipientPhone: "+628333333333",
+        estimatedCost: 18000,
+        notes: "Nasi box untuk acara arisan",
+        createdAt: yesterday,
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     // Order stops for historical order 3
     await this.db.insert(schema.orderStops).values([
@@ -310,12 +384,12 @@ class ShowcaseDataSeeder {
       {
         orderId: order3.id,
         sequence: 2,
-        type: "dropoff", 
+        type: "dropoff",
         address: "Balai RT 05, Jl. Kawi No. 89",
         lat: -7.9758,
         lng: 112.6283,
         status: "completed",
-      }
+      },
     ]);
 
     // Add some order reports for the historical orders
@@ -335,7 +409,7 @@ class ShowcaseDataSeeder {
         notes: "Makanan sudah diterima klien",
         photoUrl: "https://example.com/dropoff1.jpg",
         timestamp: new Date(threeDaysAgo.getTime() + 90 * 60 * 1000), // 90 min after order
-      }
+      },
     ]);
 
     this.log("✅ Historical data created");
@@ -345,18 +419,23 @@ class ShowcaseDataSeeder {
     this.log("💰 Creating billing state...");
 
     // Create pending subscription invoice for Bu Ani
-    const subscriptionInvoice = await this.db.insert(schema.invoices).values({
-      publicId: nanoid(),
-      mitraId: this.personas.mitra.id,
-      type: "PLATFORM_SUBSCRIPTION",
-      status: "pending",
-      amount: 50000, // 50k IDR per month
-      currency: "IDR",
-      description: "Monthly subscription - Katering Bu Ani",
-      qrisPayload: "00020101021226260014ID.DANA.WWW011893600009152408240301740204740602051570030303IDR520454005802ID5914Katering Bu Ani6007Jakarta6105123456105170613SUB_KATERING640400006304",
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Due in 7 days
-      createdAt: new Date(),
-    }).returning().then(rows => rows[0]);
+    const subscriptionInvoice = await this.db
+      .insert(schema.invoices)
+      .values({
+        publicId: nanoid(),
+        mitraId: this.personas.mitra.id,
+        type: "PLATFORM_SUBSCRIPTION",
+        status: "pending",
+        amount: 50000, // 50k IDR per month
+        currency: "IDR",
+        description: "Monthly subscription - Katering Bu Ani",
+        qrisPayload:
+          "00020101021226260014ID.DANA.WWW011893600009152408240301740204740602051570030303IDR520454005802ID5914Katering Bu Ani6007Jakarta6105123456105170613SUB_KATERING640400006304",
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Due in 7 days
+        createdAt: new Date(),
+      })
+      .returning()
+      .then(rows => rows[0]);
 
     // Create a few historical paid invoices
     await this.db.insert(schema.invoices).values([
@@ -382,7 +461,7 @@ class ShowcaseDataSeeder {
         description: "Customer payment for Order #12345",
         paidAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
         createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      }
+      },
     ]);
 
     this.personas.pendingInvoice = subscriptionInvoice;
@@ -393,28 +472,44 @@ class ShowcaseDataSeeder {
   async generateSummary() {
     this.log("📋 Showcase Environment Summary:");
     console.log("================================");
-    console.log(`👤 Master Admin: ${this.personas.admin.email} (ID: ${this.personas.admin.id})`);
-    console.log(`🏪 Mitra Bu Ani: ${this.personas.buAni.email} (ID: ${this.personas.buAni.id})`);
-    console.log(`🚗 Driver Budi: ${this.personas.budi.email} (ID: ${this.personas.budi.id})`);
-    console.log(`🛒 Customer Andi: ${this.personas.andi.email} (ID: ${this.personas.andi.id})`);
-    console.log(`🏢 Mitra: ${this.personas.mitra.businessName} (ID: ${this.personas.mitra.id})`);
-    console.log(`📦 Service: ${this.personas.service.name} (ID: ${this.personas.service.id})`);
-    console.log(`🚙 Vehicle: ${this.personas.vehicle.licensePlate} (ID: ${this.personas.vehicle.id})`);
-    console.log(`💳 Pending Invoice: ${this.personas.pendingInvoice.publicId} (${this.personas.pendingInvoice.amount} IDR)`);
+    console.log(
+      `👤 Master Admin: ${this.personas.admin.email} (ID: ${this.personas.admin.id})`
+    );
+    console.log(
+      `🏪 Mitra Bu Ani: ${this.personas.buAni.email} (ID: ${this.personas.buAni.id})`
+    );
+    console.log(
+      `🚗 Driver Budi: ${this.personas.budi.email} (ID: ${this.personas.budi.id})`
+    );
+    console.log(
+      `🛒 Customer Andi: ${this.personas.andi.email} (ID: ${this.personas.andi.id})`
+    );
+    console.log(
+      `🏢 Mitra: ${this.personas.mitra.businessName} (ID: ${this.personas.mitra.id})`
+    );
+    console.log(
+      `📦 Service: ${this.personas.service.name} (ID: ${this.personas.service.id})`
+    );
+    console.log(
+      `🚙 Vehicle: ${this.personas.vehicle.licensePlate} (ID: ${this.personas.vehicle.id})`
+    );
+    console.log(
+      `💳 Pending Invoice: ${this.personas.pendingInvoice.publicId} (${this.personas.pendingInvoice.amount} IDR)`
+    );
     console.log("================================");
   }
 
   async run() {
     try {
       this.log("🚀 Starting showcase data seeding...");
-      
+
       await this.cleanSlate();
       await this.createPersonas();
       await this.createBusinessEntities();
       await this.createHistoricalData();
       await this.createBillingState();
       await this.generateSummary();
-      
+
       this.log("🎉 Showcase environment ready!");
     } catch (error) {
       console.error("❌ Seeding failed:", error);

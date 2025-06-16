@@ -2,23 +2,24 @@
 
 /**
  * JWT Generation Utility for Showcase
- * 
+ *
  * Generates valid, long-lived JWTs for each showcase persona.
  * Reads user IDs from the database and creates tokens using the JWT_SECRET.
  */
 
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
-import * as schema from "../packages/db/src/schema.js";
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import * as schema from "../packages/db/src/schema.ts";
 import { eq } from "drizzle-orm";
 import { sign } from "hono/jwt";
 import fs from "fs";
 
-const DATABASE_URL = "file:./.wrangler/state/v3/d1/miniflare-D1DatabaseObject/fc8ace76-5e4f-4bbe-8186-7d4198559f4d.sqlite";
+const DATABASE_URL =
+  "./.wrangler/state/v3/d1/miniflare-D1DatabaseObject/fc8ace76-5e4f-4bbe-8186-7d4198559f4d.sqlite";
 
 class ShowcaseTokenGenerator {
   constructor() {
-    this.client = createClient({ url: DATABASE_URL });
+    this.client = new Database(DATABASE_URL);
     this.db = drizzle(this.client, { schema });
     this.jwtSecret = null;
     this.tokens = {};
@@ -31,17 +32,19 @@ class ShowcaseTokenGenerator {
   loadJwtSecret() {
     try {
       // Try to read JWT_SECRET from .dev.vars
-      const devVars = fs.readFileSync('.dev.vars', 'utf8');
-      const lines = devVars.split('\n');
-      
+      const devVars = fs.readFileSync(".dev.vars", "utf8");
+      const lines = devVars.split("\n");
+
       for (const line of lines) {
-        if (line.startsWith('JWT_SECRET=')) {
-          this.jwtSecret = line.substring('JWT_SECRET='.length).replace(/['"]/g, '');
+        if (line.startsWith("JWT_SECRET=")) {
+          this.jwtSecret = line
+            .substring("JWT_SECRET=".length)
+            .replace(/['"]/g, "");
           this.log("✅ JWT_SECRET loaded from .dev.vars");
           return;
         }
       }
-      
+
       throw new Error("JWT_SECRET not found in .dev.vars");
     } catch (error) {
       this.log("⚠️  Could not read .dev.vars, using fallback JWT_SECRET");
@@ -110,7 +113,7 @@ class ShowcaseTokenGenerator {
         userId: user.id,
         role: user.role,
         email: user.email,
-        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60 * 7), // 7 days
+        exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60 * 7, // 7 days
       };
 
       const token = await sign(payload, this.jwtSecret);
@@ -136,35 +139,44 @@ class ShowcaseTokenGenerator {
 
     commands.push("");
     commands.push("# Usage examples:");
-    commands.push("# curl -H \"Authorization: Bearer $TOKEN_ADMIN\" http://localhost:8787/api/admin/...");
-    commands.push("# curl -H \"Authorization: Bearer $TOKEN_BU_ANI\" http://localhost:8787/api/mitra/...");
-    commands.push("# curl -H \"Authorization: Bearer $TOKEN_BUDI\" http://localhost:8787/api/driver/...");
-    commands.push("# curl -H \"Authorization: Bearer $TOKEN_ANDI\" http://localhost:8787/api/public/...");
+    commands.push(
+      '# curl -H "Authorization: Bearer $TOKEN_ADMIN" http://localhost:8787/api/admin/...'
+    );
+    commands.push(
+      '# curl -H "Authorization: Bearer $TOKEN_BU_ANI" http://localhost:8787/api/mitra/...'
+    );
+    commands.push(
+      '# curl -H "Authorization: Bearer $TOKEN_BUDI" http://localhost:8787/api/driver/...'
+    );
+    commands.push(
+      '# curl -H "Authorization: Bearer $TOKEN_ANDI" http://localhost:8787/api/public/...'
+    );
 
-    return commands.join('\n');
+    return commands.join("\n");
   }
 
   async run() {
     try {
       this.log("🚀 Starting JWT token generation...");
-      
+
       this.loadJwtSecret();
       const personas = await this.getShowcasePersonas();
-      
+
       if (Object.keys(personas).length === 0) {
-        throw new Error("No showcase personas found in database. Run 'pnpm run db:seed:showcase' first.");
+        throw new Error(
+          "No showcase personas found in database. Run 'pnpm run db:seed:showcase' first."
+        );
       }
-      
+
       await this.generateTokens(personas);
-      
+
       const exportCommands = this.generateExportCommands();
-      
+
       console.log("\n" + "=".repeat(80));
       console.log(exportCommands);
       console.log("=".repeat(80) + "\n");
-      
+
       this.log("🎉 JWT tokens generated successfully!");
-      
     } catch (error) {
       console.error("❌ Token generation failed:", error);
       throw error;
