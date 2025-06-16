@@ -3,8 +3,8 @@ import path from "path";
 
 import * as schema from "@treksistem/db/schema";
 import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { drizzle } from "drizzle-orm/d1";
 import { beforeAll, afterAll } from "vitest";
 
 // Test database instance

@@ -12,7 +12,7 @@ CREATE TABLE `__new_audit_logs` (
 	FOREIGN KEY (`impersonated_mitra_id`) REFERENCES `mitras`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-INSERT INTO `__new_audit_logs`("id", "admin_user_id", "impersonated_mitra_id", "target_entity", "target_id", "action", "payload", "timestamp") SELECT "id", "admin_user_id", "impersonated_mitra_id", "target_entity", "target_id", "action", "payload", "timestamp" FROM `audit_logs`;--> statement-breakpoint
+INSERT INTO `__new_audit_logs`("id", "admin_user_id", "impersonated_mitra_id", "target_entity", "target_id", "action", "payload", "timestamp") SELECT "id", "actor_id", "impersonator_id", "target_entity", "target_id", "action", "payload", "created_at" FROM `audit_logs`;--> statement-breakpoint
 DROP TABLE `audit_logs`;--> statement-breakpoint
 ALTER TABLE `__new_audit_logs` RENAME TO `audit_logs`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;--> statement-breakpoint
