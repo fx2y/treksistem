@@ -332,11 +332,19 @@ export class PublicOrderService {
         stage: report.stage,
         notes: report.notes || undefined,
         photoUrl: report.photoUrl || undefined,
-        timestamp: report.timestamp
-          ? new Date(report.timestamp * 1000).toISOString()
-          : new Date().toISOString(),
+        timestamp: this.convertTimestamp(report.timestamp),
       })),
     };
+  }
+
+  private convertTimestamp(timestamp: any): string {
+    if (typeof timestamp === "number") {
+      return new Date(timestamp * 1000).toISOString();
+    }
+    if (timestamp instanceof Date) {
+      return timestamp.toISOString();
+    }
+    return new Date().toISOString();
   }
 
   // Helper method for better-sqlite3 compatibility in tests

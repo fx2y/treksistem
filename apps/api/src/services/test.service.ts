@@ -205,32 +205,77 @@ export class TestService {
   async setupShowcaseData() {
     // Create showcase personas directly in production
 
-    // Clean existing showcase data
-    await this.directDb.exec(
-      `DELETE FROM users WHERE id IN ('user_admin_showcase', 'user_bu_ani_showcase', 'user_budi_showcase', 'user_andi_showcase')`
-    );
-    await this.directDb.exec(
-      `DELETE FROM mitras WHERE id = 'mitra_katering_bu_ani'`
-    );
+    // Clean existing showcase data in reverse dependency order
+    try {
+      await this.directDb.exec(
+        `DELETE FROM drivers WHERE user_id = 'user_budi_showcase'`
+      );
+    } catch (e) {
+      /* ignore if doesn't exist */
+    }
+    try {
+      await this.directDb.exec(
+        `DELETE FROM mitras WHERE id = 'mitra_katering_bu_ani'`
+      );
+    } catch (e) {
+      /* ignore if doesn't exist */
+    }
+    try {
+      await this.directDb.exec(
+        `DELETE FROM users WHERE id IN ('user_admin_showcase', 'user_bu_ani_showcase', 'user_budi_showcase', 'user_andi_showcase')`
+      );
+    } catch (e) {
+      /* ignore if doesn't exist */
+    }
 
     // Create showcase users
-    await this.directDb.exec(
-      `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_admin_showcase', 'google_admin_showcase', 'admin@treksistem.com', 'Master Admin', 'admin')`
-    );
-    await this.directDb.exec(
-      `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_bu_ani_showcase', 'google_bu_ani_showcase', 'bu.ani@example.com', 'Bu Ani', 'user')`
-    );
-    await this.directDb.exec(
-      `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_budi_showcase', 'google_budi_showcase', 'budi.driver@example.com', 'Budi Santoso', 'user')`
-    );
-    await this.directDb.exec(
-      `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_andi_showcase', 'google_andi_showcase', 'andi.customer@example.com', 'Andi Customer', 'user')`
-    );
+    try {
+      await this.directDb.exec(
+        `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_admin_showcase', 'google_admin_showcase', 'admin@treksistem.com', 'Master Admin', 'admin')`
+      );
+    } catch (e) {
+      /* ignore if already exists */
+    }
+    try {
+      await this.directDb.exec(
+        `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_bu_ani_showcase', 'google_bu_ani_showcase', 'bu.ani@example.com', 'Bu Ani', 'user')`
+      );
+    } catch (e) {
+      /* ignore if already exists */
+    }
+    try {
+      await this.directDb.exec(
+        `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_budi_showcase', 'google_budi_showcase', 'budi.driver@example.com', 'Budi Santoso', 'user')`
+      );
+    } catch (e) {
+      /* ignore if already exists */
+    }
+    try {
+      await this.directDb.exec(
+        `INSERT INTO users (id, google_id, email, name, role) VALUES ('user_andi_showcase', 'google_andi_showcase', 'andi.customer@example.com', 'Andi Customer', 'user')`
+      );
+    } catch (e) {
+      /* ignore if already exists */
+    }
 
     // Create Katering Bu Ani mitra
-    await this.directDb.exec(
-      `INSERT INTO mitras (id, user_id, business_name, address, phone, lat, lng, subscription_status, active_driver_limit, has_completed_onboarding) VALUES ('mitra_katering_bu_ani', 'user_bu_ani_showcase', 'Katering Bu Ani', 'Jl. Raya Malang No. 123, Malang, Jawa Timur', '+628123456789', -7.9797, 112.6304, 'active', 5, 1)`
-    );
+    try {
+      await this.directDb.exec(
+        `INSERT INTO mitras (id, user_id, business_name, address, phone, lat, lng, subscription_status, active_driver_limit, has_completed_onboarding) VALUES ('mitra_katering_bu_ani', 'user_bu_ani_showcase', 'Katering Bu Ani', 'Jl. Raya Malang No. 123, Malang, Jawa Timur', '+628123456789', -7.9797, 112.6304, 'active', 5, 1)`
+      );
+    } catch (e) {
+      /* ignore if already exists */
+    }
+
+    // Create driver record for Budi (assigned to Bu Ani's mitra)
+    try {
+      const driverId = nanoid();
+      await this.directDb.exec(
+        `INSERT INTO drivers (id, user_id, mitra_id, status) VALUES ('${driverId}', 'user_budi_showcase', 'mitra_katering_bu_ani', 'active')`
+      );
+    } catch (e) {
+      /* ignore if already exists */
+    }
 
     return {
       message: "Showcase data setup complete",

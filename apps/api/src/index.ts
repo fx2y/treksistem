@@ -2,6 +2,7 @@ import { createAuthServices, type AuthEnvironment } from "@treksistem/auth";
 import { Hono } from "hono";
 
 import { BaseError } from "./lib/errors";
+import queueConsumer from "./queue-consumer";
 import admin from "./routes/admin";
 import auth from "./routes/auth";
 import driver from "./routes/driver";
@@ -127,6 +128,7 @@ export type AppType = typeof app;
 
 export default {
   fetch: app.fetch,
+  queue: queueConsumer.queue,
   async scheduled(event: { cron: string }, env: any, _ctx: ExecutionContext) {
     const services = createServices(env);
 

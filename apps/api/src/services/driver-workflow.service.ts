@@ -96,6 +96,62 @@ export class DriverWorkflowService {
     }));
   }
 
+  async getAvailableOrders(
+    driverId: string,
+    mitraId?: string
+  ): Promise<DriverOrder[]> {
+    // Get the driver's mitra to show orders from the same mitra
+    const driver = await this.db.query.drivers.findFirst({
+      where: eq(drivers.id, driverId),
+    });
+
+    if (!driver) {
+      throw new Error("Driver not found");
+    }
+
+    const whereConditions = [
+      eq(orders.status, "pending_dispatch"),
+      isNull(orders.assignedDriverId),
+    ];
+
+    // If mitraId is specified, filter by it, otherwise use driver's mitra
+    const targetMitraId = mitraId || driver.mitraId;
+
+    const orderList = await this.db.query.orders.findMany({
+      where: and(...whereConditions),
+      with: {
+        stops: {
+          orderBy: (stops, { asc }) => [asc(stops.sequence)],
+        },
+        service: {
+          columns: { mitraId: true },
+        },
+      },
+    });
+
+    // Filter by mitra
+    const filteredOrders = orderList.filter(
+      order => order.service?.mitraId === targetMitraId
+    );
+
+    return filteredOrders.map(order => ({
+      id: order.id,
+      publicId: order.publicId,
+      status: order.status,
+      ordererName: order.ordererName,
+      recipientName: order.recipientName,
+      stops: order.stops.map(stop => ({
+        id: stop.id,
+        sequence: stop.sequence,
+        type: stop.type as "pickup" | "dropoff",
+        address: stop.address,
+        lat: stop.lat,
+        lng: stop.lng,
+        status: stop.status as "pending" | "completed",
+      })),
+    }));
+  }
+
   async updateDriverAvailability(
     driverId: string,
     status: "active" | "inactive"

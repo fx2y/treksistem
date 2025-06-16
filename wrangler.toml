@@ -49,15 +49,15 @@ binding = "ALERTING_KV"
 id = "af109e7b23dc44cbae3253f3265a66cb"
 preview_id = "af109e7b23dc44cbae3253f3265a66cb"
 
-# Queues for asynchronous processing (DISABLED - requires paid plan)
-# [[queues.producers]]
-# binding = "AUDIT_LOG_QUEUE"
-# queue = "audit-log-queue"
+# Queues for asynchronous processing
+[[queues.producers]]
+binding = "AUDIT_LOG_QUEUE"
+queue = "audit-log-queue"
 
-# [[queues.consumers]]
-# queue = "audit-log-queue"
-# max_batch_size = 10
-# max_batch_timeout = 5
+[[queues.consumers]]
+queue = "audit-log-queue"
+max_batch_size = 10
+max_batch_timeout = 5
 
 # Cron triggers
 [triggers]
