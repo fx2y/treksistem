@@ -6,11 +6,15 @@ export class MitraApiClient extends BaseApiClient {
 	constructor(baseUrl = '/api') {
 		super(baseUrl);
 
-		// Load stored token in browser environment
+		// Load stored tokens in browser environment
 		if (browser) {
 			const token = this.getStoredToken();
+			const refreshToken = this.getStoredRefreshToken();
 			if (token) {
 				this.setToken(token);
+			}
+			if (refreshToken) {
+				this.setRefreshToken(refreshToken);
 			}
 		}
 	}

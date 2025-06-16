@@ -1,5 +1,7 @@
 import { BaseApiClient } from "@treksistem/api-client";
 
+import { browser } from "$app/environment";
+
 export interface DriverOrder {
   id: string;
   publicId: string;
@@ -48,6 +50,18 @@ class DriverApiClient extends BaseApiClient {
         ? window.location.origin + "/api"
         : "http://localhost:8787/api";
     super(baseURL);
+
+    // Load stored tokens in browser environment
+    if (browser) {
+      const token = this.getStoredToken();
+      const refreshToken = this.getStoredRefreshToken();
+      if (token) {
+        this.setToken(token);
+      }
+      if (refreshToken) {
+        this.setRefreshToken(refreshToken);
+      }
+    }
   }
 
   async getMe(): Promise<User> {
@@ -57,6 +71,11 @@ class DriverApiClient extends BaseApiClient {
   async getOrders(mitraId?: string): Promise<DriverOrder[]> {
     const params = mitraId ? { mitraId } : undefined;
     return this.get("/driver/orders", params);
+  }
+
+  async getAvailableOrders(mitraId?: string): Promise<DriverOrder[]> {
+    const params = mitraId ? { mitraId } : undefined;
+    return this.get("/driver/orders/available", params);
   }
 
   async claimOrder(orderId: string): Promise<void> {

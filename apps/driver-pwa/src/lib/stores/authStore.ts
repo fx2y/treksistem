@@ -1,19 +1,13 @@
-import { api } from "@treksistem/api-client";
 import { writable } from "svelte/store";
+
+import { apiClient } from "../services/apiClient";
+import type { User } from "../services/apiClient";
 
 import { browser } from "$app/environment";
 import { goto } from "$app/navigation";
 
-interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  driverForMitras?: Array<{ id: string; name: string }>;
-}
-
 interface AuthState {
-  user: AuthUser | null;
+  user: User | null;
   isAuthenticated: boolean;
   selectedMitraId: string | null;
   loading: boolean;
@@ -34,19 +28,30 @@ export const authActions = {
 
     authStore.update(state => ({ ...state, loading: true }));
 
-    try {
-      const response = await api.auth.me.get();
-      if (response.data) {
+    const token = localStorage.getItem("auth_token");
+    const refreshToken = localStorage.getItem("refresh_token");
+
+    if (token) {
+      apiClient.setToken(token);
+      if (refreshToken) {
+        apiClient.setRefreshToken(refreshToken);
+      }
+
+      try {
+        const userData = await apiClient.getMe();
         authStore.update(state => ({
           ...state,
-          user: response.data,
+          user: userData,
           isAuthenticated: true,
-          selectedMitraId: response.data.driverForMitras?.[0]?.id || null,
+          selectedMitraId: userData.driverForMitras?.[0]?.id || null,
           loading: false,
         }));
+      } catch (error) {
+        console.error("Failed to restore authentication:", error);
+        apiClient.logout();
+        authStore.update(state => ({ ...state, loading: false }));
       }
-    } catch (error) {
-      console.error("Failed to restore authentication:", error);
+    } else {
       authStore.update(state => ({ ...state, loading: false }));
     }
   },
@@ -61,7 +66,8 @@ export const authActions = {
     if (!browser) return;
 
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
+    const code = urlParams.get("code");
+    const state = urlParams.get("state");
     const error = urlParams.get("error");
 
     if (error) {
@@ -70,36 +76,46 @@ export const authActions = {
       return;
     }
 
-    if (token) {
+    if (code && state) {
       try {
-        const response = await api.auth.me.get();
-        if (response.data) {
-          authStore.update(state => ({
-            ...state,
-            user: response.data,
-            isAuthenticated: true,
-            selectedMitraId: response.data.driverForMitras?.[0]?.id || null,
-          }));
-          await goto("/");
+        const tokenResponse = await fetch(
+          `/api/auth/callback/google?code=${code}&state=${state}`
+        );
+        if (!tokenResponse.ok) {
+          throw new Error("Token exchange failed");
         }
+
+        const { accessToken, refreshToken } = await tokenResponse.json();
+        apiClient.setTokens(accessToken, refreshToken);
+
+        const userData = await apiClient.getMe();
+        authStore.update(state => ({
+          ...state,
+          user: userData,
+          isAuthenticated: true,
+          selectedMitraId: userData.driverForMitras?.[0]?.id || null,
+        }));
+        await goto("/");
       } catch (err) {
-        console.error("Failed to get user data:", err);
-        await goto("/?error=" + encodeURIComponent("Failed to authenticate"));
+        console.error("Failed to handle callback:", err);
+        await goto("/?error=" + encodeURIComponent("Authentication failed"));
       }
     } else {
       await goto(
-        "/?error=" + encodeURIComponent("No authentication token received")
+        "/?error=" + encodeURIComponent("Missing authentication parameters")
       );
     }
   },
 
   async logout(): Promise<void> {
     try {
-      await api.auth.logout.post();
+      // The logout endpoint expects the refresh token in the header
+      await apiClient.post("/auth/logout");
     } catch (error) {
       console.error("Logout error:", error);
     }
 
+    apiClient.logout();
     authStore.set(initialState);
     if (browser) {
       await goto("/");

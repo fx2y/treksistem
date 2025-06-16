@@ -41,24 +41,14 @@
   }
   
   async function uploadFile(file: File): Promise<string> {
+    // Import the API client
+    const { apiClient } = await import('../services/apiClient');
+    
     // Step 1: Request upload URL from our API
-    const response = await fetch('/api/uploads/request-url', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-      },
-      body: JSON.stringify({
-        fileName: `report-${Date.now()}-${file.name}`,
-        contentType: file.type
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to get upload URL');
-    }
-    
-    const { signedUrl, publicUrl } = await response.json();
+    const { signedUrl, publicUrl } = await apiClient.requestUploadUrl(
+      `report-${Date.now()}-${file.name}`,
+      file.type
+    );
     
     // Step 2: Upload file directly to R2 using signed URL
     const uploadResponse = await fetch(signedUrl, {

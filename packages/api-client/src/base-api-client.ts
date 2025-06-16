@@ -15,6 +15,7 @@ export interface RequestConfig {
 export class BaseApiClient {
   protected baseURL: string;
   protected token: string | null = null;
+  protected refreshToken: string | null = null;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL.replace(/\/$/, "");
@@ -22,10 +23,29 @@ export class BaseApiClient {
 
   setToken(token: string | null): void {
     this.token = token;
+    if (token) {
+      this.setStoredToken(token);
+    }
+  }
+
+  setRefreshToken(refreshToken: string | null): void {
+    this.refreshToken = refreshToken;
+    if (refreshToken) {
+      this.setStoredRefreshToken(refreshToken);
+    }
+  }
+
+  setTokens(accessToken: string, refreshToken: string): void {
+    this.setToken(accessToken);
+    this.setRefreshToken(refreshToken);
   }
 
   getToken(): string | null {
     return this.token || this.getStoredToken();
+  }
+
+  getRefreshToken(): string | null {
+    return this.refreshToken || this.getStoredRefreshToken();
   }
 
   protected getStoredToken(): string | null {
@@ -38,9 +58,25 @@ export class BaseApiClient {
     return null;
   }
 
+  protected getStoredRefreshToken(): string | null {
+    if (typeof window !== "undefined") {
+      return (
+        localStorage.getItem("refresh_token") ||
+        sessionStorage.getItem("refresh_token")
+      );
+    }
+    return null;
+  }
+
   protected setStoredToken(token: string): void {
     if (typeof window !== "undefined") {
       localStorage.setItem("auth_token", token);
+    }
+  }
+
+  protected setStoredRefreshToken(refreshToken: string): void {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("refresh_token", refreshToken);
     }
   }
 
@@ -48,6 +84,8 @@ export class BaseApiClient {
     if (typeof window !== "undefined") {
       localStorage.removeItem("auth_token");
       sessionStorage.removeItem("auth_token");
+      localStorage.removeItem("refresh_token");
+      sessionStorage.removeItem("refresh_token");
     }
   }
 
@@ -92,6 +130,28 @@ export class BaseApiClient {
     }
 
     const response = await fetch(url, requestConfig);
+
+    if (response.status === 401 && this.getRefreshToken()) {
+      const refreshed = await this.refreshAccessToken();
+      if (refreshed) {
+        requestHeaders.Authorization = `Bearer ${this.getToken()}`;
+        const retryConfig = { ...requestConfig, headers: requestHeaders };
+        const retryResponse = await fetch(url, retryConfig);
+        const retryData = await retryResponse.json();
+
+        if (!retryResponse.ok) {
+          const error = new Error(
+            retryData.error || `HTTP ${retryResponse.status}`
+          );
+          (error as any).code = retryData.code;
+          (error as any).details = retryData.details;
+          throw error;
+        }
+
+        return retryData;
+      }
+    }
+
     const responseData = await response.json();
 
     if (!response.ok) {
@@ -127,8 +187,35 @@ export class BaseApiClient {
     return this.request<T>(path, { method: "DELETE" });
   }
 
+  protected async refreshAccessToken(): Promise<boolean> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) return false;
+
+    try {
+      const response = await fetch(`${this.baseURL}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-refresh-token": refreshToken,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.setTokens(data.accessToken, data.refreshToken);
+        return true;
+      }
+    } catch (error) {
+      console.error("Token refresh failed:", error);
+    }
+
+    this.logout();
+    return false;
+  }
+
   logout(): void {
     this.token = null;
+    this.refreshToken = null;
     this.removeStoredToken();
   }
 }

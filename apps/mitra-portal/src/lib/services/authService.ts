@@ -19,7 +19,8 @@ export class AuthService {
 		if (!browser) return;
 
 		const urlParams = new URLSearchParams(window.location.search);
-		const token = urlParams.get('token');
+		const code = urlParams.get('code');
+		const state = urlParams.get('state');
 		const error = urlParams.get('error');
 
 		if (error) {
@@ -28,19 +29,25 @@ export class AuthService {
 			return;
 		}
 
-		if (token) {
-			apiClient.setToken(token);
-
+		if (code && state) {
 			try {
+				const tokenResponse = await fetch(`/api/auth/callback/google?code=${code}&state=${state}`);
+				if (!tokenResponse.ok) {
+					throw new Error('Token exchange failed');
+				}
+
+				const { accessToken, refreshToken } = await tokenResponse.json();
+				apiClient.setTokens(accessToken, refreshToken);
+
 				const userData = await this.getAuthUser();
 				user.set(userData);
 				await goto('/dashboard');
 			} catch (err) {
-				console.error('Failed to get user data:', err);
-				await goto('/login?error=' + encodeURIComponent('Failed to authenticate'));
+				console.error('Failed to handle callback:', err);
+				await goto('/login?error=' + encodeURIComponent('Authentication failed'));
 			}
 		} else {
-			await goto('/login?error=' + encodeURIComponent('No authentication token received'));
+			await goto('/login?error=' + encodeURIComponent('Missing authentication parameters'));
 		}
 	}
 
@@ -60,14 +67,21 @@ export class AuthService {
 		if (!browser) return;
 
 		const token = localStorage.getItem('auth_token');
+		const refreshToken = localStorage.getItem('refresh_token');
+
 		if (token) {
 			apiClient.setToken(token);
+			if (refreshToken) {
+				apiClient.setRefreshToken(refreshToken);
+			}
+
 			try {
 				const userData = await this.getAuthUser();
 				user.set(userData);
 			} catch (err) {
 				console.error('Failed to restore authentication:', err);
-				apiClient.setToken(null);
+				apiClient.logout();
+				user.set(null);
 			}
 		}
 	}

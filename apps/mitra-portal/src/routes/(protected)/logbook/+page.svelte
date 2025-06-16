@@ -1,21 +1,23 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/services/apiClient';
-	import type { LogbookEntry, Vehicle } from '$lib/types';
+	import type { LogbookEntry, Vehicle, Driver } from '$lib/types';
 	import { Calendar, Filter, Truck, Clock } from 'lucide-svelte';
 
 	let logbookEntries: LogbookEntry[] = [];
 	let vehicles: Vehicle[] = [];
+	let drivers: Driver[] = [];
 	let loading = true;
 	let error = '';
 
 	// Filter state
 	let selectedDate = new Date().toISOString().split('T')[0]; // Today's date
 	let selectedVehicleId = '';
+	let selectedDriverId = '';
 	let showFilters = false;
 
 	onMount(async () => {
-		await loadVehicles();
+		await Promise.all([loadVehicles(), loadDrivers()]);
 		await loadLogbook();
 	});
 
@@ -27,6 +29,14 @@
 		}
 	}
 
+	async function loadDrivers() {
+		try {
+			drivers = await apiClient.get<Driver[]>('/mitra/drivers');
+		} catch (err) {
+			console.error('Failed to load drivers:', err);
+		}
+	}
+
 	async function loadLogbook() {
 		try {
 			loading = true;
@@ -34,8 +44,10 @@
 			const params = new URLSearchParams();
 			if (selectedDate) params.append('date', selectedDate);
 			if (selectedVehicleId) params.append('vehicleId', selectedVehicleId);
+			if (selectedDriverId) params.append('driverId', selectedDriverId);
 
-			logbookEntries = await apiClient.get<LogbookEntry[]>('/mitra/logbook', params);
+			const response = await apiClient.get<{ data: LogbookEntry[] }>('/mitra/logbook', params);
+			logbookEntries = response.data;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load logbook';
 		} finally {
@@ -111,7 +123,7 @@
 		<div class="bg-white shadow sm:rounded-lg">
 			<div class="px-4 py-5 sm:p-6">
 				<h3 class="text-lg leading-6 font-medium text-gray-900">Filter Logbook</h3>
-				<div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+				<div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
 					<div>
 						<label for="date" class="block text-sm font-medium text-gray-700"> Date </label>
 						<div class="mt-1 relative">
@@ -146,6 +158,25 @@
 							</select>
 						</div>
 					</div>
+
+					<div>
+						<label for="driver" class="block text-sm font-medium text-gray-700"> Driver </label>
+						<div class="mt-1">
+							<select
+								id="driver"
+								bind:value={selectedDriverId}
+								on:change={handleFilterChange}
+								class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+							>
+								<option value="">All drivers</option>
+								{#each drivers as driver}
+									<option value={driver.id}>
+										{driver.name}
+									</option>
+								{/each}
+							</select>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -173,7 +204,7 @@
 			<div class="text-gray-500">
 				<p class="text-lg font-medium">No logbook entries found</p>
 				<p class="mt-1 text-sm">
-					{selectedDate || selectedVehicleId
+					{selectedDate || selectedVehicleId || selectedDriverId
 						? 'Try adjusting your filters to see more entries'
 						: 'Entries will appear here as drivers complete deliveries'}
 				</p>

@@ -7,7 +7,8 @@
   export let order: DriverOrder;
   export let onClaim: (orderId: string) => Promise<void>;
   export let onViewDetails: (order: DriverOrder) => void;
-  export let onSubmitReport: (orderId: string, data: { stage: 'pickup' | 'dropoff'; notes: string; photoUrl: string }) => Promise<void>;
+  export let showClaimButton: boolean = true;
+  export let onSubmitReport: ((orderId: string, data: { stage: 'pickup' | 'dropoff'; notes: string; photoUrl: string }) => Promise<void>) | undefined = undefined;
 
   let claiming = false;
   let showPhotoModal = false;
@@ -103,7 +104,7 @@
   </div>
 
   <div class="flex gap-2">
-    {#if order.status === 'pending_dispatch'}
+    {#if order.status === 'pending_dispatch' && showClaimButton}
       <Button
         variant="primary"
         size="md"
@@ -111,41 +112,7 @@
         on:click={handleClaim}
         class="flex-1"
       >
-        {claiming ? 'Claiming...' : 'Accept Order'}
-      </Button>
-    {:else if order.status === 'accepted'}
-      <Button
-        variant="primary"
-        size="sm"
-        on:click={() => openPhotoModal('pickup')}
-        class="flex-1"
-      >
-        📦 Pickup Report
-      </Button>
-      <Button
-        variant="secondary"
-        size="sm"
-        on:click={() => onViewDetails(order)}
-        class="flex-1"
-      >
-        View Details
-      </Button>
-    {:else if order.status === 'pickup' || order.status === 'in_transit'}
-      <Button
-        variant="primary"
-        size="sm"
-        on:click={() => openPhotoModal('dropoff')}
-        class="flex-1"
-      >
-        🚚 Delivery Report
-      </Button>
-      <Button
-        variant="secondary"
-        size="sm"
-        on:click={() => onViewDetails(order)}
-        class="flex-1"
-      >
-        View Details
+        {claiming ? 'Claiming...' : 'Claim Order'}
       </Button>
     {:else}
       <Button
@@ -161,8 +128,10 @@
 </Card>
 
 <!-- Photo Report Modal -->
-<PhotoReportModal
-  bind:open={showPhotoModal}
-  stage={currentReportStage}
-  onSubmit={handleReportSubmit}
-/>
+{#if onSubmitReport}
+  <PhotoReportModal
+    bind:open={showPhotoModal}
+    stage={currentReportStage}
+    onSubmit={handleReportSubmit}
+  />
+{/if}
