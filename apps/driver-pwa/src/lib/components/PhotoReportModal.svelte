@@ -122,7 +122,7 @@
     
     <!-- Photo Upload Section -->
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-2">
+      <label for="photo-upload" class="block text-sm font-medium text-gray-700 mb-2">
         Photo Evidence <span class="text-red-500">*</span>
       </label>
       
@@ -134,11 +134,11 @@
             capture="environment"
             on:change={handleFileChange}
             class="hidden"
-            id="photo-input"
+            id="photo-upload"
             disabled={isSubmitting}
           />
           <label 
-            for="photo-input" 
+            for="photo-upload" 
             class="cursor-pointer block"
             class:cursor-not-allowed={isSubmitting}
           >
