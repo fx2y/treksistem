@@ -1,4 +1,4 @@
-import { users, mitras, vehicles } from "@treksistem/db";
+import { users, mitras, vehicles, invoices } from "@treksistem/db";
 import type { DbClient } from "@treksistem/db";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -208,6 +208,13 @@ export class TestService {
     // Clean existing showcase data in reverse dependency order
     try {
       await this.directDb.exec(
+        `DELETE FROM invoices WHERE mitra_id = 'mitra_katering_bu_ani'`
+      );
+    } catch (e) {
+      /* ignore if doesn't exist */
+    }
+    try {
+      await this.directDb.exec(
         `DELETE FROM drivers WHERE user_id = 'user_budi_showcase'`
       );
     } catch (e) {
@@ -275,6 +282,27 @@ export class TestService {
       );
     } catch (e) {
       /* ignore if already exists */
+    }
+
+    // Create pending subscription invoice for Bu Ani's mitra using Drizzle ORM
+    try {
+      const amount = 10000; // Rp 10,000 for 1 active driver
+      const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+      const description = `Platform Subscription - 1 driver for ${new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`;
+
+      await this.db.insert(invoices).values({
+        mitraId: "mitra_katering_bu_ani",
+        type: "PLATFORM_SUBSCRIPTION",
+        status: "pending",
+        amount: amount,
+        currency: "IDR",
+        description: description,
+        qrisPayload: `00020101021126580011ID.CO.QRIS.WWW011893600915301234560215ID1234567890123460303UMI51440014ID.CO.SHOPEE.WWW021893600915301234560215ID12345678901234603042024520412349900005304360053033605405${amount.toString().padStart(10, "0")}5802ID5909Treksistem6005Bangu61051234562070703A01630458B4`,
+        dueDate: dueDate,
+      });
+      console.log("Invoice created successfully for showcase");
+    } catch (e) {
+      console.error("Invoice creation error:", e);
     }
 
     return {

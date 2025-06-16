@@ -407,6 +407,6 @@ admin.post("/notifications/templates/seed", async c => {
   }
 });
 
-admin.route("/", billing);
+admin.route("/billing", billing);
 
 export default admin;

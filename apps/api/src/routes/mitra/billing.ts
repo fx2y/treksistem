@@ -7,7 +7,7 @@ import { BillingService } from "../../services/billing.service";
 const app = new Hono<{
   Variables: {
     mitraId: string;
-    db: any;
+    services: any;
   };
 }>();
 
@@ -19,32 +19,56 @@ const querySchema = z.object({
 app.get("/invoices", zValidator("query", querySchema), async c => {
   const { status, limit } = c.req.valid("query");
   const mitraId = c.get("mitraId");
-  const db = c.get("db");
+  const { db } = c.get("services");
 
-  const billingService = new BillingService(db);
-  const invoices = await billingService.getInvoicesByMitra(
-    mitraId,
-    status,
-    limit
-  );
+  try {
+    const billingService = new BillingService(db);
+    const invoices = await billingService.getInvoicesByMitra(
+      mitraId,
+      status,
+      limit
+    );
 
-  return c.json({
-    invoices: invoices.map(invoice => ({
-      invoiceId: invoice.publicId,
-      type: invoice.type,
-      status: invoice.status,
-      amount: invoice.amount,
-      currency: invoice.currency,
-      dueDate: invoice.dueDate?.toISOString(),
-      createdAt: invoice.createdAt.toISOString(),
-    })),
-  });
+    const convertTimestamp = (timestamp: any): string | null => {
+      if (!timestamp || timestamp === null || timestamp === undefined)
+        return null;
+      try {
+        if (timestamp instanceof Date) {
+          return timestamp.toISOString();
+        }
+        if (typeof timestamp === "number") {
+          return new Date(timestamp * 1000).toISOString();
+        }
+        if (typeof timestamp === "string") {
+          return new Date(timestamp).toISOString();
+        }
+      } catch (e) {
+        console.error("Timestamp conversion error:", e, timestamp);
+      }
+      return null;
+    };
+
+    return c.json({
+      invoices: invoices.map(invoice => ({
+        invoiceId: invoice.publicId,
+        type: invoice.type,
+        status: invoice.status,
+        amount: invoice.amount,
+        currency: invoice.currency,
+        dueDate: convertTimestamp(invoice.dueDate),
+        createdAt: convertTimestamp(invoice.createdAt),
+      })),
+    });
+  } catch (error: any) {
+    console.error("Mitra billing error:", error);
+    return c.json({ error: error.message || "Failed to fetch invoices" }, 500);
+  }
 });
 
 app.get("/invoices/:invoiceId", async c => {
   const invoiceId = c.req.param("invoiceId");
   const mitraId = c.get("mitraId");
-  const db = c.get("db");
+  const { db } = c.get("services");
 
   const billingService = new BillingService(db);
   const invoice = await billingService.getInvoiceByPublicId(invoiceId, mitraId);
@@ -67,7 +91,7 @@ app.get("/invoices/:invoiceId", async c => {
 
 app.get("/subscription-status", async c => {
   const mitraId = c.get("mitraId");
-  const db = c.get("db");
+  const { db } = c.get("services");
 
   const billingService = new BillingService(db);
   const status = await billingService.getSubscriptionStatus(mitraId);
