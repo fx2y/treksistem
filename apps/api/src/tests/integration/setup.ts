@@ -5,7 +5,7 @@ import * as schema from "@treksistem/db/schema";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { sql } from "drizzle-orm";
-import { beforeAll, afterAll } from "vitest";
+import { beforeAll, afterAll, afterEach } from "vitest";
 
 // Test database instance
 let testDb: ReturnType<typeof drizzle>;
@@ -103,6 +103,13 @@ beforeAll(async () => {
 
   // 4. Setup mock external services
   setupMockServices();
+});
+
+afterEach(async () => {
+  // Clean up test data after each test to ensure isolation
+  if (testDb) {
+    await testDbHelpers.cleanupTestData();
+  }
 });
 
 afterAll(async () => {
@@ -318,10 +325,8 @@ export const testDbHelpers = {
       .values({
         mitraId: serviceData.mitraId,
         name: serviceData.name,
-        description: serviceData.description,
-        baseFare: serviceData.baseFare,
-        perKmRate: serviceData.perKmRate,
-        isActive: serviceData.isActive ?? true,
+        isPublic: serviceData.isPublic ?? true,
+        maxRangeKm: serviceData.maxRangeKm ?? 10.0,
       })
       .returning();
     return service;
@@ -361,16 +366,30 @@ export const testDbHelpers = {
   },
 
   async cleanupTestData() {
-    // Clean up all test data in proper order (respecting foreign keys)
-    await testDb.delete(schema.orderStops);
-    await testDb.delete(schema.orders);
-    await testDb.delete(schema.services);
-    await testDb.delete(schema.drivers);
-    await testDb.delete(schema.vehicles);
-    await testDb.delete(schema.mitras);
-    await testDb.delete(schema.refreshTokens);
-    await testDb.delete(schema.oauthSessions);
-    await testDb.delete(schema.users);
-    console.log("Test data cleaned up");
+    try {
+      // Clean up all test data in proper order (respecting foreign keys)
+      await testDb.delete(schema.auditLogs);
+      await testDb.delete(schema.notificationLogs);
+      await testDb.delete(schema.orderReports);
+      await testDb.delete(schema.orderStops);
+      await testDb.delete(schema.orders);
+      await testDb.delete(schema.invoices);
+      await testDb.delete(schema.serviceRates);
+      await testDb.delete(schema.servicesToFacilities);
+      await testDb.delete(schema.servicesToPayloadTypes);
+      await testDb.delete(schema.servicesToVehicleTypes);
+      await testDb.delete(schema.services);
+      await testDb.delete(schema.driverInvites);
+      await testDb.delete(schema.driverLocations);
+      await testDb.delete(schema.drivers);
+      await testDb.delete(schema.vehicles);
+      await testDb.delete(schema.mitras);
+      await testDb.delete(schema.refreshTokens);
+      await testDb.delete(schema.oauthSessions);
+      await testDb.delete(schema.users);
+      console.log("Test data cleaned up");
+    } catch (error) {
+      console.warn("Error during test cleanup:", error);
+    }
   },
 };

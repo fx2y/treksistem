@@ -30,13 +30,35 @@ describe("Orders Integration Tests", () => {
     testService = await testDbHelpers.createTestService({
       mitraId: testMitra.id,
       name: "Test Delivery Service",
-      description: "Test service for orders",
-      baseFare: 10000,
-      perKmRate: 2000,
-      isActive: true,
+      isPublic: true,
+      maxRangeKm: 10.0,
     });
 
     testServiceId = testService.id;
+
+    // Setup valid order request data
+    global.validOrderRequest = {
+      serviceId: testServiceId,
+      stops: [
+        {
+          address: "Jl. Merdeka 1, Malang",
+          lat: -7.98,
+          lng: 112.6,
+          type: "pickup" as const,
+        },
+        {
+          address: "Jl. Sudirman 2, Malang", 
+          lat: -7.99,
+          lng: 112.7,
+          type: "dropoff" as const,
+        },
+      ],
+      ordererName: "John Doe",
+      ordererPhone: "081234567890",
+      recipientName: "Jane Doe",
+      recipientPhone: "081234567891",
+      notes: "Handle with care",
+    };
   });
 
   afterEach(async () => {
@@ -45,34 +67,12 @@ describe("Orders Integration Tests", () => {
   });
 
   describe("Public Order Creation", () => {
-    let validOrderRequest: any;
-
     beforeEach(() => {
-      validOrderRequest = {
-        serviceId: testServiceId,
-        stops: [
-          {
-            address: "Jl. Merdeka 1, Malang",
-            lat: -7.98,
-            lng: 112.6,
-            type: "pickup" as const,
-          },
-          {
-            address: "Jl. Sudirman 2, Malang",
-            lat: -7.99,
-            lng: 112.7,
-            type: "dropoff" as const,
-          },
-        ],
-        ordererName: "John Doe",
-        ordererPhone: "081234567890",
-        recipientName: "Jane Doe",
-        recipientPhone: "081234567891",
-        notes: "Handle with care",
-      };
+      // validOrderRequest is initialized in parent beforeEach
     });
 
     it("should create order with valid data", async () => {
+      const validOrderRequest = (global as any).validOrderRequest;
       const response = await client.api.public.orders.$post({
         json: validOrderRequest,
       });
@@ -112,6 +112,7 @@ describe("Orders Integration Tests", () => {
     });
 
     it("should enforce rate limiting on order creation", async () => {
+      const validOrderRequest = (global as any).validOrderRequest;
       // Make multiple rapid order creation requests
       const requests = Array(25)
         .fill(null)
@@ -129,6 +130,7 @@ describe("Orders Integration Tests", () => {
     });
 
     it("should validate phone number format", async () => {
+      const validOrderRequest = (global as any).validOrderRequest;
       const invalidRequest = {
         ...validOrderRequest,
         ordererPhone: "invalid-phone",
@@ -155,6 +157,7 @@ describe("Orders Integration Tests", () => {
 
   describe("Service Quote", () => {
     it("should calculate quote for valid route", async () => {
+      const validOrderRequest = (global as any).validOrderRequest;
       const quoteRequest = {
         serviceId: testServiceId,
         stops: validOrderRequest.stops,
@@ -171,8 +174,9 @@ describe("Orders Integration Tests", () => {
     });
 
     it("should reject quote for invalid service", async () => {
+      const validOrderRequest = (global as any).validOrderRequest;
       const quoteRequest = {
-        serviceId: "invalid-service-id",
+        serviceId: "invalid-service-id", 
         stops: validOrderRequest.stops,
       };
 

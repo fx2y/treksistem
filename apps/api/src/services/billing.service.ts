@@ -1,4 +1,4 @@
-import { invoices, mitras } from "@treksistem/db";
+import { invoices, mitras, drivers } from "@treksistem/db";
 import type { DbClient } from "@treksistem/db";
 import { eq, and, gte, lt } from "drizzle-orm";
 
@@ -360,6 +360,35 @@ export class BillingService {
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .limit(limit)
       .offset(offset);
+  }
+
+  async getSubscriptionStatus(mitraId: string) {
+    const mitra = await this.db
+      .select({
+        activeDriverLimit: mitras.activeDriverLimit,
+        subscriptionStatus: mitras.subscriptionStatus,
+      })
+      .from(mitras)
+      .where(eq(mitras.id, mitraId))
+      .get();
+
+    if (!mitra) {
+      throw new NotFoundError("Mitra not found");
+    }
+
+    const currentDriverCount = await this.db
+      .select({ count: drivers.id })
+      .from(drivers)
+      .where(eq(drivers.mitraId, mitraId));
+
+    return {
+      canInviteDrivers: 
+        mitra.subscriptionStatus === "active" && 
+        currentDriverCount.length < mitra.activeDriverLimit,
+      currentDriverCount: currentDriverCount.length,
+      driverLimit: mitra.activeDriverLimit,
+      subscriptionStatus: mitra.subscriptionStatus,
+    };
   }
 
   async updateInvoiceStatus(data: WebhookUpdateData) {

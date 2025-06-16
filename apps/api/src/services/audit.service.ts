@@ -62,6 +62,33 @@ export class AuditService {
       console.error("Audit logging failed:", error);
     }
   }
+
+  withAuditing<T extends any[], R>(
+    auditOptions: Omit<AuditLogOptions, 'entityId'> & { entityIdFrom?: (result: R) => string },
+    serviceMethod: (...args: T) => Promise<R>
+  ): (...args: T) => Promise<R> {
+    return async (...args: T): Promise<R> => {
+      try {
+        const result = await serviceMethod(...args);
+        
+        // Determine entityId from result or use placeholder
+        const entityId = auditOptions.entityIdFrom 
+          ? auditOptions.entityIdFrom(result)
+          : 'COMPLETED';
+
+        // Log successful operation
+        await this.log({
+          ...auditOptions,
+          entityId,
+        });
+
+        return result;
+      } catch (error) {
+        // Service method failed, no audit log needed
+        throw error;
+      }
+    };
+  }
 }
 
 // Legacy function for backward compatibility

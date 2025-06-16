@@ -15,7 +15,7 @@
     "format:all": "prettier --write \"**/*.{js,ts,tsx,json,md,css,html}\" --cache",
     "db:seed": "node scripts/seed-db.js",
     "db:seed:showcase": "node scripts/setup-showcase-data.js",
-    "test:e2e": "node scripts/e2e-smoke-test.js",
+    "test:e2e": "pnpm dev & wait-on http://localhost:8787/api/test && node scripts/e2e-smoke-test.js",
     "prepare": "husky"
   },
   "devDependencies": {

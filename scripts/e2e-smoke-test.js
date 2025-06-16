@@ -123,9 +123,9 @@ class SmokeTest {
       }
     });
 
-    // Test 4: Quote endpoint (should handle missing data gracefully)
-    await this.test("Quote Endpoint Error Handling", async () => {
-      const response = await this.makeRequest("/api/public/quote", {
+    // Test 4: Order creation endpoint (should handle missing data gracefully)
+    await this.test("Order Creation Error Handling", async () => {
+      const response = await this.makeRequest("/api/public/orders", {
         method: "POST",
         body: JSON.stringify({}),
       });
@@ -137,7 +137,7 @@ class SmokeTest {
       }
     });
 
-    // Test 5: Auth endpoints without credentials
+    // Test 5: Auth endpoints without credentials  
     await this.test("Protected Endpoint Auth Check", async () => {
       const response = await this.makeRequest("/api/mitra/profile");
       // Should return 401 unauthorized
@@ -148,7 +148,18 @@ class SmokeTest {
       }
     });
 
-    // Test 6: Static file serving (if applicable)
+    // Test 6: Billing subscription status endpoint (protected)
+    await this.test("Billing Endpoint Auth Check", async () => {
+      const response = await this.makeRequest("/api/mitra/billing/subscription-status");
+      // Should return 401 unauthorized without token
+      if (response.status !== 401) {
+        throw new Error(
+          `Expected 401 for billing endpoint, got ${response.status}`
+        );
+      }
+    });
+
+    // Test 7: Static file serving (if applicable)
     await this.test("Static Assets", async () => {
       const response = await this.makeRequest("/favicon.ico");
       // Should either return 200 or 404, but not 500

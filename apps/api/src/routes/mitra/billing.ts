@@ -65,4 +65,14 @@ app.get("/invoices/:invoiceId", async c => {
   });
 });
 
+app.get("/subscription-status", async c => {
+  const mitraId = c.get("mitraId");
+  const db = c.get("db");
+
+  const billingService = new BillingService(db);
+  const status = await billingService.getSubscriptionStatus(mitraId);
+
+  return c.json(status);
+});
+
 export default app;
