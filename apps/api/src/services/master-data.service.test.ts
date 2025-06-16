@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+
 import { MasterDataService } from "./master-data.service";
 
 describe("MasterDataService", () => {
@@ -79,7 +80,9 @@ describe("MasterDataService", () => {
       ];
 
       mockDb.select.mockReturnValue({
-        from: vi.fn().mockResolvedValueOnce(mockVehicleTypes)
+        from: vi
+          .fn()
+          .mockResolvedValueOnce(mockVehicleTypes)
           .mockResolvedValueOnce([])
           .mockResolvedValueOnce([]),
       });
@@ -94,14 +97,15 @@ describe("MasterDataService", () => {
     });
 
     it("should call database with correct tables", async () => {
-      mockDb.select.mockReturnValue({
+      const mockChain = {
         from: vi.fn().mockResolvedValue([]),
-      });
+      };
+      mockDb.select.mockReturnValue(mockChain);
 
       await masterDataService.getMasterData();
 
-      expect(mockDb.select).toHaveBeenCalledTimes(1);
-      expect(mockDb.from).toHaveBeenCalledTimes(3);
+      expect(mockDb.select).toHaveBeenCalledTimes(3);
+      expect(mockChain.from).toHaveBeenCalledTimes(3);
     });
   });
 });

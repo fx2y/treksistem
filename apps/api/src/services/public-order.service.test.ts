@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { PublicOrderService } from "./public-order.service";
-import { AuditService } from "./audit.service";
+
 import { NotFoundError } from "../lib/errors";
+import { createMockDb } from "../tests/mocks/database.mock";
+
+import { AuditService } from "./audit.service";
+import { PublicOrderService } from "./public-order.service";
 
 // Mock the geo package
 vi.mock("@treksistem/geo", () => ({
@@ -15,22 +18,7 @@ describe("PublicOrderService", () => {
   let mockAuditService: AuditService;
 
   beforeEach(() => {
-    mockDb = {
-      select: vi.fn().mockReturnThis(),
-      from: vi.fn().mockReturnThis(),
-      innerJoin: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      get: vi.fn(),
-      insert: vi.fn().mockReturnThis(),
-      values: vi.fn().mockReturnThis(),
-      returning: vi.fn(),
-      transaction: vi.fn(),
-      query: {
-        orders: {
-          findFirst: vi.fn(),
-        },
-      },
-    };
+    mockDb = createMockDb();
 
     mockNotificationService = {
       generate: vi.fn(),
@@ -178,8 +166,18 @@ describe("PublicOrderService", () => {
     const validRequest = {
       serviceId: "service_1",
       stops: [
-        { address: "Pickup Point", lat: -7.98, lng: 112.6, type: "pickup" as const },
-        { address: "Dropoff Point", lat: -7.99, lng: 112.7, type: "dropoff" as const },
+        {
+          address: "Pickup Point",
+          lat: -7.98,
+          lng: 112.6,
+          type: "pickup" as const,
+        },
+        {
+          address: "Dropoff Point",
+          lat: -7.99,
+          lng: 112.7,
+          type: "dropoff" as const,
+        },
       ],
       ordererName: "John Doe",
       ordererPhone: "081234567890",
@@ -205,7 +203,7 @@ describe("PublicOrderService", () => {
       };
 
       mockDb.get.mockResolvedValueOnce(mockService);
-      
+
       // Mock calculateQuote
       vi.spyOn(publicOrderService, "calculateQuote").mockResolvedValue({
         estimatedCost: 15000,
@@ -213,11 +211,12 @@ describe("PublicOrderService", () => {
       });
 
       // Mock transaction
-      mockDb.transaction.mockImplementation(async (callback) => {
+      mockDb.transaction.mockImplementation(async callback => {
         const mockTx = {
           insert: vi.fn().mockReturnThis(),
           values: vi.fn().mockReturnThis(),
-          returning: vi.fn()
+          returning: vi
+            .fn()
             .mockResolvedValueOnce([mockOrderResult])
             .mockResolvedValueOnce([mockNotificationLog]),
         };
@@ -238,10 +237,11 @@ describe("PublicOrderService", () => {
         ]),
       });
 
-      mockDb.select.mockReturnValueOnce({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        get: vi.fn().mockResolvedValue({ businessName: "Test Mitra" }),
+      // Mock service lookup - this is the first get() call
+      mockDb.get.mockResolvedValueOnce({
+        businessName: "Test Mitra",
+        id: "service_1",
+        isPublic: true,
       });
 
       const result = await publicOrderService.createOrder(validRequest);
@@ -291,12 +291,12 @@ describe("PublicOrderService", () => {
     it("should throw NotFoundError when service not found", async () => {
       mockDb.get.mockResolvedValue(null);
 
-      await expect(publicOrderService.createOrder(validRequest)).rejects.toThrow(
-        NotFoundError
-      );
-      await expect(publicOrderService.createOrder(validRequest)).rejects.toThrow(
-        "Service not found or not public"
-      );
+      await expect(
+        publicOrderService.createOrder(validRequest)
+      ).rejects.toThrow(NotFoundError);
+      await expect(
+        publicOrderService.createOrder(validRequest)
+      ).rejects.toThrow("Service not found or not public");
     });
 
     it("should work without audit service", async () => {
@@ -321,17 +321,18 @@ describe("PublicOrderService", () => {
       };
 
       mockDb.get.mockResolvedValueOnce(mockService);
-      
+
       vi.spyOn(serviceWithoutAudit, "calculateQuote").mockResolvedValue({
         estimatedCost: 15000,
         totalDistanceKm: 5.0,
       });
 
-      mockDb.transaction.mockImplementation(async (callback) => {
+      mockDb.transaction.mockImplementation(async callback => {
         const mockTx = {
           insert: vi.fn().mockReturnThis(),
           values: vi.fn().mockReturnThis(),
-          returning: vi.fn()
+          returning: vi
+            .fn()
             .mockResolvedValueOnce([mockOrderResult])
             .mockResolvedValueOnce([mockNotificationLog]),
         };

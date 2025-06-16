@@ -1,11 +1,45 @@
-<script>
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { adminAuthService } from '$lib/services/authService';
+	import { goto } from '$app/navigation';
+
 	let isLoggedIn = false;
-	let currentView = 'login'; // 'login' or 'dashboard'
-	
-	// Mock login function (in real app, would use OAuth)
-	function handleLogin() {
-		isLoggedIn = true;
-		currentView = 'dashboard';
+	let loading = true;
+	let error = '';
+
+	onMount(async () => {
+		try {
+			isLoggedIn = await adminAuthService.initializeAuth();
+		} catch (err) {
+			console.error('Auth initialization failed:', err);
+			isLoggedIn = false;
+		} finally {
+			loading = false;
+		}
+	});
+
+	async function handleLogin() {
+		try {
+			error = '';
+			// For demo purposes, simulate login
+			window.location.href = '/api/auth/google';
+		} catch (err) {
+			error = 'Login failed. Please try again.';
+			console.error('Login error:', err);
+		}
+	}
+
+	async function handleLogout() {
+		try {
+			await adminAuthService.logout();
+			isLoggedIn = false;
+		} catch (err) {
+			console.error('Logout error:', err);
+		}
+	}
+
+	function navigateTo(path: string) {
+		goto(path);
 	}
 </script>
 
@@ -13,7 +47,15 @@
 	<title>Admin Portal - Treksistem</title>
 </svelte:head>
 
-{#if !isLoggedIn}
+{#if loading}
+	<!-- Loading State -->
+	<div class="min-h-[80vh] flex items-center justify-center">
+		<div class="text-center">
+			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+			<p class="text-gray-600">Loading...</p>
+		</div>
+	</div>
+{:else if !isLoggedIn}
 	<!-- Login Page -->
 	<div class="min-h-[80vh] flex items-center justify-center">
 		<div class="max-w-md w-full space-y-8">
@@ -25,12 +67,19 @@
 					For showcase purposes only
 				</p>
 			</div>
+			
+			{#if error}
+				<div class="bg-red-50 border border-red-200 rounded-lg p-4">
+					<p class="text-red-800">{error}</p>
+				</div>
+			{/if}
+			
 			<div class="mt-8 space-y-6">
 				<button
 					on:click={handleLogin}
 					class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
 				>
-					🔐 Login with Google (Mock)
+					🔐 Login with Google
 				</button>
 				
 				<div class="text-center text-xs text-gray-500">
@@ -42,71 +91,53 @@
 {:else}
 	<!-- Admin Dashboard -->
 	<div class="px-4 py-6 sm:px-0">
-		<div class="border-4 border-dashed border-gray-200 rounded-lg p-8">
-			<h1 class="text-2xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
+		<div class="max-w-6xl mx-auto">
+			<div class="flex justify-between items-center mb-6">
+				<h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+				<button
+					on:click={handleLogout}
+					class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+				>
+					🚪 Logout
+				</button>
+			</div>
 			
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<!-- Manual Payment Confirmation -->
-				<div class="bg-white overflow-hidden shadow rounded-lg">
+				<div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow">
 					<div class="px-4 py-5 sm:p-6">
 						<h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-							Manual Payment Confirmation
+							💰 Manual Payment Confirmation
 						</h3>
 						<p class="text-sm text-gray-500 mb-4">
 							Confirm payments received outside the system (bank transfer, cash, etc.)
 						</p>
 						
-						<form class="space-y-4">
-							<div>
-								<label for="invoiceId" class="block text-sm font-medium text-gray-700">
-									Invoice ID
-								</label>
-								<input
-									type="text"
-									id="invoiceId"
-									placeholder="e.g., pub_inv01"
-									class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-								/>
-							</div>
-							
-							<button
-								type="button"
-								on:click={() => alert('Payment confirmed! In real app, this would call POST /api/admin/invoices/:invoiceId/confirm-payment')}
-								class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-							>
-								✅ Confirm Payment
-							</button>
-						</form>
+						<button
+							on:click={() => navigateTo('/billing')}
+							class="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors font-medium"
+						>
+							View Pending Invoices →
+						</button>
 					</div>
 				</div>
 				
 				<!-- Master Data Management -->
-				<div class="bg-white overflow-hidden shadow rounded-lg">
+				<div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow">
 					<div class="px-4 py-5 sm:p-6">
 						<h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-							Master Data Management
+							🗂️ Master Data Management
 						</h3>
 						<p class="text-sm text-gray-500 mb-4">
 							Manage global categories like vehicle types and payload types
 						</p>
 						
-						<div class="space-y-2">
-							<button class="w-full text-left px-3 py-2 text-sm border border-gray-200 rounded hover:bg-gray-50">
-								🚗 Vehicle Types
-							</button>
-							<button class="w-full text-left px-3 py-2 text-sm border border-gray-200 rounded hover:bg-gray-50">
-								📦 Payload Types
-							</button>
-							<button class="w-full text-left px-3 py-2 text-sm border border-gray-200 rounded hover:bg-gray-50">
-								🏠 Facilities
-							</button>
-						</div>
-						
-						<div class="mt-4 p-3 bg-blue-50 rounded-md">
-							<p class="text-xs text-blue-700">
-								💡 Showcase: "Let's imagine we've just added 'Makanan Ringan' as a new payload type."
-							</p>
-						</div>
+						<button
+							on:click={() => navigateTo('/master-data')}
+							class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors font-medium"
+						>
+							Manage Categories →
+						</button>
 					</div>
 				</div>
 				
